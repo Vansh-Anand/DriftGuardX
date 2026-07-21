@@ -1,0 +1,166 @@
+{
+  "timestamp": "2026-07-21T17:02:12.880580+00:00",
+  "demo_mode": true,
+  "steps": {
+    "health": {
+      "status": "ok",
+      "version": "0.1.0",
+      "timestamp": "2026-07-21T17:02:15.057282Z"
+    },
+    "original_run": {
+      "id": "1558e3de-a9f7-4d5f-9ca4-7ae993b25a53",
+      "tenant_id": "00000000-0000-0000-ffff-000000000001",
+      "pipeline_id": "00000000-0000-0000-aaaa-000000000002",
+      "status": "completed",
+      "request_hash": "802c633e5d3b65fe10e276e6501a74ed37529f2aa0649bb59ac387c36308d4e6",
+      "reliability_score": 0.935,
+      "reliability_vector": {
+        "latency_ok": 1.0,
+        "policy_pass": 1.0,
+        "error_free": 1.0,
+        "token_budget": 1.0,
+        "faithfulness": 0.35
+      },
+      "total_latency_ms": 0.886,
+      "total_tokens": 192,
+      "total_cost_usd": 0.0,
+      "error_type": null,
+      "error_message": null,
+      "created_at": "2026-07-21T17:02:15.129495Z",
+      "started_at": "2026-07-21T17:02:15.088039Z",
+      "completed_at": "2026-07-21T17:02:15.088925Z",
+      "is_synthetic": true
+    },
+    "trace": {
+      "trace_id": "5588f733082c3da1471fafc374b8f603",
+      "total_span_count": 9,
+      "span_components": [
+        {
+          "name": "rag_pipeline",
+          "component_type": null,
+          "version": null,
+          "latency_ms": 0.846,
+          "status": "OK"
+        },
+        {
+          "name": "memory_read/v1",
+          "component_type": "memory_read",
+          "version": "v1",
+          "latency_ms": 0.004,
+          "status": "OK"
+        },
+        {
+          "name": "retriever/v2-exp",
+          "component_type": "retriever",
+          "version": "v2-exp",
+          "latency_ms": 0.006,
+          "status": "OK"
+        },
+        {
+          "name": "reranker/v1",
+          "component_type": "reranker",
+          "version": "v1",
+          "latency_ms": 0.009000000000000001,
+          "status": "OK"
+        },
+        {
+          "name": "generator/v1",
+          "component_type": "generator",
+          "version": "v1",
+          "latency_ms": 0.019,
+          "status": "OK"
+        },
+        {
+          "name": "tool_call/v1",
+          "component_type": "tool_call",
+          "version": "v1",
+          "latency_ms": 0.003,
+          "status": "OK"
+        },
+        {
+          "name": "policy_check/v1",
+          "component_type": "policy_check",
+          "version": "v1",
+          "latency_ms": 0.003,
+          "status": "OK"
+        },
+        {
+          "name": "memory_write/v1",
+          "component_type": "memory_write",
+          "version": "v1",
+          "latency_ms": 0.003,
+          "status": "OK"
+        },
+        {
+          "name": "final_response/v1",
+          "component_type": "final_response",
+          "version": "v1",
+          "latency_ms": 0.003,
+          "status": "OK"
+        }
+      ]
+    },
+    "replay": {
+      "id": "891c3722-5c35-46b8-9abf-a80f534d70a4",
+      "original_run_id": "1558e3de-a9f7-4d5f-9ca4-7ae993b25a53",
+      "status": "completed",
+      "swapped_component_type": "retriever",
+      "original_version_tag": "v2-exp",
+      "replay_version_tag": "v1",
+      "original_reliability_score": 0.935,
+      "replay_reliability_score": 1.0,
+      "reliability_improvement": 0.065,
+      "original_reliability_vector": {
+        "latency_ok": 1.0,
+        "policy_pass": 1.0,
+        "error_free": 1.0,
+        "token_budget": 1.0,
+        "faithfulness": 0.35
+      },
+      "replay_reliability_vector": {
+        "latency_ok": 1.0,
+        "policy_pass": 1.0,
+        "error_free": 1.0,
+        "token_budget": 1.0,
+        "faithfulness": 1.0
+      },
+      "reliability_delta": {
+        "error_free": 0.0,
+        "faithfulness": 0.65,
+        "latency_ok": 0.0,
+        "policy_pass": 0.0,
+        "token_budget": 0.0
+      },
+      "created_at": "2026-07-21T17:02:15.232292Z",
+      "completed_at": "2026-07-21T17:02:15.221359Z",
+      "is_synthetic": true
+    },
+    "stable_run": {
+      "id": "852f37d8-93ce-40e8-8589-6addb7fc9e9b",
+      "tenant_id": "00000000-0000-0000-ffff-000000000001",
+      "pipeline_id": "00000000-0000-0000-aaaa-000000000001",
+      "status": "completed",
+      "request_hash": "802c633e5d3b65fe10e276e6501a74ed37529f2aa0649bb59ac387c36308d4e6",
+      "reliability_score": 0.99,
+      "reliability_vector": {
+        "latency_ok": 1.0,
+        "policy_pass": 1.0,
+        "error_free": 1.0,
+        "token_budget": 1.0,
+        "faithfulness": 0.9
+      },
+      "total_latency_ms": 1.253,
+      "total_tokens": 192,
+      "total_cost_usd": 0.0,
+      "error_type": null,
+      "error_message": null,
+      "created_at": "2026-07-21T17:02:15.285165Z",
+      "started_at": "2026-07-21T17:02:15.278165Z",
+      "completed_at": "2026-07-21T17:02:15.279418Z",
+      "is_synthetic": true
+    },
+    "runs_list": {
+      "total": 4
+    }
+  }
+}
