@@ -1,7 +1,15 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.6.0] - 2026-07-22
+### [0.7.0] - 2026-07-22
+
+### Added
+- **Intervention Engine (`packages/replay`)**: Developed an intervention catalog and async replay planner with exhaustive Pareto generation.
+- **Intervention Schemas**: Rollback, Alternate Stable, Config Patch, Route Change, Disable, Quarantine, Retry Bounded, Human Mutation.
+- **Pareto Scorer (`packages/evaluation`)**: Evaluates reliability deltas to determine Pareto-optimal vs dominated replays.
+- **Human Review UI**: Built `apps/web/app/interventions/[run_id]/page.tsx` to approve/reject optimal strategies based on Cost and Latency regressions.
+
+## [0.6.0] - 2026-07-22
 
 ### Added
 - **Diffusion Module (`packages/diffusion`)**: Implemented the cross-layer drift signature propagation engine.

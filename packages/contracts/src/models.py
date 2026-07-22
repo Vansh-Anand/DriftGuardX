@@ -77,14 +77,19 @@ class ReplayStatus(str, enum.Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    INVALID = "invalid"
+    NEGATIVE_OUTCOME = "negative_outcome"
 
 
 class InterventionType(str, enum.Enum):
-    RETRIEVER_ROLLBACK = "retriever_rollback"
-    RERANKER_ROLLBACK = "reranker_rollback"
-    GENERATOR_ROLLBACK = "generator_rollback"
-    POLICY_OVERRIDE = "policy_override"
-    MANUAL_ANNOTATION = "manual_annotation"
+    ROLLBACK = "rollback"
+    ALTERNATE_STABLE = "alternate_stable"
+    CONFIG_PATCH = "config_patch"
+    ROUTE_CHANGE = "route_change"
+    DISABLE = "disable"
+    QUARANTINE = "quarantine"
+    RETRY_BOUNDED = "retry_bounded"
+    HUMAN_MUTATION = "human_mutation"
 
 
 class DiagnosisClaimStatus(str, enum.Enum):
@@ -394,6 +399,7 @@ class ReplayEpisode(DGXBaseModel):
     replay_id: UUID = Field(default_factory=uuid4)
     capsule_hash: str = ""
     status: ReplayStatus = ReplayStatus.PENDING
+    invalid_reason: str | None = None
 
     # Version pinning — which component was swapped
     swapped_component_type: ComponentType
