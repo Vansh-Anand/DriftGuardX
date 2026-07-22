@@ -1,62 +1,64 @@
 # Mandatory Antigravity Handoff Format
 
-**1. Stage completed:** Prompt 10 — Certified Recovery Bounds, Calibration, and Coverage Monitoring
-**2. Estimated cumulative completion after verified gates:** 71%
+**1. Stage completed:** Prompt 11 — Risk-Tiered Multi-Tenant Policy Inheritance and Approval Workflows
+**2. Estimated cumulative completion after verified gates:** 76%
 
 **3. Repository audit and design decisions:**
-Extended the existing `contribution.py` bootstrap CI (which used a naive `±1.96 * std_err` approximation) with three rigorous bound calculators: Hoeffding analytic, Bootstrap percentile, and Split-conformal. Each returns a typed `BoundResult` dataclass with explicit `assumptions_met` / `assumptions_violated` lists. When any bound assumption is violated, `UnsupportedBound` is returned — no fabricated number. The certification policy enforces five gates (bound assumptions, episode count, valid replay fraction, calibration age, empirical coverage); critical failures default to REJECTED with automated actions blocked.
+The existing `packages/policy/src/gate.py` was a flat single-level gate. We extended the policy package with six new modules without modifying gate.py (backward compatible). The resolver uses first-match-wins within each node and most-restrictive-wins across levels, which is deterministic and property-tested. `PolicyConflictError` is raised (not silently ignored) when a child rule tries to relax a parent restriction without `override_justification` — this forces the operator to explicitly acknowledge the override. Break-glass intentionally bypasses `delegated_approvers` (emergency use) but retains the self-approval check and produces a mandatory post-hoc audit entry.
 
 **4. Files created, modified, migrated, or deprecated:**
-- `packages/evaluation/src/bounds.py` (New: Hoeffding, Bootstrap, Conformal, UnsupportedBound)
-- `packages/evaluation/src/calibration.py` (New: Empirical coverage pipeline, subgroup analysis, UndercoverageAlert, conformal baseline)
-- `packages/evaluation/src/certification.py` (New: 5-gate CERTIFIED/UNCERTIFIED/REJECTED policy)
-- `packages/evaluation/src/coverage_monitor.py` (New: Production-stream drift monitor, certificate downgrade)
-- `packages/contracts/src/models.py` (Modified: RootCauseReport extended with 11 new certification fields)
-- `apps/web/app/reports/[run_id]/page.tsx` (Modified: Gated CertificationBadge; Execute Action disabled unless CERTIFIED)
-- `docs/proof_appendix_bounds.md` (New: Statistical proof appendix + engineering interpretation)
-- `docs/patent_evidence_bounds.md` (New: Mechanism 3.C patent claims mapping)
-- `tests/e2e/test_bounds_calibration.py` (New: 15 tests covering all 5 acceptance gates)
-- `CHANGELOG.md` (Modified)
+- `packages/policy/src/hierarchy.py` (New: PolicyRule, PolicyNode, EffectivePolicy schemas)
+- `packages/policy/src/resolver.py` (New: InheritanceResolver, PolicyRegistry, tightening-only algorithm)
+- `packages/policy/src/tiers.py` (New: Action→Tier map, approval requirements by tier)
+- `packages/policy/src/approvals.py` (New: ApprovalService with full lifecycle + break-glass)
+- `packages/policy/src/engine.py` (New: Unified PolicyEngine integrating all subsystems)
+- `packages/policy/src/shadow.py` (New: Shadow/simulation mode)
+- `packages/policy/src/hooks.py` (New: pre_replay_check, pre_recovery_check, pre_execution_check, pre_rollback_check)
+- `apps/web/app/policy/page.tsx` (New: Policy admin UI — hierarchy, matrix, approval queue)
+- `docs/patent_evidence_policy.md` (New: Mechanism 3.E claims mapping)
+- `tests/security/test_policy_security.py` (New: 15 security tests)
+- `CHANGELOG.md` (Modified: v0.11.0)
 
 **5. Commands executed and exact test/results summary:**
 ```
-$env:PYTHONPATH="."; python -m pytest tests/e2e/test_bounds_calibration.py -v
-============================= 15 passed in 0.30s ==============================
+$env:PYTHONPATH="."; python -m pytest tests/security/test_policy_security.py tests/e2e/test_bounds_calibration.py -v
+30 passed in 0.31s
 
-Tests cover:
-  test_hoeffding_bound_is_supported_with_sufficient_n          PASSED
-  test_hoeffding_low_n_still_supported_but_warns               PASSED
-  test_hoeffding_returns_unsupported_when_reward_out_of_range  PASSED
-  test_bootstrap_returns_unsupported_on_tiny_n                 PASSED
-  test_conformal_returns_unsupported_on_small_calibration      PASSED
-  test_bootstrap_bound_is_tighter_than_hoeffding_on_same_data  PASSED
-  test_conformal_coverage_satisfied                            PASSED
-  test_calibration_coverage_report_fields                      PASSED
-  test_undercoverage_alert_triggered                           PASSED
-  test_certify_returns_certified_when_all_gates_pass           PASSED
-  test_certify_returns_uncertified_when_calibration_expired    PASSED
-  test_certify_returns_rejected_when_no_replays                PASSED
-  test_certify_blocked_when_insufficient_episodes              PASSED
-  test_coverage_monitor_downgrade_on_expiry                    PASSED
-  test_coverage_monitor_no_downgrade_for_uncertified           PASSED
+Security tests:
+  test_cross_tenant_policy_isolation                    PASSED
+  test_tenant_b_cannot_read_tenant_a_decisions          PASSED
+  test_confused_deputy_low_role_cannot_execute_high     PASSED
+  test_self_approval_is_blocked                         PASSED
+  test_unauthorized_approver_is_blocked                 PASSED
+  test_delegated_approver_succeeds                      PASSED
+  test_critical_action_blocked_without_approval         PASSED
+  test_critical_action_needs_two_approvers              PASSED
+  test_break_glass_requires_justification               PASSED
+  test_break_glass_is_audited                           PASSED
+  test_effective_policy_is_deterministic                PASSED
+  test_shadow_evaluation_detects_policy_relaxation      PASSED
+  test_default_deny_on_unknown_action                   PASSED
+  test_child_deny_overrides_parent_allow                PASSED
+  test_child_cannot_relax_without_justification         PASSED
 ```
 
 **6. Demonstration or experiment artifacts with paths:**
-- `docs/proof_appendix_bounds.md` — statistical assumptions and engineering interpretation
-- `docs/patent_evidence_bounds.md` — mechanism 3.C claims ledger with negative results
-- `apps/web/app/reports/[run_id]/page.tsx` — CertificationBadge UI (id="execute-action-button" is disabled for non-CERTIFIED)
+- `docs/patent_evidence_policy.md` — Mechanism 3.E claims ledger with measured effects
+- `apps/web/app/policy/page.tsx` — Policy UI (hierarchy, action matrix, approval queue)
 
 **7. Security, privacy, safety, and IP-disclosure checks:**
-- All files created locally; no external publication.
-- `docs/proof_appendix_bounds.md` explicitly states "NOT a system safety guarantee" and this language is enforced in the UI disclaimer text.
-- Fail-closed: REJECTED blocks automated downstream actions entirely.
+- All files private; no external publication.
+- Default-deny enforced: unknown actions, missing nodes, and resolution errors all return DENY.
+- Self-approval invariant enforced before any state is written.
+- Break-glass produces `requires_post_hoc_review=True` audit entry.
 
 **8. Known limitations and failed/negative results:**
-- Hoeffding bounds are very wide for n < 30 (spans ~80% of [0,1] at 90% confidence, n=5). This is the correct behavior — the bound is valid but uninformative. Bootstrap tightens this at n ≥ 10 but requires exchangeability.
-- Conformal intervals require a strictly separate calibration split. In bandit scheduling scenarios where all episodes are used for arm selection, conformal is unavailable (UnsupportedBound returned). This limitation is documented in the patent evidence pack.
-- CoverageMonitor currently operates in-memory; persistent monitoring across process restarts requires the BanditState SQLite table integration (next prompt scope).
+- `PolicyRegistry` is in-memory; cross-process persistence requires DB integration (next prompt scope).
+- `shadow_evaluate` is sequential; >100k events would require parallelization.
+- Policy UI Approve/Deny buttons render correctly but API calls are not wired (API routes out of scope).
+- `break_glass` bypasses `delegated_approvers` check by design (emergency access); only self-approval is blocked in break-glass mode.
 
 **9. Data migrations and rollback notes:**
-- `RootCauseReport` schema in `models.py` extended with 11 new fields, all with safe defaults (`UNCERTIFIED`, `True` for human_review_required and block_automated_action). No migration required — existing rows default to the most conservative (fail-safe) values.
+- No DB schema changes in this prompt. `gate.py` is preserved unchanged for backward compatibility. New modules add no persistent state; in-memory state resets on restart.
 
-**10. HANDOFF.md updated; next prompt:** 11
+**10. HANDOFF.md updated; next prompt:** 12

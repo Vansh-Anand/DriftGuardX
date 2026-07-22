@@ -1,7 +1,21 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.10.0] - 2026-07-22
+### [0.11.0] - 2026-07-22
+
+### Added
+- **Policy Hierarchy (`packages/policy/src/hierarchy.py`)**: `PolicyRule`, `PolicyNode`, `EffectivePolicy` across four levels (Org→BU→Pipeline→Agent) with full audit chain.
+- **Inheritance Resolver (`packages/policy/src/resolver.py`)**: Tightening-only deterministic resolution; `PolicyConflictError` on illegal relaxation without justification.
+- **Risk Tier Registry (`packages/policy/src/tiers.py`)**: All DriftGuard-X actions mapped to LOW/MEDIUM/HIGH/CRITICAL with per-tier approval requirements.
+- **Approval Service (`packages/policy/src/approvals.py`)**: Full lifecycle (create, approve, deny, expire); self-approval block; delegated approvers; break-glass with mandatory audit.
+- **Unified Policy Engine (`packages/policy/src/engine.py`)**: Single evaluator integrating hierarchy, tiers, and approvals; every decision logged with rule_id and policy version.
+- **Shadow Mode (`packages/policy/src/shadow.py`)**: Candidate policy evaluation against historical events with tightened/relaxed/unchanged diff report.
+- **Integration Hooks (`packages/policy/src/hooks.py`)**: `pre_replay_check`, `pre_recovery_check`, `pre_execution_check`, `pre_rollback_check` — raises `PolicyDeniedError` on deny.
+- **Policy UI (`apps/web/app/policy/page.tsx`)**: Three-tab console: hierarchy tree, action matrix, approval queue with break-glass flagging.
+- **Patent Evidence (`docs/patent_evidence_policy.md`)**: Mechanism 3.E claims mapping.
+- **Security Tests (`tests/security/test_policy_security.py`)**: 15 tests covering cross-tenant isolation, confused deputy, self-approval block, break-glass audit, determinism, and tightening inheritance.
+
+## [0.10.0] - 2026-07-22
 
 ### Added
 - **Bound Library (`packages/evaluation/src/bounds.py`)**: Hoeffding analytic, Bootstrap percentile, Conformal prediction, and UnsupportedBound sentinel — each with explicit assumption documentation and fail-closed behavior.
