@@ -1,7 +1,16 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.7.0] - 2026-07-22
+### [0.8.0] - 2026-07-22
+
+### Added
+- **Causal Contribution Vector (`packages/evaluation/src/contribution.py`)**: Computes multidimensional scores spanning reliability gain, cost, latency, and risk.
+- **RCA Metrics & Abstention (`packages/evaluation/src/rca_metrics.py`)**: Evaluates Root Cause Analysis precision, MRR, and multi-fault credit, with built-in abstention thresholds.
+- **Exhaustive Benchmark Runner (`packages/evaluation/src/benchmark.py`)**: Executes matched replay sets with No-Op and Irrelevant component negative controls.
+- **Causal Language Guidelines (`docs/causal_language_guidelines.md`)**: Set strict linguistic constraints against absolute causal proof claims in reporting.
+- **Root Cause Report UI**: Built `apps/web/app/reports/[run_id]/page.tsx` for viewing diagnostic results, negative controls, and epistemic limitations.
+
+## [0.7.0] - 2026-07-22
 
 ### Added
 - **Intervention Engine (`packages/replay`)**: Developed an intervention catalog and async replay planner with exhaustive Pareto generation.

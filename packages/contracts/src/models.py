@@ -568,5 +568,32 @@ class SymptomRegistryEntry(DGXBaseModel):
     detector_version: str
     evidence_snippet: str = ""
     uncertainty: float | None = None  # 0.0 - 1.0
+
+# ─── Root Cause Report (Prompt 08) ───────────────────────────────────────────
+
+class RankedCandidate(DGXBaseModel):
+    """A ranked candidate from the exhaustive RCA benchmark."""
+    component_type: ComponentType
+    intervention_type: InterventionType
+    aggregate_score: float
+    reliability_improvement_mean: float
+    reliability_improvement_variance: float
+    cost_delta_usd: float
+    latency_delta_ms: float
+    invalid_rate: float
+    trials_n: int
+    is_negative_control: bool = False
+
+class RootCauseReport(DGXBaseModel):
+    """Final RCA report detailing candidates, controls, and limitations."""
+    id: UUID = Field(default_factory=_new_uuid)
+    run_id: UUID
+    tenant_id: UUID
+    ranked_candidates: list[RankedCandidate] = Field(default_factory=list)
+    abstention_triggered: bool = False
+    limitations: list[str] = Field(default_factory=list)
+    recommended_next_step: str | None = None
+    created_at: datetime = Field(default_factory=_utcnow)
+
     detected_at: datetime = Field(default_factory=_utcnow)
 
