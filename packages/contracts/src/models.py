@@ -594,6 +594,22 @@ class RootCauseReport(DGXBaseModel):
     limitations: list[str] = Field(default_factory=list)
     recommended_next_step: str | None = None
     created_at: datetime = Field(default_factory=_utcnow)
-
     detected_at: datetime = Field(default_factory=_utcnow)
+
+    # ── Certification fields (Prompt 10) ─────────────────────────────────────
+    # Language: "statistically bounded under listed assumptions" — NOT "repair is correct"
+    certificate_status: str = "UNCERTIFIED"  # CERTIFIED | UNCERTIFIED | REJECTED
+    certification_policy_version: str = "v1.0"
+    bound_method: str | None = None          # hoeffding | bootstrap | conformal | unsupported
+    epsilon: float | None = None             # margin of error
+    delta: float | None = None               # failure probability (1 - nominal_confidence)
+    assumptions_met: list[str] = Field(default_factory=list)
+    assumptions_violated: list[str] = Field(default_factory=list)
+    observed_coverage: float | None = None   # empirical coverage, always reported alongside nominal
+    nominal_confidence: float | None = None
+    calibration_version: str | None = None
+    calibration_age_days: float | None = None
+    human_review_required: bool = True       # defaults True; cleared only when CERTIFIED
+    block_automated_action: bool = True      # defaults True; cleared only when CERTIFIED
+
 

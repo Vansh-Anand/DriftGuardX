@@ -1,7 +1,19 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.9.0] - 2026-07-22
+### [0.10.0] - 2026-07-22
+
+### Added
+- **Bound Library (`packages/evaluation/src/bounds.py`)**: Hoeffding analytic, Bootstrap percentile, Conformal prediction, and UnsupportedBound sentinel — each with explicit assumption documentation and fail-closed behavior.
+- **Calibration Pipeline (`packages/evaluation/src/calibration.py`)**: Empirical coverage at 80/90/95/99% nominal levels, subgroup analysis by fault_type and component_layer, and UndercoverageAlert.
+- **Certification Policy (`packages/evaluation/src/certification.py`)**: Five-gate CERTIFIED/UNCERTIFIED/REJECTED verdict with versioned CertificationPolicy; critical failures default to REJECTED and block automated actions.
+- **Coverage Monitor (`packages/evaluation/src/coverage_monitor.py`)**: Production-stream drift detection; CERTIFIED diagnoses downgraded to UNCERTIFIED on calibration expiry or coverage drift.
+- **Schema (`packages/contracts/src/models.py`)**: Extended RootCauseReport with certificate_status, bound_method, epsilon, delta, observed_coverage, calibration_version, assumptions_met/violated, human_review_required, block_automated_action.
+- **Proof Appendix (`docs/proof_appendix_bounds.md`)**: Formal Hoeffding/Bootstrap/Conformal assumption documentation with explicit "not a system safety guarantee" engineering interpretation.
+- **Patent Evidence (`docs/patent_evidence_bounds.md`)**: Mechanism 3.C claims mapping with measured effects and retained negative results.
+- **UI (`apps/web/app/reports/[run_id]/page.tsx`)**: Gated CertificationBadge; Execute Action button strictly disabled unless certificate_status === CERTIFIED.
+
+## [0.9.0] - 2026-07-22
 
 ### Added
 - **BCRB Scheduler (`packages/replay/src/bandit.py`)**: Budget-Constrained Root-Cause Bandit scheduling algorithm using Knapsack-UCB.
