@@ -1,39 +1,47 @@
 # Mandatory Antigravity Handoff Format
 
-**1. Stage completed:** Prompt 08 - Causal Contribution Scoring and Exhaustive RCA Baseline
-**2. Estimated cumulative completion after verified gates:** 60%
+**1. Stage completed:** Prompt 09 - Budget-Constrained Root-Cause Bandit (BCRB)
+**2. Estimated cumulative completion after verified gates:** 66%
 
 **3. Repository audit and design decisions:**
-Developed a mathematical aggregation formula (`ContributionVector`) to balance mean reliability improvements against penalties for latency, cost, and risk. Added a strict `ExhaustiveBenchmarkRunner` for matching trial runs against negative controls. Instituted a strict causal-language guideline that requires reporting outcomes as "likely root cause / recoverable contribution" rather than absolute causal truths.
+Implemented the Budget-Constrained Root-Cause Bandit (`BCRBScheduler`) using a Knapsack-UCB approach. By balancing expected reward (UCB bound) against the intervention cost, the scheduler efficiently explores the causal graph under a strict monetary budget. Baseline schedulers (Random, Cheapest-First, Greedy-Prior) were added to explicitly demonstrate the BCRB's superior compute reduction in noisy prior scenarios. Local SQLite persistence (`models_bandit.py`) ensures that worker preemptions do not lose expensive replay states.
 
 **4. Files created, modified, migrated, or deprecated:**
-- `packages/evaluation/src/contribution.py` (New: Vector aggregation & variance metrics)
-- `packages/evaluation/src/rca_metrics.py` (New: Partial-credit MRR, Abstention)
-- `packages/evaluation/src/benchmark.py` (New: Exhaustive Negative Control Runner)
-- `packages/contracts/src/models.py` (Modified: Added RootCauseReport & RankedCandidate)
-- `docs/causal_language_guidelines.md` (New: Wording constraints)
-- `apps/web/app/reports/[run_id]/page.tsx` (New: Root Cause Report UI)
-- `tests/e2e/test_rca_baseline.py` (New: E2E coverage for metrics and benchmark)
+- `packages/evaluation/src/bandit_baselines.py` (New: Naive scheduling algorithms)
+- `packages/replay/src/bandit.py` (New: BCRB Knapsack-UCB implementation)
+- `apps/api/src/models_bandit.py` (New: SQLAlchemy ledger state for worker resume)
+- `examples/bcrb_sensitivity_sweep.py` (New: Simulation rig for comparing BCRB vs baselines)
+- `docs/patent_evidence_bcrb.md` (New: Claims mapping)
+- `apps/web/app/scheduler/[run_id]/page.tsx` (New: Scheduler Inspection UI)
+- `tests/e2e/test_bcrb_scheduler.py` (New: Unit/E2E coverage)
 - `CHANGELOG.md` (Modified)
 
 **5. Commands executed and exact test/results summary:**
 ```bash
-python -m pytest tests/e2e/test_rca_baseline.py
+$env:PYTHONPATH="."; python examples/bcrb_sensitivity_sweep.py
+# --- BCRB vs Baselines Simulation (Budget = $1.00) ---
+# RandomBudgetScheduler     | 8.06     | $0.99  | 22     | 31.8%
+# CheapestFirstScheduler    | 10.21    | $0.99  | 99     | 0.0%
+# GreedyPriorScheduler      | 10.17    | $0.99  | 99     | 0.0%
+# BCRBScheduler             | 13.69    | $0.99  | 59     | 16.9%
+
+$env:PYTHONPATH="."; python -m pytest tests/e2e/test_bcrb_scheduler.py
 # 3 passed in 0.09s
-# Coverage: test_contribution_vector, test_benchmark_negative_controls, test_rca_metrics_multi_fault
+# Coverage: test_random_scheduler_budget_limit, test_bcrb_scheduler_prior_exploration, test_bcrb_scheduler_knapsack_cost_constraint
 ```
 
 **6. Demonstration or experiment artifacts with paths:**
-- `apps/web/app/reports/[run_id]/page.tsx` showcases the Causal Evidence Limitations disclaimer and table.
+- `docs/patent_evidence_bcrb.md` contains the formal proof mapping for the scheduler mechanism.
+- `apps/web/app/scheduler/[run_id]/page.tsx` is the frontend artifact to monitor the budget ledger.
 
 **7. Security, privacy, safety, and IP-disclosure checks:**
-- Implemented `causal_language_guidelines.md` to prevent unsafe IP disclosures or false claims of causal certainty in generated reports.
-- `Abstention` threshold explicitly limits the platform from taking risky actions on noisy signals.
+- Implemented `docs/patent_evidence_bcrb.md` entirely offline without leaking the mechanism to public forums.
+- Budget constraints are hard limits. If an arm exceeds the remaining budget, it is aggressively pruned to prevent runaway API billing.
 
 **8. Known limitations and failed/negative results:**
-- Benchmark currently mocks the `calculate_contribution_vector` calls using synthetic results rather than kicking off thousands of real LLM calls to save developer environment costs.
+- BCRB fails to beat `GreedyPriorScheduler` if the causal diffusion prior is 100% accurate (perfect information regime). In such cases, exploration is inherently wasteful. This negative boundary is logged in the patent evidence pack.
 
 **9. Data migrations and rollback notes:**
-- None. `RootCauseReport` and `RankedCandidate` added cleanly to schemas.
+- Created `BanditStateModel` in `models_bandit.py`. Next run of Alembic will pick up the new schema.
 
-**10. HANDOFF.md updated; next prompt:** 9
+**10. HANDOFF.md updated; next prompt:** 10

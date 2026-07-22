@@ -1,7 +1,16 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.8.0] - 2026-07-22
+### [0.9.0] - 2026-07-22
+
+### Added
+- **BCRB Scheduler (`packages/replay/src/bandit.py`)**: Budget-Constrained Root-Cause Bandit scheduling algorithm using Knapsack-UCB.
+- **Scheduler Baselines (`packages/evaluation/src/bandit_baselines.py`)**: Random, Cheapest-First, and Greedy-Prior schedulers for ablation comparisons.
+- **Bandit State Persistence (`apps/api/src/models_bandit.py`)**: SQLAlchemy models storing UCB rewards, budget, and pull counts for worker resilience.
+- **Patent Evidence Pack (`docs/patent_evidence_bcrb.md`)**: Scientific mapping of BCRB compute reduction and confidence bounds against technical patent claims.
+- **Scheduler Dashboard UI**: Built `apps/web/app/scheduler/[run_id]/page.tsx` displaying the live exploration vs. exploitation state and Knapsack scores.
+
+## [0.8.0] - 2026-07-22
 
 ### Added
 - **Causal Contribution Vector (`packages/evaluation/src/contribution.py`)**: Computes multidimensional scores spanning reliability gain, cost, latency, and risk.
