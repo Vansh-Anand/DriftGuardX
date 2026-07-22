@@ -1,6 +1,17 @@
 # CHANGELOG
 
 ## [Unreleased]
+### [0.6.0] - 2026-07-22
+
+### Added
+- **Diffusion Module (`packages/diffusion`)**: Implemented the cross-layer drift signature propagation engine.
+- **Three Diffusion Variants**: `LocalDetectorBaseline`, `FixedPageRankDiffusion`, and `LearnedGATDiffusion` (PyTorch Geometric GAT model).
+- **Synthetic Dataset Generator**: Simulates injected faults over causal graphs.
+- **Node Explanations**: Node-level causal root probability and attention explanations via `explainer.py`.
+- **Inference Caching**: Graph topology, detector version, and model version hashing in `cache.py`.
+- **Diffusion UI Viewer**: Visual propagation viewer in `apps/web/app/diffusion/page.tsx` with explicit scientific restraint disclaimers.
+
+## [0.5.0] - 2026-07-22
 ### Added
 - **Fault Taxonomy**: Created 18 specific fault scenarios (Stale Index, Bad Chunking, Policy Overblocking, etc.).
 - **Deterministic Replay Harness**: Built local deterministic providers for embedding, retrieval, generation.

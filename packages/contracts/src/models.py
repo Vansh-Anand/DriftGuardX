@@ -514,3 +514,53 @@ class RollbackCapsule(DGXBaseModel):
     expires_at: datetime | None = None
     is_applied: bool = False
     applied_at: datetime | None = None
+
+
+# ─── Drift Detectors & Symptoms (Prompt 05) ──────────────────────────────────
+
+class SymptomLikelihood(str, enum.Enum):
+    NONE = "none"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class DetectorOutput(DGXBaseModel):
+    """Raw output from a drift detector before thresholding."""
+    detector_name: str
+    feature_name: str
+    value: float
+    is_anomaly: bool
+    likelihood: SymptomLikelihood
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    calculated_at: datetime = Field(default_factory=_utcnow)
+
+
+class DetectorThreshold(DGXBaseModel):
+    """Versioned threshold for a specific detector feature."""
+    id: UUID = Field(default_factory=_new_uuid)
+    tenant_id: UUID
+    pipeline_id: UUID
+    detector_name: str
+    feature_name: str
+    threshold_value: float
+    operator: str  # e.g., ">", "<", ">=", "<=", "==", "!="
+    version: str = "v1"
+    created_at: datetime = Field(default_factory=_utcnow)
+    is_active: bool = True
+
+
+class SymptomRegistryEntry(DGXBaseModel):
+    """A registered symptom linked to a graph node. Distinct from Causal Diagnosis."""
+    id: UUID = Field(default_factory=_new_uuid)
+    tenant_id: UUID
+    run_id: UUID
+    graph_node_id: str  # e.g., 'retriever:span_abc123'
+    symptom_name: str
+    severity: SymptomLikelihood
+    detector_version: str
+    evidence_snippet: str = ""
+    uncertainty: float | None = None  # 0.0 - 1.0
+    detected_at: datetime = Field(default_factory=_utcnow)
+

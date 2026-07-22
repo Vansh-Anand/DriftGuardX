@@ -114,4 +114,16 @@ clean: ## Remove build artifacts and caches
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	find . -type f -name ".coverage" -delete 2>/dev/null || true
 
+# ─── Evaluation (Prompt 05) ───────────────────────────────────────────────────
+calibrate-detectors: ## Run calibration script over datasets
+	$(PYTHON) -m packages.evaluation.src.report_generator
+
+generate-reports: calibrate-detectors ## Generate layer-specific evaluation reports
+
+# ─── Diffusion (Prompt 06) ────────────────────────────────────────────────────
+train-diffusion: ## Train and evaluate the diffusion models
+	$(PYTHON) -m examples.diffusion_ablation_demo
+
+demo-diffusion: train-diffusion ## Alias for running the diffusion demo
+
 ci: lint format-check typecheck security-scan test ## Full CI pipeline

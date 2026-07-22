@@ -296,3 +296,44 @@ class ReplayEpisodeORM(Base):
         Index("ix_replay_episodes_original_run_id", "original_run_id"),
         Index("ix_replay_episodes_status", "status"),
     )
+
+
+# ─── Drift Detectors & Symptoms ───────────────────────────────────────────────
+
+class DetectorThresholdORM(Base):
+    __tablename__ = "detector_thresholds"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    detector_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    feature_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    threshold_value: Mapped[float] = mapped_column(Float, nullable=False)
+    operator: Mapped[str] = mapped_column(String(16), nullable=False)
+    version: Mapped[str] = mapped_column(String(64), nullable=False, default="v1")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    __table_args__ = (
+        Index("ix_detector_thresholds_tenant_id", "tenant_id"),
+    )
+
+
+class SymptomRegistryEntryORM(Base):
+    __tablename__ = "symptom_registry"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    graph_node_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    symptom_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False)
+    detector_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    evidence_snippet: Mapped[str] = mapped_column(Text, default="")
+    uncertainty: Mapped[float | None] = mapped_column(Float, nullable=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("ix_symptom_registry_run_id", "run_id"),
+        Index("ix_symptom_registry_tenant_id", "tenant_id"),
+    )
