@@ -1,58 +1,56 @@
 # Mandatory Antigravity Handoff Format
 
-**1. Stage completed:** Prompt 12 — Policy-Gated Recovery Executors and Deterministic Rollback Capsules
-**2. Estimated cumulative completion after verified gates:** 81%
+**1. Stage completed:** Prompt 13 — Hash-Chained Recovery Certificate Ledger and Independent Verification
+**2. Estimated cumulative completion after verified gates:** 85%
 
 **3. Repository audit and design decisions:**
-The `packages/recovery` module introduces a strict allowlist-based execution framework. `LocalDevExecutor` is used as the default to ensure dry-run/simulation safety without arbitrary shell access. `RecoveryStateMachine` guarantees saga-style execution with a strict `PREPARE → EXECUTE → VERIFY → COMMITTED/COMPENSATED` path. `RollbackCapsule` enforces deterministic rollbacks by checking expected component versions before rollback to prevent stale-state race conditions.
+The `packages/ledger` module introduces a cryptographic, append-only certificate chain. It separates hash integrity (SHA-256) from signer identity (Ed25519) as requested. The `LedgerChain` is backed by `aiosqlite` for persistence. A `DevelopmentSigner` provides local runnable signing while `KMSProviderSigner` defines the stub for production hardware keys. `RecoveryCertificate` uses deterministic JSON serialization (with domain separators and versioning) to ensure cross-platform hash stability. The exporter provides both full machine bundles (for cryptographic verification) and redacted views (for human analysis). A standalone CLI (`apps/cli/verifier.py`) operates independently from the database to prove ledger integrity externally.
 
 **4. Files created, modified, migrated, or deprecated:**
-- `packages/recovery/src/actions.py` (New: RecoveryActionType, ActionDefinition, RecoveryProposal)
-- `packages/recovery/src/capsule.py` (New: RollbackCapsule, CapsuleRegistry)
-- `packages/recovery/src/state_machine.py` (New: RecoveryStateMachine, saga log)
-- `packages/recovery/src/executor.py` (New: RecoveryExecutor, LocalDevExecutor)
-- `packages/recovery/src/canary.py` (New: Canary verification logic and threshold checks)
-- `packages/recovery/src/engine.py` (New: RecoveryEngine orchestrating all components)
-- `tests/e2e/test_recovery.py` (New: 15 failure-injection tests)
-- `apps/web/app/recovery/page.tsx` (New: Recovery Console UI)
-- `CHANGELOG.md` (Modified: Added v0.12.0)
+- `packages/ledger/src/crypto.py` (New: SignerProtocol, DevelopmentSigner, KMSProviderSigner, verify_signature)
+- `packages/ledger/src/schema.py` (New: RecoveryCertificate, deterministic canonical_bytes)
+- `packages/ledger/src/chain.py` (New: LedgerChain via aiosqlite, append_certificate, verify_chain)
+- `packages/ledger/src/export.py` (New: JSON bundle and redacted human export logic)
+- `apps/cli/verifier.py` (New: Standalone cryptographic bundle verifier)
+- `apps/web/app/ledger/page.tsx` (New: Ledger UI dashboard)
+- `tests/e2e/test_ledger_tamper.py` (New: Tamper detection and latency benchmarks)
+- `requirements-dev.txt` (Modified: Added `cryptography` package)
+- `CHANGELOG.md` (Modified: Added v0.13.0)
 
 **5. Commands executed and exact test/results summary:**
 ```
-$env:PYTHONPATH="."; python -m pytest tests/e2e/test_recovery.py -v --tb=short
-15 passed in 0.19s
+$env:PYTHONPATH="."; python -m pytest tests/e2e/test_ledger_tamper.py -v -s
+8 passed, 1 warning in 3.03s
 
-Failure-Injection Tests:
-  test_golden_rollback_full_flow                            PASSED
-  test_stale_version_aborts_execution                       PASSED
-  test_duplicate_idempotency_key_suppressed                 PASSED
-  test_canary_failure_triggers_compensated                  PASSED
-  test_compensation_failure_leads_to_failed_and_escalation  PASSED
-  test_expired_capsule_blocks_rollback                      PASSED
-  test_repeated_request_same_idempotency_key                PASSED
-  test_high_tier_action_blocked_by_policy_deny              PASSED
-  test_dry_run_produces_no_side_effects                     PASSED
-  test_operator_cancellation_before_execution               PASSED
-  test_invalid_state_transition_raises                      PASSED
-  test_capsule_integrity_tamper_detected                    PASSED
-  test_missing_required_param_raises                        PASSED
-  test_unknown_param_raises                                 PASSED
-  test_canary_safety_violation_fails                        PASSED
+Tests:
+  test_clean_chain_verifies                       PASSED
+  test_tamper_alter_content                       PASSED
+  test_tamper_alter_previous_hash                 PASSED
+  test_tamper_delete_historical_row               PASSED
+  test_invalid_signature_on_append                PASSED
+  test_wrong_key_signature_rejected               PASSED
+  test_export_redaction                           PASSED
+  test_latency_scaling_benchmark                  PASSED
+
+Benchmarks:
+  [BENCHMARK] Appended 100 certs in 1.877s (Avg 18.77ms/cert)
+  [BENCHMARK] Verified 100 certs in 0.049s (Avg 0.49ms/cert)
 ```
 
 **6. Demonstration or experiment artifacts with paths:**
-- `apps/web/app/recovery/page.tsx` — Recovery Console UI with proposal details, state log, capsule, and metrics.
+- `apps/cli/verifier.py` — Portable verification tool.
+- `apps/web/app/ledger/page.tsx` — Dashboard UI rendering the certificate chain.
 
 **7. Security, privacy, safety, and IP-disclosure checks:**
-- Safe defaults: execution mode defaults to DRY_RUN, and test suite uses LocalDevExecutor to prevent side effects.
-- Partial failure correctly triggers `COMPENSATING` instead of `COMMITTED`.
-- High-risk actions are blocked without active policy approval.
+- Privacy: The `export_human_summary` function correctly redacts `prompt` and `secret` keywords from the intervention vector to prevent PII/secret leaks in human reporting.
+- Integrity: Signatures are computed over the unredacted canonical bytes. Any content alteration (including redacting fields) correctly invalidates the signature unless verified using the exact machine export bundle.
+- Anti-Tamper: Missing rows, altered previous hashes, and invalid signatures are all caught by `verify_chain`.
+- Identity: Development keys are explicitly segregated from KMS providers.
 
 **8. Known limitations and failed/negative results:**
-- CapsuleRegistry is in-memory; needs a persistent data store for cross-process recovery.
-- Canary replay is simulated via `CanaryEpisode` fixtures; requires integration with the actual Replay Engine (Prompt 13+).
+- While the application layer enforces append-only rules, strict database-level append-only enforcement (e.g., SQLite `BEFORE UPDATE` / `BEFORE DELETE` triggers) is recommended for production deployments but not included in this development scaffold.
 
 **9. Data migrations and rollback notes:**
-- No database migrations required for this step.
+- The `aiosqlite` backend creates the `ledger` table via `LedgerChain.initialize()`. If the schema evolves in later prompts, Alembic migrations will be needed.
 
-**10. HANDOFF.md updated; next prompt:** 13
+**10. HANDOFF.md updated; next prompt:** 14

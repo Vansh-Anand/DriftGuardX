@@ -1,8 +1,18 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.12.0] - 2026-07-22
+### [0.13.0] - 2026-07-22
 
+### Added
+- **Ledger Cryptography (`packages/ledger/src/crypto.py`)**: Added Ed25519 signing support via `cryptography` package, providing local development signatures and a KMS stub.
+- **Certificate Schema (`packages/ledger/src/schema.py`)**: Defined canonical `RecoveryCertificate` with deterministic JSON canonicalization, schema version, and domain separators.
+- **Append-Only Chain (`packages/ledger/src/chain.py`)**: Added `LedgerChain` using `aiosqlite` for tamper-evident hash chaining, strict signature checks, and missing-record / fork detection.
+- **Ledger Export (`packages/ledger/src/export.py`)**: Provided exact machine bundles for verification and redacted views for human analysis.
+- **Standalone Verifier (`apps/cli/verifier.py`)**: A portable script to independently verify the signature and hash-chain of exported bundles.
+- **Ledger UI (`apps/web/app/ledger/page.tsx`)**: Dashboard displaying chain integrity, certificate history, linkage, and signatures.
+- **Tamper Tests & Benchmarks (`tests/e2e/test_ledger_tamper.py`)**: Comprehensive test suite proving tamper detection on linkage, signatures, and payload manipulation, plus scaling latency tests.
+
+## [0.12.0] - 2026-07-22
 ### Added
 - **Recovery Action Schemas (`packages/recovery/src/actions.py`)**: 9 allowlisted recovery actions with explicit parameters and idempotency.
 - **Rollback Capsule (`packages/recovery/src/capsule.py`)**: Immutable rollback capsules with cryptographic integrity, expiry, and compatibility constraint checking.
