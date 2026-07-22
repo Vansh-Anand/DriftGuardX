@@ -1,8 +1,19 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.11.0] - 2026-07-22
+### [0.12.0] - 2026-07-22
 
+### Added
+- **Recovery Action Schemas (`packages/recovery/src/actions.py`)**: 9 allowlisted recovery actions with explicit parameters and idempotency.
+- **Rollback Capsule (`packages/recovery/src/capsule.py`)**: Immutable rollback capsules with cryptographic integrity, expiry, and compatibility constraint checking.
+- **State Machine (`packages/recovery/src/state_machine.py`)**: Saga-style orchestrator with PREPARE→EXECUTE→VERIFY→COMMITTED/COMPENSATED states.
+- **Executor Framework (`packages/recovery/src/executor.py`)**: Recovery executor interface handling parameter validation, idempotency guards, optimistic version locks, and a safe `LocalDevExecutor`.
+- **Canary Verification (`packages/recovery/src/canary.py`)**: Bounded verification of quality, cost, latency, and safety thresholds post-execution.
+- **Recovery Engine (`packages/recovery/src/engine.py`)**: Full closed-loop orchestrator for the recovery state machine, canary execution, policy gating, and auto-compensation.
+- **Failure-Injection Tests (`tests/e2e/test_recovery.py`)**: Extensive test suite covering stale state, idempotent suppression, expired capsule, safety violation, and cancellation handling.
+- **Recovery UI (`apps/web/app/recovery/page.tsx`)**: Dashboard for tracking recovery status, saga logs, verification metrics, and capsule inspection.
+
+## [0.11.0] - 2026-07-22
 ### Added
 - **Policy Hierarchy (`packages/policy/src/hierarchy.py`)**: `PolicyRule`, `PolicyNode`, `EffectivePolicy` across four levels (Org→BU→Pipeline→Agent) with full audit chain.
 - **Inheritance Resolver (`packages/policy/src/resolver.py`)**: Tightening-only deterministic resolution; `PolicyConflictError` on illegal relaxation without justification.
