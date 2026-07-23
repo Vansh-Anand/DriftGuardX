@@ -1,8 +1,17 @@
 # CHANGELOG
 
 ## [Unreleased]
-### [0.13.0] - 2026-07-22
+### [0.14.0] - 2026-07-23
 
+### Added
+- **Rationale Models (`packages/rationale/src/models.py`)**: `RationaleInputContract` for strict, bounding evidence and `RationaleOutput` for styled outputs (Operator, Exec, Incident, Patent).
+- **Deterministic Templates (`packages/rationale/src/templates.py`)**: Complete deterministic baseline text generation that does not require an LLM, ensuring guaranteed execution.
+- **Factual Validator (`packages/rationale/src/validator.py`)**: Real-time hallucination scanner ensuring generated rationales do not invent component origins, numeric metrics, or version tags.
+- **LLM Adapter (`packages/rationale/src/llm.py`)**: Optional LLM logic with strict hallucination controls, auto-redacting PII from traces, and falling back to templates instantly if validation fails.
+- **Rationale UI Integration (`apps/web/app/rationale/page.tsx`)**: Rationale text component rendering structural evidence citations and metadata overlays.
+- **Evaluation Suite (`tests/e2e/test_rationale_eval.py`)**: Automated verification for hallucinations, component omissions, version alterations, and template fallbacks.
+
+## [0.13.0] - 2026-07-22
 ### Added
 - **Ledger Cryptography (`packages/ledger/src/crypto.py`)**: Added Ed25519 signing support via `cryptography` package, providing local development signatures and a KMS stub.
 - **Certificate Schema (`packages/ledger/src/schema.py`)**: Defined canonical `RecoveryCertificate` with deterministic JSON canonicalization, schema version, and domain separators.
