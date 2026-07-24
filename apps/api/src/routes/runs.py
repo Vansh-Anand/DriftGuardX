@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from apps.api.src.dependencies import get_current_tenant, PaginationParams, get_idempotency_key
 from apps.api.src.database import get_db
 from apps.api.src.models import (
     AgentPipelineORM,
@@ -90,6 +90,8 @@ def _orm_to_run_response(run: RequestRunORM) -> RunResponse:
 async def create_run(
     request: RunCreateRequest,
     db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
+    idempotency_key: str | None = Depends(get_idempotency_key),
 ) -> RunResponse:
     """Execute a deterministic mock RAG pipeline run and persist the trace."""
 
@@ -212,14 +214,14 @@ async def create_run(
 
 @router.get("/runs", response_model=RunListResponse)
 async def list_runs(
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    pagination: PaginationParams = Depends(),
     status_filter: str | None = Query(default=None, alias="status"),
     db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
 ) -> RunListResponse:
-    """List all runs with pagination."""
-    query = select(RequestRunORM).order_by(RequestRunORM.created_at.desc())
-    count_query = select(func.count()).select_from(RequestRunORM)
+    """List all runs with pagination, filtered by tenant."""
+    query = select(RequestRunORM).where(RequestRunORM.tenant_id == tenant.id).order_by(RequestRunORM.created_at.desc())
+    count_query = select(func.count()).select_from(RequestRunORM).where(RequestRunORM.tenant_id == tenant.id)
 
     if status_filter:
         query = query.where(RequestRunORM.status == status_filter)
@@ -228,15 +230,15 @@ async def list_runs(
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    query = query.offset((page - 1) * page_size).limit(page_size)
+    query = query.offset(pagination.skip).limit(pagination.limit)
     result = await db.execute(query)
     runs = result.scalars().all()
 
     return RunListResponse(
         runs=[_orm_to_run_response(r) for r in runs],
         total=total,
-        page=page,
-        page_size=page_size,
+        page=(pagination.skip // pagination.limit) + 1,
+        page_size=pagination.limit,
     )
 
 
@@ -246,9 +248,10 @@ async def list_runs(
 async def get_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
 ) -> RunResponse:
     """Get a run by ID."""
-    result = await db.execute(select(RequestRunORM).where(RequestRunORM.id == run_id))
+    result = await db.execute(select(RequestRunORM).where(RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id))
     run = result.scalar_one_or_none()
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
@@ -261,10 +264,11 @@ async def get_run(
 async def get_run_trace(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
 ) -> TraceResponse:
     """Get the normalized trace for a run."""
     result = await db.execute(
-        select(TraceArtifactORM).where(TraceArtifactORM.run_id == run_id)
+        select(TraceArtifactORM).where(TraceArtifactORM.run_id == run_id, TraceArtifactORM.tenant_id == tenant.id)
     )
     trace = result.scalar_one_or_none()
     if trace is None:
@@ -318,6 +322,8 @@ async def create_replay(
     run_id: uuid.UUID,
     request: ReplayCreateRequest,
     db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
+    idempotency_key: str | None = Depends(get_idempotency_key),
 ) -> ReplayResponse:
     """
     Create a deterministic replay for a run.
@@ -330,7 +336,7 @@ async def create_replay(
         raise HTTPException(status_code=403, detail=f"Policy denied: {policy.rationale}")
 
     # Load original run
-    run_result = await db.execute(select(RequestRunORM).where(RequestRunORM.id == run_id))
+    run_result = await db.execute(select(RequestRunORM).where(RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id))
     original_run_orm = run_result.scalar_one_or_none()
     if original_run_orm is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")

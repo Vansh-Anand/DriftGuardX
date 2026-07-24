@@ -1,7 +1,15 @@
 # Mandatory Antigravity Handoff Format
 
-**1. Stage completed:** Prompt 14 — Grounded Natural-Language Recovery Rationale
-**2. Estimated cumulative completion after verified gates:** 89%
+**1. Stage completed:** Prompt 16 — Investigation, Replay, Policy, and Recovery Web Console
+**2. Estimated cumulative completion after verified gates:** 95%
+
+- [x] Prompt 13: Policy-Gated Recovery Control
+- [x] Prompt 14: Certificate Ledger & Rationale Generation
+- [x] Prompt 15: Enterprise Control Plane
+- [x] Prompt 16: Web Console
+
+## Next Steps
+Run `prompt_17.md` to finalize deployment and packaging.
 
 **3. Repository audit and design decisions:**
 The `packages/rationale` module was introduced to generate natural language explanations for recovery actions. To ensure strict adherence to safety rules, `RationaleInputContract` requires strongly-typed structured evidence. Four deterministic fallback templates (`OPERATOR_SUMMARY`, `EXECUTIVE_SUMMARY`, `INCIDENT_TICKET`, `PATENT_NOTE`) are provided as the baseline logic. An optional LLM adapter (`llm.py`) takes redacted data (scrubbed of raw UUIDs) and translates it to fluent text using strict zero-hallucination prompts. Before the LLM output is accepted, it passes through `validator.py`, which ensures every version tag and metric float exists exactly within the input contract bounds; if it fails, the deterministic template silently takes over.

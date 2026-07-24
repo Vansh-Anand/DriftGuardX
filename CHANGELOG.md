@@ -45,7 +45,25 @@
 - **Patent Evidence (`docs/patent_evidence_policy.md`)**: Mechanism 3.E claims mapping.
 - **Security Tests (`tests/security/test_policy_security.py`)**: 15 tests covering cross-tenant isolation, confused deputy, self-approval block, break-glass audit, determinism, and tightening inheritance.
 
-## [0.10.0] - 2026-07-22
+## [v2.0.0-beta.2] - 2026-07-23
+### Added
+- Comprehensive Next.js Web Console (`apps/web`) with Tailwind CSS and Recharts.
+- Navigation Sidebar with access to Runs, Trace Detail, Causal Graph, Replay Lab, BCRB Scheduler, Diagnosis, Policy, Recovery, and Ledger.
+- `Truthful UI` implementation rendering explicit states (Measured, Inferred, Synthetic, Certified, Uncertified, Unavailable) for data provenance.
+- Golden Demo Tour scaffolding for safe walkthroughs with seeded faults.
+- E2E Playwright test suite for console navigation and mock RAG API integrations.
+
+## [v2.0.0-beta.1] - 2026-07-23
+### Added
+- Enterprise control plane with mock OIDC/JWT authentication.
+- Tenant isolation and Row-Level Security (RLS) simulation using `tenant_id`.
+- Immutable audit logging for security events (Auth, RBAC, Policy).
+- In-memory asynchronous job orchestrator for background evaluations and replays.
+- Provider registry for LLM models (e.g., OpenAI, Anthropic) handling credentials and pricing logic.
+- Expanded API endpoints for `runs`, `jobs`, and `providers` with pagination and idempotency handling.
+- Typed Python SDK (`packages/sdk/src/client.py`).
+
+## [v1.0.0-alpha] - 2026-07-212
 
 ### Added
 - **Bound Library (`packages/evaluation/src/bounds.py`)**: Hoeffding analytic, Bootstrap percentile, Conformal prediction, and UnsupportedBound sentinel — each with explicit assumption documentation and fail-closed behavior.

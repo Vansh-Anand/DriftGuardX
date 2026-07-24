@@ -22,6 +22,8 @@ from apps.api.src.database import create_all_tables
 from apps.api.src.routes import ingest, runs, telemetry, graph
 from apps.api.src.routes.replays import router as replays_router
 from apps.api.src.routes.runs import router as runs_router
+from apps.api.src.routes.jobs import router as jobs_router
+from apps.api.src.routes.providers import router as providers_router
 from apps.api.src.schemas import HealthResponse, ReadinessResponse
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
@@ -142,6 +144,8 @@ app.include_router(ingest.router)
 app.include_router(telemetry.router)
 app.include_router(graph.router)
 app.include_router(replays_router)
+app.include_router(jobs_router)
+app.include_router(providers_router)
 
 
 # ─── Exception Handlers ───────────────────────────────────────────────────────

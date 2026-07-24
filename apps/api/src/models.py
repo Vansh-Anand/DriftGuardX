@@ -62,12 +62,33 @@ class TenantORM(Base):
     )
 
 
+# ─── Audit Event ──────────────────────────────────────────────────────────────
+
+class AuditEventORM(Base):
+    __tablename__ = "audit_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    resource_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("ix_audit_events_tenant_id", "tenant_id"),
+        Index("ix_audit_events_action", "action"),
+    )
+
+
 # ─── ComponentVersion ─────────────────────────────────────────────────────────
 
 class ComponentVersionORM(Base):
     __tablename__ = "component_versions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
     component_type: Mapped[str] = mapped_column(String(64), nullable=False)
     version_tag: Mapped[str] = mapped_column(String(64), nullable=False)
     state: Mapped[str] = mapped_column(String(32), nullable=False, default="stable")
