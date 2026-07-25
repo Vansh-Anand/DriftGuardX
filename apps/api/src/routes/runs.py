@@ -425,7 +425,7 @@ async def create_replay(
     intervention = Intervention(
         run_id=run_id,
         tenant_id=original_run_orm.tenant_id,
-        intervention_type=InterventionType.RETRIEVER_ROLLBACK,
+        intervention_type=InterventionType.ROLLBACK,
         target_component_type=ComponentType.RETRIEVER,
         from_version_id=from_version.id,
         to_version_id=to_version.id,
@@ -471,10 +471,10 @@ async def create_replay(
 
     # Persist replay episode
     episode_orm = ReplayEpisodeORM(
-        id=episode.id,
+        id=episode.replay_id,
         original_run_id=run_id,
         tenant_id=episode.tenant_id,
-        pipeline_id=episode.pipeline_id,
+        pipeline_id=original_run_orm.pipeline_id,
         intervention_id=intervention.id,
         status=episode.status.value if hasattr(episode.status, "value") else episode.status,
         swapped_component_type=episode.swapped_component_type.value if hasattr(episode.swapped_component_type, "value") else episode.swapped_component_type,
@@ -518,9 +518,9 @@ async def create_replay(
     ]
     replay_trace_orm = TraceArtifactORM(
         id=uuid.uuid4(),
-        run_id=episode.id,
+        run_id=episode.replay_id,
         tenant_id=episode.tenant_id,
-        pipeline_id=episode.pipeline_id,
+        pipeline_id=original_run_orm.pipeline_id,
         spans_json=replay_spans_json,
         root_span_id=replay_trace.root_span_id,
         total_span_count=len(replay_trace.spans),

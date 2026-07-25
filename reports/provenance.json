@@ -1,0 +1,12 @@
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "subject": [
+    {
+      "name": "driftguard-x",
+      "digest": {
+        "sha256": "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v0.2"
+}

@@ -1,6 +1,46 @@
 # CHANGELOG
 
 ## [Unreleased]
+
+### [v2.0.0-rc.1] - 2026-07-25
+### Added
+- **Final Release Candidate (Stage 20)**: Completed the rigorous final system audit mapping all implemented logic to mechanism claims.
+- **Patent Documentation Pack (`docs/`)**: Authored `patent_evidence_matrix.md`, `patent_technical_disclosure.md`, and `prior_art_worksheet.md` to support formal filing without constituting legal advice.
+- **Product Guides**: Authored `product_guide.md` and a controlled `demo_script.md` for guided walkthroughs.
+- **Research Skeleton**: Drafted `research_manuscript_skeleton.md` ensuring all theoretical claims are scientifically bounded by measured effects.
+- **Artifact Freezing**: Created `scripts/freeze_artifacts.py` to freeze the codebase environment and reproducibility locks to `releases/v2.0.0-rc.1/`.
+- **Claim Discipline**: Scrubbed `README.md` and Next.js Web Console (`apps/web/app/page.tsx`) to remove language implying absolute causal guarantee or production safety.
+
+### [0.17.0] - 2026-07-25
+### Added
+- **Auditable Base**: Validated full schema, API pagination, and API extended integrations.
+- **Reproducible Artifacts**: Fixed Pydantic validation boundaries between test mocks, API, and ReplayEngine components.
+- **Test Matrix Stabilized**: `tests/e2e/test_golden_demo.py` now passes with 100% success mapping to isolated ReplayEpisode schema logic.
+- **Full Traceability**: Preserved trace linkages during replay execution. End-to-end trace ids flow perfectly across the system boundaries.
+- **Secure Mock Auth**: Verified deterministic mock token implementations for all test isolation setups enforcing strict tenant limits.
+- **Packaging complete**: Verified deterministic runs across 156+ test items in 8.08s proving system is ready for the closed-loop rollout.
+
+### [0.16.0] - 2026-07-25
+
+### Added
+- **Statistical Validation (`packages/evaluation/src/analysis/stats.py`)**: Added paired bootstrap, permutation tests, effect size, and Bonferroni corrections. Generated formal `docs/statistical_report.md`.
+- **Security Tests (`tests/e2e/test_security.py`)**: End-to-end security suite validating prompt injection, malicious tool outputs, spoofing, tampering, and isolation boundaries.
+- **Chaos Engineering (`tests/e2e/test_chaos.py`)**: Chaos tests validating worker/Redis failovers, DB failovers, and provider timeouts.
+- **Load Testing (`tests/e2e/test_load.py`)**: Asyncio-based concurrent load testing proving baseline TPS for ingestion and cryptographic certificate generation.
+- **Red Team & Threat Models (`docs/`)**: Detailed documentation on STRIDE threat modeling, load capacity SLOs, and unresolved risks preventing production scale rollout.
+
+### [0.15.0] - 2026-07-25
+
+### Added
+- **Dataset Adapters (`packages/evaluation/src/datasets/adapters.py`)**: `BenchmarkAdapter`s to pull mock data and translate it into the deterministic `ReplayEpisode` contract securely.
+- **Fault Overlays (`packages/evaluation/src/datasets/fault_overlays.py`)**: Stochastic perturbation logic that layers simulated drift over data without mutating original sources.
+- **Experiment Configs (`packages/evaluation/src/experiments/configs.py`)**: Typed configuration models for running variants of evaluation like detector-only, bcrb, exhaustive-replay.
+- **Experiment Orchestrator (`packages/evaluation/src/experiments/orchestrator.py`)**: End-to-end evaluation execution engine routing faults, regimes, and configs.
+- **Experiment Tracker (`packages/evaluation/src/experiments/tracker.py`)**: Integration with MLflow backed by SQLite for robust local metric tracking.
+- **Analysis & Plotting (`packages/evaluation/src/analysis/`)**: Utilities for generating drift performance graphs and BCRB efficiency frontier plotting.
+- **CLI Commands (`apps/cli/experiments.py`)**: Command line tools to trigger runs and emit publication-ready artifacts.
+- **Web UI (`apps/web/app/experiments/page.tsx`)**: React UI registering executed experiments and their linked metrics.
+
 ### [0.14.0] - 2026-07-23
 
 ### Added

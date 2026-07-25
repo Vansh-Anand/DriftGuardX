@@ -1,0 +1,19 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: driftguard-api-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: driftguard-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: driftguard-web-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: driftguard-web

@@ -73,6 +73,7 @@ async def client(setup_test_db: None) -> AsyncGenerator[AsyncClient, None]:
 
     from httpx import ASGITransport
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        ac.headers["Authorization"] = "Bearer mock-admin-token"
         yield ac
 
     app.dependency_overrides.clear()

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driftguard-api
+  labels:
+    app: driftguard-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: driftguard-api
+  template:
+    metadata:
+      labels:
+        app: driftguard-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: api
+        image: driftguard/api:latest
+        imagePullPolicy: Never # Adjust for actual registry
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: driftguard-secrets
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: driftguard-api
+spec:
+  selector:
+    app: driftguard-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000

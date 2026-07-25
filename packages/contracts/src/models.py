@@ -38,6 +38,7 @@ class ComponentType(str, enum.Enum):
     TOOL_CALL = "tool_call"
     POLICY_CHECK = "policy_check"
     FINAL_RESPONSE = "final_response"
+    AGENT = "agent"
 
 
 class ComponentVersionState(str, enum.Enum):

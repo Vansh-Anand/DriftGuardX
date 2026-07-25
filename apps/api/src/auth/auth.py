@@ -11,6 +11,9 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
+from apps.api.src.config import settings
 
 from packages.contracts.src.auth import User, Role, Tenant
 
@@ -21,9 +24,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Mock static database for identities
-MOCK_TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
-MOCK_USER_ID = UUID("11111111-1111-1111-1111-111111111111")
+# Pre-defined MOCK identifiers for prototype mode
+MOCK_USER_ID = UUID("00000000-0000-0000-0000-000000000000")
+MOCK_TENANT_ID = UUID("00000000-0000-0000-FFFF-000000000001")
 
 MOCK_TENANT = Tenant(id=MOCK_TENANT_ID, name="Acme Corp")
 MOCK_USER = User(id=MOCK_USER_ID, tenant_id=MOCK_TENANT_ID, email="admin@acme.com", roles=[Role.ADMIN])

@@ -66,7 +66,7 @@ def test_replay_only_swaps_one_component() -> None:
     intervention = Intervention(
         run_id=original_run.id,
         tenant_id=original_run.tenant_id,
-        intervention_type=InterventionType.RETRIEVER_ROLLBACK,
+        intervention_type=InterventionType.ROLLBACK,
         target_component_type=ComponentType.RETRIEVER,
         from_version_id=RETRIEVER_V2_EXP.id,
         to_version_id=RETRIEVER_V1.id,
@@ -106,7 +106,7 @@ def test_replay_pins_non_swapped_versions() -> None:
     intervention = Intervention(
         run_id=original_run.id,
         tenant_id=original_run.tenant_id,
-        intervention_type=InterventionType.RETRIEVER_ROLLBACK,
+        intervention_type=InterventionType.ROLLBACK,
         target_component_type=ComponentType.RETRIEVER,
         from_version_id=RETRIEVER_V2_EXP.id,
         to_version_id=RETRIEVER_V1.id,
@@ -142,7 +142,7 @@ def test_replay_improves_reliability_over_experimental() -> None:
     intervention = Intervention(
         run_id=original_run.id,
         tenant_id=original_run.tenant_id,
-        intervention_type=InterventionType.RETRIEVER_ROLLBACK,
+        intervention_type=InterventionType.ROLLBACK,
         target_component_type=ComponentType.RETRIEVER,
         from_version_id=RETRIEVER_V2_EXP.id,
         to_version_id=RETRIEVER_V1.id,
@@ -176,7 +176,7 @@ def test_replay_episode_has_correct_version_ids() -> None:
     intervention = Intervention(
         run_id=original_run.id,
         tenant_id=original_run.tenant_id,
-        intervention_type=InterventionType.RETRIEVER_ROLLBACK,
+        intervention_type=InterventionType.ROLLBACK,
         target_component_type=ComponentType.RETRIEVER,
         from_version_id=RETRIEVER_V2_EXP.id,
         to_version_id=RETRIEVER_V1.id,

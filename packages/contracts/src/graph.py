@@ -32,6 +32,7 @@ class NodeType(str, enum.Enum):
     HUMAN_APPROVAL = "human_approval"
     PROVIDER = "provider"
     OPERATIONAL_RESOURCE = "operational_resource"
+    AGENT = "agent"
 
 
 class EdgeType(str, enum.Enum):
@@ -43,6 +44,7 @@ class EdgeType(str, enum.Enum):
     EVIDENCE_CITATION = "evidence_citation"
     TOOL_EFFECT = "tool_effect"
     RETRY_FALLBACK = "retry_fallback"
+    INTER_AGENT_COMMUNICATION = "inter_agent_communication"
 
 
 class GraphNode(DGXBaseModel):

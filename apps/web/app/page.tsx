@@ -55,6 +55,13 @@ export default function Home() {
         </div>
       </div>
 
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-4 mb-8">
+        <h3 className="text-amber-500 font-semibold mb-1">Confidential Research Prototype</h3>
+        <p className="text-zinc-300 text-sm">
+          This system is an experimental evaluation platform. Diagnoses and certificates represent statistical bounds calculated over measured graph topologies, not absolute causal guarantees or production safety certifications.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">

@@ -64,12 +64,12 @@ async def test_list_runs_pagination(client: AsyncClient) -> None:
             json={"query": f"page test {i}", "use_experimental_retriever": False, "seed": 42, "is_synthetic": True},
         )
 
-    resp = await client.get("/v1/runs", params={"page": 1, "page_size": 2})
+    resp = await client.get("/v1/runs", params={"skip": 2, "limit": 2})
     assert resp.status_code == 200
     data = resp.json()
     assert "runs" in data
     assert "total" in data
-    assert data["page"] == 1
+    assert data["page"] == 2
     assert data["page_size"] == 2
     assert len(data["runs"]) <= 2
 

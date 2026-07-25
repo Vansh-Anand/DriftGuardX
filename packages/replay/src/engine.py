@@ -369,11 +369,9 @@ class ReplayEngine:
 
         # Build ReplayEpisode
         episode = ReplayEpisode(
-            id=replay_id,
-            original_run_id=original_run.id,
+            replay_id=replay_id,
+            run_id=original_run.id,
             tenant_id=tenant_id,
-            pipeline_id=pipeline_id,
-            intervention_id=intervention.id,
             swapped_component_type=ComponentType(replay_version.component_type),
             original_version_id=intervention.from_version_id,
             replay_version_id=intervention.to_version_id,

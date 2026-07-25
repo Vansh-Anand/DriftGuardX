@@ -82,6 +82,9 @@ class KMSProviderSigner(SignerProtocol):
         return self._kms_key_arn
 
 
+from functools import lru_cache
+
+@lru_cache(maxsize=1024)
 def verify_signature(public_key_b64: str, payload: bytes, signature_b64: str) -> bool:
     """
     Verify an Ed25519 signature.

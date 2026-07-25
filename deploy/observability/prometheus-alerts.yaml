@@ -1,0 +1,47 @@
+groups:
+- name: driftguard-x.alerts
+  rules:
+  - alert: HighIngestionFailureRate
+    expr: rate(driftguard_trace_ingestion_errors_total[5m]) > 5
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: High Trace Ingestion Failure Rate
+      description: Trace ingestion is failing at an elevated rate (>5 errors/sec). Check worker connections and DB health.
+
+  - alert: ReplayBudgetDepletionAnomaly
+    expr: rate(driftguard_budget_usd_consumed_total[5m]) > 50
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: Rapid Replay Budget Depletion
+      description: The system is consuming >$50/sec on generative API calls. Possible replay attack or stuck loop.
+
+  - alert: CertificateVerificationFailures
+    expr: rate(driftguard_certificate_verification_failures_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: Cryptographic Certificate Verification Failing
+      description: Rejected certificates detected. This indicates a potential tampering attempt or misconfigured signer.
+
+  - alert: HighPolicyDenials
+    expr: rate(driftguard_policy_denials_total[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: High Policy Denials
+      description: The recovery policy engine is rejecting a high number of interventions. Check rule configurations.
+
+  - alert: WorkerQueueLag
+    expr: driftguard_worker_queue_depth_count > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: High Worker Queue Lag
+      description: Over 1000 items in the celery/worker queue. Replay evaluation is lagging.

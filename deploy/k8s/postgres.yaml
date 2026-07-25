@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: driftguard-postgres
+spec:
+  serviceName: "driftguard-postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: driftguard-postgres
+  template:
+    metadata:
+      labels:
+        app: driftguard-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "driftguard"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: driftguard-secrets
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: pgdata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: driftguard-postgres
+spec:
+  selector:
+    app: driftguard-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432

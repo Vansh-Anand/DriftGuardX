@@ -7,6 +7,10 @@ import sys
 from typing import Any, Callable, Dict
 import hashlib
 import json
+import threading
+
+# We use thread-local storage to track the current trace_id during sandbox execution
+sandbox_local = threading.local()
 
 class SandboxViolationError(Exception):
     pass
@@ -14,13 +18,21 @@ class SandboxViolationError(Exception):
 class InvariantViolationError(Exception):
     pass
 
+# We use thread-local storage to track the current trace_id during sandbox execution
+sandbox_local = threading.local()
 
 def _sandbox_audit_hook(event: str, args: tuple):
     """
     Python audit hook to aggressively block network and specific filesystem operations.
+    Now upgraded to stage intercepted actions via the VTI Coordinator.
     """
+    trace_id = getattr(sandbox_local, "trace_id", "unknown_trace")
+    if not hasattr(sandbox_local, "staged_actions"):
+        sandbox_local.staged_actions = []
+    
     if event == "socket.connect" or event == "socket.bind":
-        raise SandboxViolationError(f"Network access blocked in sandbox: {event} {args}")
+        sandbox_local.staged_actions.append({"trace_id": trace_id, "type": "NETWORK_CALL", "payload": {"event": event, "args": str(args)}})
+        raise SandboxViolationError(f"Network access staged and blocked in sandbox: {event} {args}")
         
     if event == "open":
         filename, mode, *rest = args
@@ -28,22 +40,36 @@ def _sandbox_audit_hook(event: str, args: tuple):
         if isinstance(mode, str) and any(m in mode for m in ('w', 'a', 'x', '+')):
             # Allowlist /dev/null or specific temp files if needed
             if "fixture" not in str(filename):
-                raise SandboxViolationError(f"File write blocked in sandbox: {filename}")
+                sandbox_local.staged_actions.append({"trace_id": trace_id, "type": "FILE_WRITE", "payload": {"filename": str(filename), "mode": mode}})
+                raise SandboxViolationError(f"File write staged and blocked in sandbox: {filename}")
                 
     if event.startswith("subprocess.") or event == "os.system":
-        raise SandboxViolationError(f"Shell execution blocked in sandbox: {event}")
+        sandbox_local.staged_actions.append({"trace_id": trace_id, "type": "SHELL_EXEC", "payload": {"event": event, "command": str(args)}})
+        raise SandboxViolationError(f"Shell execution staged and blocked in sandbox: {event}")
 
 
-def _sandboxed_execution_wrapper(func: Callable, inputs: Dict[str, Any], return_dict: dict):
+def _sandboxed_execution_wrapper(func: Callable, inputs: Dict[str, Any], return_dict: dict, trace_id: str):
     """
     Runs inside the multiprocessing subprocess.
     """
     try:
+        from packages.replay.src.arc_isolator import arc_isolator
+        
+        sandbox_local.trace_id = trace_id
+        sandbox_local.staged_actions = []
         sys.addaudithook(_sandbox_audit_hook)
-        result = func(**inputs)
+        
+        arc_isolator.enable()
+        try:
+            result = func(**inputs)
+        finally:
+            arc_isolator.disable()
+            
         return_dict['result'] = result
+        return_dict['staged_actions'] = sandbox_local.staged_actions
     except Exception as e:
         return_dict['error'] = str(e)
+        return_dict['staged_actions'] = getattr(sandbox_local, "staged_actions", [])
 
 
 class SandboxedWorker:
@@ -51,13 +77,13 @@ class SandboxedWorker:
     Executes a function in a tightly restricted multiprocessing boundary.
     """
     @staticmethod
-    def run(func: Callable, inputs: Dict[str, Any], timeout_seconds: int = 5) -> Dict[str, Any]:
+    def run(func: Callable, inputs: Dict[str, Any], timeout_seconds: int = 5, trace_id: str = "default") -> Dict[str, Any]:
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
         
         p = multiprocessing.Process(
             target=_sandboxed_execution_wrapper,
-            args=(func, inputs, return_dict)
+            args=(func, inputs, return_dict, trace_id)
         )
         p.start()
         p.join(timeout=timeout_seconds)
@@ -66,6 +92,10 @@ class SandboxedWorker:
             p.terminate()
             p.join()
             raise TimeoutError("Sandboxed execution timed out.")
+            
+        from packages.replay.src.vti_coordinator import vti_coordinator
+        for action in return_dict.get('staged_actions', []):
+            vti_coordinator.stage_action(action["trace_id"], action["type"], action["payload"])
             
         if 'error' in return_dict:
             raise RuntimeError(f"Sandbox error: {return_dict['error']}")

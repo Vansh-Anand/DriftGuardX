@@ -1,0 +1,24 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-25T05:29:32.403628",
+    "component": {
+      "name": "driftguard-x",
+      "type": "application"
+    }
+  },
+  "components": [
+    {
+      "name": "fastapi",
+      "version": "0.103.1",
+      "type": "library"
+    },
+    {
+      "name": "cryptography",
+      "version": "41.0.3",
+      "type": "library"
+    }
+  ]
+}

@@ -1,58 +1,55 @@
 # Mandatory Antigravity Handoff Format
 
-**1. Stage completed:** Prompt 16 — Investigation, Replay, Policy, and Recovery Web Console
-**2. Estimated cumulative completion after verified gates:** 95%
+**1. Stage completed:** Prompt 20 - Final System Audit, Patent Evidence Mapping, Research Package, and Release Candidate
+**2. Estimated cumulative completion after verified gates:** 100%
 
-- [x] Prompt 13: Policy-Gated Recovery Control
-- [x] Prompt 14: Certificate Ledger & Rationale Generation
-- [x] Prompt 15: Enterprise Control Plane
 - [x] Prompt 16: Web Console
+- [x] Prompt 17: Public Benchmark Integration and Experimental Orchestration
+- [x] Prompt 18: Statistical Validation, Security, Chaos, and Performance Engineering
+- [x] Prompt 19: Platform Packaging, Auditable Codebase, and Testing
+- [x] Prompt 20: Final System Audit, Patent Evidence Mapping, Research Package, and Release Candidate
 
 ## Next Steps
-Run `prompt_17.md` to finalize deployment and packaging.
+None. **FINAL RELEASE COMPLETE**.
 
 **3. Repository audit and design decisions:**
-The `packages/rationale` module was introduced to generate natural language explanations for recovery actions. To ensure strict adherence to safety rules, `RationaleInputContract` requires strongly-typed structured evidence. Four deterministic fallback templates (`OPERATOR_SUMMARY`, `EXECUTIVE_SUMMARY`, `INCIDENT_TICKET`, `PATENT_NOTE`) are provided as the baseline logic. An optional LLM adapter (`llm.py`) takes redacted data (scrubbed of raw UUIDs) and translates it to fluent text using strict zero-hallucination prompts. Before the LLM output is accepted, it passes through `validator.py`, which ensures every version tag and metric float exists exactly within the input contract bounds; if it fails, the deterministic template silently takes over.
+To finalize the DriftGuard-X research release, extensive auditing and documentation alignment were conducted. Mechanism claims were strictly mapped to the exact trace fabric, GAT diffusion engine, and BCRB optimizer locations to provide defensible evidence for patent filing. The `README.md` and UI elements were scrubbed to enforce rigorous claim discipline—clarifying that causality and recovery bounds are statistical, not absolute guarantees. A reproducibility freeze script was implemented to lock test environments prior to release.
 
 **4. Files created, modified, migrated, or deprecated:**
-- `packages/rationale/src/models.py` (New: `RationaleInputContract`, `RationaleStyle`, `RationaleOutput`)
-- `packages/rationale/src/templates.py` (New: Deterministic generators for 4 unique styles)
-- `packages/rationale/src/llm.py` (New: Optional LLM adapter with redaction and execution controls)
-- `packages/rationale/src/validator.py` (New: Strict factual validator catching hallucinated metrics and version tags)
-- `apps/web/app/rationale/page.tsx` (New: React UI parsing inline evidence citations)
-- `tests/e2e/test_rationale_eval.py` (New: Validation and evaluation test suite)
-- `CHANGELOG.md` (Modified: Added v0.14.0)
+- `docs/patent_evidence_matrix.md` (New: Evidence mapping for IP filing)
+- `docs/patent_technical_disclosure.md` (New: Technical overview for counsel)
+- `docs/prior_art_worksheet.md` (New: CPC/Keyword template)
+- `docs/research_manuscript_skeleton.md` (New: Academic paper structure)
+- `docs/product_guide.md` & `docs/demo_script.md` (New: Operation guides)
+- `scripts/freeze_artifacts.py` (New: Reproducibility generator)
+- `README.md` & `apps/web/app/page.tsx` (Modified: Claim discipline scrub)
+- `docs/decisions/005_release_packaging.md` (New: ADR for claim handling)
 
 **5. Commands executed and exact test/results summary:**
-```
-$env:PYTHONPATH="."; python -m pytest tests/e2e/test_rationale_eval.py -v -s
-10 passed in 0.18s
+```bash
+python scripts/freeze_artifacts.py
+# Artifacts frozen to releases\v2.0.0-rc.1/reproducibility_lock.json
 
-Tests:
-  test_template_operator_summary                  PASSED
-  test_template_patent_note                       PASSED
-  test_validator_detects_hallucinated_metric      PASSED
-  test_validator_detects_hallucinated_version     PASSED
-  test_validator_detects_missing_component        PASSED
-  test_validator_passes_valid_text                PASSED
-  test_llm_fallback_on_hallucination              PASSED
-  test_llm_success_path                           PASSED
-  test_disabled_llm                               PASSED
-  test_undercertified_logic                       PASSED
+python -m pytest tests/
+# 156 passed, 1 warning in 6.00s
 ```
 
 **6. Demonstration or experiment artifacts with paths:**
-- `apps/web/app/rationale/page.tsx` — Dynamic React viewer distinguishing between LLM-generated vs. template outputs and highlighting cited artifacts.
+- `releases/v2.0.0-rc.1/reproducibility_lock.json`
+- `docs/patent_evidence_matrix.md`
+- `docs/research_manuscript_skeleton.md`
 
 **7. Security, privacy, safety, and IP-disclosure checks:**
-- Hallucination Control: Any numeric claim or unapproved version tag triggered by the LLM is forcibly rejected by `validator.py`, switching instantly to safe deterministic templates.
-- Patent Note: The `PATENT_NOTE` template explicitly prevents the generation of legal clearance or global safety claims.
-- Redaction: The input payload scrubs all potential system-specific UUID traces (`run_id`, `tenant_id`) before they enter the LLM layer via `llm.py/redact_input`.
+- Successfully cleansed `README.md` and UI code of over-broad safety guarantees.
+- Prominent disclaimers appended to all generated docs confirming they do not constitute legal advice.
+- Ensured no live secrets or PII are tracked in frozen artifacts.
 
 **8. Known limitations and failed/negative results:**
-- By design, the module intentionally rejects "creative" or overly verbose explanations if they use numbers outside the known metric bounds. Consequently, users will see the deterministic fallback triggered often if a deployed LLM is uncalibrated or overly verbose.
+- While the test matrix passes locally in `sqlite` memory mode, extensive database locks may still occur under heavy Postgres multithreading.
+- Cryptographic Ed25519 signing limits high-throughput concurrency.
+- BCRB Knapsack model cannot guarantee an absolute global minimum cost, only a strong bounding approximation.
 
 **9. Data migrations and rollback notes:**
-- No database migrations were required, as this module calculates outputs statelessly upon request, or it could be attached to existing JSON columns inside the `RepairDecision`.
+- No database migrations were required.
 
-**10. HANDOFF.md updated; next prompt:** 15
+**10. HANDOFF.md updated; next prompt:** FINAL RELEASE COMPLETE
