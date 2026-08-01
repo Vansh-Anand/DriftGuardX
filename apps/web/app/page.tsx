@@ -1,155 +1,159 @@
-'use client';
+import Link from "next/link";
+import { ArrowRight, Hexagon, Component, Blocks, Maximize } from "lucide-react";
+import { AnimatedSection } from "@/components/AnimatedSection";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
-import { fetchTelemetry, fetchProviders } from '@/lib/api';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-export default function Home() {
-  const [telemetry, setTelemetry] = useState<any>(null);
-  const [providers, setProviders] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [telData, provData] = await Promise.all([
-          fetchTelemetry(),
-          fetchProviders()
-        ]);
-        setTelemetry(telData);
-        setProviders(provData);
-      } catch (err) {
-        console.error("Failed to load overview data", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
-
-  // Mock time-series data for the chart
-  const data = [
-    { name: '00:00', traces: 120, latency: 150 },
-    { name: '04:00', traces: 200, latency: 140 },
-    { name: '08:00', traces: 150, latency: 160 },
-    { name: '12:00', traces: 300, latency: 220 },
-    { name: '16:00', traces: 250, latency: 180 },
-    { name: '20:00', traces: 180, latency: 155 },
-  ];
-
-  if (loading) return <div className="p-12 flex justify-center"><Spinner className="w-8 h-8" /></div>;
-
+export default function LandingPage() {
   return (
-    <main className="flex-1 p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-          <p className="text-zinc-400">System health and aggregated metrics</p>
+    <div className="w-full">
+      {/* Hero Section (Mint Green) */}
+      <section className="bg-[#dcf6cc] pt-40 pb-32 px-6 w-full rounded-b-[40px] relative z-10">
+        <div className="max-w-7xl mx-auto flex flex-col">
+          <AnimatedSection>
+            <h1 className="text-[120px] leading-[0.9] font-medium tracking-tight text-black mb-8 max-w-5xl">
+              Reliability for<br/>
+              Agentic RAG.
+            </h1>
+          </AnimatedSection>
+          
+          <div className="flex justify-between items-end mt-12">
+            <AnimatedSection delay={0.1}>
+              <Link 
+                href="/dashboard" 
+                className="px-6 py-2 rounded-full border border-black text-black font-medium hover:bg-black hover:text-white transition-colors text-sm uppercase tracking-wide inline-flex items-center gap-2"
+              >
+                All Use Cases
+              </Link>
+            </AnimatedSection>
+            
+            <AnimatedSection delay={0.2} className="hidden md:block max-w-md">
+              <p className="text-black/80 text-xl leading-snug">
+                An experimental framework for evaluating Budget-Constrained Counterfactual Replay. Identify semantic drift, trace execution graphs, and ensure policy compliance on-chain and off-chain.
+              </p>
+            </AnimatedSection>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Badge variant="certified">System Stable</Badge>
-          <Badge variant="measured">Telemetry Active</Badge>
+      </section>
+
+      {/* Features Grid (Dark) */}
+      <section className="bg-[#111] pt-24 pb-32 px-6 w-full -mt-10 pt-32">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AnimatedSection delay={0.1}>
+            <div className="bg-[#1a1a1a] border border-[#333] p-12 h-[500px] flex flex-col justify-between hover:border-white/20 transition-colors group relative overflow-hidden">
+              <div>
+                <h3 className="text-3xl font-medium mb-4 text-white">Policy-Gated Recovery</h3>
+                <p className="text-[#888] text-lg max-w-sm">
+                  Hierarchical policy engine governing mock recovery actions and issuing cryptographic ledgers of the rollback state.
+                </p>
+              </div>
+              <div className="flex justify-between items-end">
+                <Link href="/experiments" className="flex items-center gap-2 text-white/70 group-hover:text-white transition-colors text-sm uppercase tracking-wider">
+                  <ArrowRight className="w-4 h-4" /> Discover
+                </Link>
+              </div>
+              {/* Abstract Geometric Decoration */}
+              <Hexagon className="absolute -bottom-20 -right-20 w-96 h-96 text-white/5 group-hover:text-white/10 transition-colors stroke-1" />
+            </div>
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.2}>
+            <div className="bg-[#1a1a1a] border border-[#333] p-12 h-[500px] flex flex-col justify-between hover:border-white/20 transition-colors group relative overflow-hidden">
+              <div>
+                <h3 className="text-3xl font-medium mb-4 text-white">Diffusion Propagation</h3>
+                <p className="text-[#888] text-lg max-w-sm">
+                  Maps symptomatic drift backwards via analytical topological scoring across your entire multi-agent pipeline.
+                </p>
+              </div>
+              <div className="flex justify-between items-end">
+                <Link href="/experiments" className="flex items-center gap-2 text-white/70 group-hover:text-white transition-colors text-sm uppercase tracking-wider">
+                  <ArrowRight className="w-4 h-4" /> Discover
+                </Link>
+              </div>
+              {/* Abstract Geometric Decoration */}
+              <Blocks className="absolute -bottom-20 -right-20 w-96 h-96 text-white/5 group-hover:text-white/10 transition-colors stroke-1" />
+            </div>
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.3} className="md:col-span-2">
+            <div className="bg-[#1a1a1a] border border-[#333] p-12 h-[400px] flex flex-col justify-between hover:border-white/20 transition-colors group relative overflow-hidden">
+              <div className="max-w-2xl relative z-10">
+                <h3 className="text-4xl font-medium mb-4 text-white">Budget-Constrained Bandit</h3>
+                <p className="text-[#888] text-xl">
+                  Estimates optimal counterfactual interventions to limit compute waste during diagnostic replays. The next generation of reliability is here.
+                </p>
+              </div>
+              <div className="flex justify-between items-end relative z-10">
+                <Link href="/dashboard" className="flex items-center gap-2 text-white/70 group-hover:text-white transition-colors text-sm uppercase tracking-wider">
+                  <ArrowRight className="w-4 h-4" /> Discover
+                </Link>
+              </div>
+              {/* Abstract Geometric Decoration */}
+              <Component className="absolute -bottom-40 right-10 w-[500px] h-[500px] text-white/5 group-hover:text-white/10 transition-colors stroke-1" />
+            </div>
+          </AnimatedSection>
         </div>
-      </div>
+      </section>
 
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-4 mb-8">
-        <h3 className="text-amber-500 font-semibold mb-1">Confidential Research Prototype</h3>
-        <p className="text-zinc-300 text-sm">
-          This system is an experimental evaluation platform. Diagnoses and certificates represent statistical bounds calculated over measured graph topologies, not absolute causal guarantees or production safety certifications.
-        </p>
-      </div>
+      {/* Categories Section (Split Green/Dark) */}
+      <section className="w-full flex flex-col md:flex-row min-h-[600px] border-t border-[#333]">
+        <div className="md:w-1/2 bg-[#dcf6cc] p-16 md:p-24 flex flex-col justify-center text-black">
+           <div className="text-xs font-bold uppercase tracking-widest mb-10 border border-black/20 rounded-full px-4 py-1 self-start">
+             Use Cases Hub
+           </div>
+           <p className="text-sm uppercase tracking-wider mb-4 font-semibold opacity-70">DriftGuard-X Apps</p>
+           <h2 className="text-6xl md:text-7xl font-medium leading-[0.9] mb-10">
+             Redefine Entire Categories
+           </h2>
+           <p className="text-xl max-w-md">
+             From AI to DePIN and digital commerce, DriftGuard-X provides the rails for the applications that define tomorrow's digital markets.
+           </p>
+        </div>
+        <div className="md:w-1/2 bg-[#1a1a1a] p-16 flex items-center justify-center relative overflow-hidden">
+           <Maximize className="w-full h-full max-w-[400px] max-h-[400px] text-[#333] stroke-1 absolute" />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Total Traces</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{telemetry?.metrics?.total_traces || 0}</div>
-          </CardContent>
-        </Card>
+      {/* Stats Section */}
+      <section className="bg-[#1a1a1a] py-32 border-t border-[#333] relative overflow-hidden">
+        {/* Striped border pattern top */}
+        <div className="absolute top-0 left-0 w-full h-8 flex">
+           {Array.from({length: 40}).map((_, i) => (
+             <div key={i} className={`flex-1 h-full ${i % 2 === 0 ? 'bg-[#dcf6cc]' : 'bg-[#111]'}`} />
+           ))}
+        </div>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Total Spans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{telemetry?.metrics?.total_spans || 0}</div>
-          </CardContent>
-        </Card>
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <AnimatedSection>
+            <h2 className="text-5xl md:text-7xl font-medium mb-8 text-white">Built for the Next Generation</h2>
+            <p className="text-xl text-[#888] max-w-2xl mx-auto mb-20">
+              Emerging technologies demand more than speed. They require infrastructure that can evolve without breaking.
+            </p>
+          </AnimatedSection>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Errors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-400">{telemetry?.metrics?.total_errors || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Ingestion Lag</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{telemetry?.metrics?.ingestion_lag_ms || 0}ms</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Trace Volume & Latency</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                    <XAxis dataKey="name" stroke="#888" />
-                    <YAxis yAxisId="left" stroke="#888" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#888" />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
-                      itemStyle={{ color: '#e4e4e7' }}
-                    />
-                    <Line yAxisId="left" type="monotone" dataKey="traces" stroke="#3b82f6" strokeWidth={2} />
-                    <Line yAxisId="right" type="monotone" dataKey="latency" stroke="#10b981" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-24">
+            <AnimatedSection delay={0.1}>
+              <div className="text-[120px] leading-none font-medium text-white mb-2">12M+</div>
+              <div className="text-xl text-[#888]">Total Traces Analyzed</div>
+            </AnimatedSection>
+            
+            <AnimatedSection delay={0.2}>
+              <div className="text-[120px] leading-none font-medium text-white mb-2">15+</div>
+              <div className="text-xl text-[#888]">Supported Providers</div>
+            </AnimatedSection>
+            
+            <AnimatedSection delay={0.3}>
+              <div className="text-[120px] leading-none font-medium text-white mb-2">&lt;35ms</div>
+              <div className="text-xl text-[#888]">Policy Verification Time</div>
+            </AnimatedSection>
+          </div>
         </div>
 
-        <div>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Providers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {providers && Object.entries(providers).map(([name, config]: [string, any]) => (
-                  <div key={name} className="flex justify-between items-center p-3 border border-zinc-800 rounded-lg">
-                    <div>
-                      <div className="font-semibold">{name}</div>
-                      <div className="text-xs text-zinc-400">${config.cost_per_1k} / 1k tkns</div>
-                    </div>
-                    <Badge variant={config.status === 'healthy' ? 'measured' : 'destructive'}>
-                      {config.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Striped border pattern bottom */}
+        <div className="absolute bottom-0 left-0 w-full h-8 flex">
+           {Array.from({length: 40}).map((_, i) => (
+             <div key={i} className={`flex-1 h-full ${i % 2 === 0 ? 'bg-[#111]' : 'bg-[#dcf6cc]'}`} />
+           ))}
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }

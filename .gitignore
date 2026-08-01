@@ -126,3 +126,7 @@ experiments/checkpoints/
 dist/
 build/
 *.whl
+
+# MLflow & Large Media
+mlruns/
+*.mp4

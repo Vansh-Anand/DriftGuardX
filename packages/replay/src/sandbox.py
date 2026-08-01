@@ -30,7 +30,7 @@ def _sandbox_audit_hook(event: str, args: tuple):
     if not hasattr(sandbox_local, "staged_actions"):
         sandbox_local.staged_actions = []
     
-    if event == "socket.connect" or event == "socket.bind":
+    if event.startswith("socket."):
         sandbox_local.staged_actions.append({"trace_id": trace_id, "type": "NETWORK_CALL", "payload": {"event": event, "args": str(args)}})
         raise SandboxViolationError(f"Network access staged and blocked in sandbox: {event} {args}")
         
@@ -48,7 +48,7 @@ def _sandbox_audit_hook(event: str, args: tuple):
         raise SandboxViolationError(f"Shell execution staged and blocked in sandbox: {event}")
 
 
-def _sandboxed_execution_wrapper(func: Callable, inputs: Dict[str, Any], return_dict: dict, trace_id: str):
+def _sandboxed_execution_wrapper(func: Callable, inputs: Dict[str, Any], return_dict: dict, trace_id: str, enable_arc: bool = True):
     """
     Runs inside the multiprocessing subprocess.
     """
@@ -59,11 +59,13 @@ def _sandboxed_execution_wrapper(func: Callable, inputs: Dict[str, Any], return_
         sandbox_local.staged_actions = []
         sys.addaudithook(_sandbox_audit_hook)
         
-        arc_isolator.enable()
+        if enable_arc:
+            arc_isolator.enable()
         try:
             result = func(**inputs)
         finally:
-            arc_isolator.disable()
+            if enable_arc:
+                arc_isolator.disable()
             
         return_dict['result'] = result
         return_dict['staged_actions'] = sandbox_local.staged_actions
@@ -77,13 +79,13 @@ class SandboxedWorker:
     Executes a function in a tightly restricted multiprocessing boundary.
     """
     @staticmethod
-    def run(func: Callable, inputs: Dict[str, Any], timeout_seconds: int = 5, trace_id: str = "default") -> Dict[str, Any]:
+    def run(func: Callable, inputs: Dict[str, Any], timeout_seconds: int = 5, trace_id: str = "default", enable_arc: bool = True) -> Dict[str, Any]:
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
         
         p = multiprocessing.Process(
             target=_sandboxed_execution_wrapper,
-            args=(func, inputs, return_dict, trace_id)
+            args=(func, inputs, return_dict, trace_id, enable_arc)
         )
         p.start()
         p.join(timeout=timeout_seconds)

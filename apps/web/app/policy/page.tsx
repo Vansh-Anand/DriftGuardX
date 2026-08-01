@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Verdict = "allow" | "deny" | "needs_approval";
@@ -89,7 +90,7 @@ const MOCK_ACTION_MATRIX: ActionMatrixRow[] = [
   { action: "apply_intervention", tier: "high", orgVerdict: "needs_approval", pipelineVerdict: "needs_approval", effectiveVerdict: "needs_approval", winningLevel: "organization", requiresApproval: true, twoPersonControl: true },
 ];
 
-const MOCK_APPROVALS: ApprovalItem[] = [
+const INITIAL_APPROVALS: ApprovalItem[] = [
   { requestId: "req_001", action: "apply_rollback", requester: "alice", nodeId: "pipeline_rag_v2", tier: "high", status: "pending", createdAt: "2026-07-22T12:00Z", expiresAt: "2026-07-23T12:00Z" },
   { requestId: "req_002", action: "schedule_replay", requester: "bob", nodeId: "pipeline_chat", tier: "medium", status: "approved", createdAt: "2026-07-22T09:00Z", expiresAt: "2026-07-23T09:00Z" },
   { requestId: "req_003", action: "apply_intervention", requester: "charlie", nodeId: "pipeline_exp", tier: "high", status: "denied", createdAt: "2026-07-21T18:00Z", expiresAt: "2026-07-22T18:00Z" },
@@ -172,8 +173,19 @@ function VerdictBadge({ verdict }: { verdict: Verdict }) {
 export default function PolicyPage() {
   const [selectedNode, setSelectedNode] = useState<string | null>("pipeline_rag_v2");
   const [activeTab, setActiveTab] = useState<"hierarchy" | "matrix" | "queue">("hierarchy");
+  const [approvals, setApprovals] = useState<ApprovalItem[]>(INITIAL_APPROVALS);
+  const { toast } = useToast();
 
-  const pendingApprovals = MOCK_APPROVALS.filter(a => a.status === "pending");
+  const pendingApprovals = approvals.filter(a => a.status === "pending");
+
+  const handleAction = (id: string, action: 'approved' | 'denied') => {
+    setApprovals(prev => prev.map(a => a.requestId === id ? { ...a, status: action } : a));
+    toast({
+      title: action === 'approved' ? 'Request Approved' : 'Request Denied',
+      description: `Request ${id} has been ${action}.`,
+      variant: action === 'approved' ? 'success' : 'destructive'
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -319,11 +331,11 @@ export default function PolicyPage() {
               decisions are flagged for post-hoc security review.
             </p>
             <div className="space-y-3">
-              {MOCK_APPROVALS.map(item => (
+              {approvals.map(item => (
                 <div
                   key={item.requestId}
                   id={`approval-${item.requestId}`}
-                  className={`border rounded-lg p-4 ${item.status === "pending" ? "border-amber-300 bg-amber-50" : "border-gray-200"}`}
+                  className={`border rounded-lg p-4 transition-all duration-300 ${item.status === "pending" ? "border-amber-300 bg-amber-50 shadow-sm" : "border-gray-200"}`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -351,19 +363,21 @@ export default function PolicyPage() {
                     <div className="mt-3 flex gap-2">
                       <button
                         id={`approve-${item.requestId}`}
-                        className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium"
+                        onClick={() => handleAction(item.requestId, 'approved')}
+                        className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium transition-colors"
                       >
                         Approve
                       </button>
                       <button
                         id={`deny-${item.requestId}`}
-                        className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 font-medium"
+                        onClick={() => handleAction(item.requestId, 'denied')}
+                        className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 font-medium transition-colors"
                       >
                         Deny
                       </button>
                       <button
                         id={`comment-${item.requestId}`}
-                        className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50 transition-colors"
                       >
                         Add Comment
                       </button>

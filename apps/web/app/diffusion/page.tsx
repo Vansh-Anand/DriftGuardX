@@ -1,15 +1,66 @@
-import React from 'react';
-import { Activity, Beaker, ShieldAlert, AlertCircle } from 'lucide-react';
+"use client";
 
-const MOCK_GRAPH_NODES = [
-  { id: 'prompt_1', label: 'Prompt', type: 'prompt', local_score: 0.1, root_prob: 0.05, is_symptom: false },
-  { id: 'retriever_1', label: 'Retriever (Stale Index)', type: 'retriever', local_score: 0.85, root_prob: 0.92, is_symptom: true },
-  { id: 'reranker_1', label: 'Reranker', type: 'reranker', local_score: 0.2, root_prob: 0.15, is_symptom: false },
-  { id: 'generator_1', label: 'Generator (Hallucination)', type: 'generator', local_score: 0.75, root_prob: 0.12, is_symptom: true },
-  { id: 'policy_1', label: 'Policy Check', type: 'policy', local_score: 0.6, root_prob: 0.08, is_symptom: true }
+import React, { useState, useEffect } from 'react';
+import { Activity, Beaker, ShieldAlert, AlertCircle, Play } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { Spinner } from '@/components/ui/spinner';
+
+const INITIAL_NODES = [
+  { id: 'prompt_1', label: 'Prompt', type: 'prompt', local_score: 0.1, root_prob: 0.0, is_symptom: false },
+  { id: 'retriever_1', label: 'Retriever (Stale Index)', type: 'retriever', local_score: 0.85, root_prob: 0.0, is_symptom: true },
+  { id: 'reranker_1', label: 'Reranker', type: 'reranker', local_score: 0.2, root_prob: 0.0, is_symptom: false },
+  { id: 'generator_1', label: 'Generator (Hallucination)', type: 'generator', local_score: 0.75, root_prob: 0.0, is_symptom: true },
+  { id: 'policy_1', label: 'Policy Check', type: 'policy', local_score: 0.6, root_prob: 0.0, is_symptom: true }
 ];
 
+const TARGET_PROBS = {
+  'prompt_1': 0.05,
+  'retriever_1': 0.92,
+  'reranker_1': 0.15,
+  'generator_1': 0.12,
+  'policy_1': 0.08
+};
+
 export default function DiffusionViewerPage() {
+  const [nodes, setNodes] = useState(INITIAL_NODES);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const { toast } = useToast();
+
+  const runSimulation = () => {
+    setIsRunning(true);
+    setIsCompleted(false);
+    setNodes(INITIAL_NODES);
+    
+    toast({
+      title: "Diffusion Simulation Started",
+      description: "Propagating symptom signals backward through the graph...",
+      variant: "default"
+    });
+
+    let step = 0;
+    const maxSteps = 20;
+    const interval = setInterval(() => {
+      step++;
+      setNodes(prev => prev.map(node => ({
+        ...node,
+        root_prob: Math.min(TARGET_PROBS[node.id as keyof typeof TARGET_PROBS] * (step / maxSteps), TARGET_PROBS[node.id as keyof typeof TARGET_PROBS])
+      })));
+
+      if (step >= maxSteps) {
+        clearInterval(interval);
+        setIsRunning(false);
+        setIsCompleted(true);
+        toast({
+          title: "Simulation Completed",
+          description: "Identified 'Retriever (Stale Index)' as the most likely root cause.",
+          variant: "success"
+        });
+      }
+    }, 150);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 p-8">
       <div className="max-w-5xl mx-auto">
@@ -18,9 +69,19 @@ export default function DiffusionViewerPage() {
             <Activity className="w-8 h-8 text-indigo-600" />
             Cross-Layer Drift Diffusion
           </h1>
-          <div className="text-sm font-medium bg-white px-4 py-2 rounded-lg border shadow-sm flex items-center gap-2 text-gray-700">
-            <Beaker className="w-4 h-4 text-indigo-500" />
-            Model: Learned GAT (v1.0.0)
+          <div className="flex gap-4 items-center">
+            <div className="text-sm font-medium bg-white px-4 py-2 rounded-lg border shadow-sm flex items-center gap-2 text-gray-700">
+              <Beaker className="w-4 h-4 text-indigo-500" />
+              Model: Learned GAT (v1.0.0)
+            </div>
+            <Button 
+              onClick={runSimulation} 
+              disabled={isRunning}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {isRunning ? <Spinner className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+              {isRunning ? "Running..." : isCompleted ? "Re-run Simulation" : "Run Simulation"}
+            </Button>
           </div>
         </div>
         
@@ -53,16 +114,16 @@ export default function DiffusionViewerPage() {
           
           <div className="p-8">
             <div className="flex flex-col gap-6">
-              {MOCK_GRAPH_NODES.map((node, i) => (
+              {nodes.map((node, i) => (
                 <div key={node.id} className="relative">
                   {/* Edges */}
-                  {i < MOCK_GRAPH_NODES.length - 1 && (
+                  {i < nodes.length - 1 && (
                     <div className="absolute left-8 top-12 bottom-[-24px] w-0.5 bg-gray-200"></div>
                   )}
                   
                   <div className="flex items-center gap-6 relative z-10">
                     <div 
-                      className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-all duration-500
+                      className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-all duration-300
                         ${node.root_prob > 0.5 
                           ? 'bg-indigo-600 text-white border-indigo-700 shadow-[0_0_15px_rgba(79,70,229,0.5)] ring-4 ring-indigo-100' 
                           : node.is_symptom 
@@ -72,14 +133,14 @@ export default function DiffusionViewerPage() {
                       {(node.root_prob * 100).toFixed(0)}%
                     </div>
                     
-                    <div className={`flex-1 p-4 rounded-lg border ${node.root_prob > 0.5 ? 'border-indigo-200 bg-indigo-50/30' : 'border-gray-100'}`}>
+                    <div className={`flex-1 p-4 rounded-lg border transition-all duration-300 ${node.root_prob > 0.5 ? 'border-indigo-200 bg-indigo-50/30' : 'border-gray-100'}`}>
                       <div className="flex justify-between items-start">
                         <div>
                           <span className="text-xs font-mono font-medium text-gray-500 uppercase tracking-wider">{node.type}</span>
                           <h4 className="text-lg font-semibold text-gray-900">{node.label}</h4>
                         </div>
                         {node.root_prob > 0.5 && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold animate-in fade-in zoom-in">
                             <AlertCircle className="w-3 h-3" /> Likely Root Cause
                           </span>
                         )}
@@ -90,14 +151,16 @@ export default function DiffusionViewerPage() {
                           <div className="text-xs text-gray-500 mb-1">Local Detector Score</div>
                           <div className="font-mono text-sm">{(node.local_score * 100).toFixed(1)}%</div>
                         </div>
-                        <div className="bg-white p-3 rounded border border-gray-100">
+                        <div className="bg-white p-3 rounded border border-gray-100 transition-colors duration-300">
                           <div className="text-xs text-gray-500 mb-1">Diffused Root Prob</div>
-                          <div className="font-mono text-sm text-indigo-700 font-semibold">{(node.root_prob * 100).toFixed(1)}%</div>
+                          <div className={`font-mono text-sm font-semibold transition-colors duration-300 ${node.root_prob > 0.5 ? 'text-indigo-700' : 'text-gray-900'}`}>
+                            {(node.root_prob * 100).toFixed(1)}%
+                          </div>
                         </div>
                       </div>
                       
                       {node.root_prob > 0.5 && (
-                        <div className="mt-3 text-sm text-indigo-800 bg-indigo-100/50 p-2 rounded">
+                        <div className="mt-3 text-sm text-indigo-800 bg-indigo-100/50 p-2 rounded animate-in fade-in slide-in-from-top-2">
                           <strong>Explanation:</strong> High local score + propagated symptoms to Generator and Policy nodes.
                         </div>
                       )}

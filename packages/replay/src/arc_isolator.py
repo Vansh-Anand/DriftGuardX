@@ -3,6 +3,7 @@ DriftGuard-X v2 — Asynchronous Redundant Copying (ARC) Isolator
 Dynamically routes destructive tool calls to a quarantined data sink.
 """
 import os
+import sys
 import subprocess
 import socket
 import threading

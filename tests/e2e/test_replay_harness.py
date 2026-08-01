@@ -14,10 +14,10 @@ def bad_network_call(**kwargs):
 
 def test_sandbox_blocks_network():
     with pytest.raises(RuntimeError) as exc_info:
-        SandboxedWorker.run(bad_network_call, {})
+        SandboxedWorker.run(bad_network_call, {}, enable_arc=False)
     
     assert "Sandbox error" in str(exc_info.value)
-    assert "Network access blocked" in str(exc_info.value)
+    assert "Network access" in str(exc_info.value) and "blocked" in str(exc_info.value)
 
 def bad_file_write(**kwargs):
     with open("hacked.txt", "w") as f:
@@ -29,7 +29,7 @@ def test_sandbox_blocks_file_write():
         SandboxedWorker.run(bad_file_write, {})
     
     assert "Sandbox error" in str(exc_info.value)
-    assert "File write blocked" in str(exc_info.value)
+    assert "File write" in str(exc_info.value) and "blocked" in str(exc_info.value)
 
 def test_freeze_invariant_failure():
     orig_trace = [

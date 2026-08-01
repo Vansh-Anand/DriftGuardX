@@ -55,5 +55,38 @@ class SymptomRegistry:
         """Fetch symptoms localized to a specific node."""
         return [e for e in self._entries if e.run_id == run_id and e.graph_node_id == graph_node_id]
 
+    def register_gat_result(
+        self,
+        tenant_id: UUID,
+        run_id: UUID,
+        gat_result: dict,
+        detector_version: str = "gat-v1"
+    ) -> List[SymptomRegistryEntry]:
+        """Convert GAT detector results into symptom registry entries."""
+        created_entries = []
+        if not gat_result.get("is_fault", False) and not gat_result.get("root_cause_candidates"):
+            return created_entries
+
+        prob = gat_result.get("fault_probability", 0.0)
+        likelihood = SymptomLikelihood.HIGH if prob > 0.7 else (SymptomLikelihood.MEDIUM if prob > 0.4 else SymptomLikelihood.LOW)
+
+        for candidate in gat_result.get("root_cause_candidates", []):
+            node_id = candidate.get("span_id", "unknown_span")
+            entry = SymptomRegistryEntry(
+                id=_new_uuid(),
+                tenant_id=tenant_id,
+                run_id=run_id,
+                graph_node_id=node_id,
+                symptom_name=f"gat_detector.trace_anomaly.{candidate.get('operation_name', 'op')}",
+                severity=likelihood,
+                detector_version=detector_version,
+                evidence_snippet=f"Self-time ratio: {candidate.get('self_time_ratio', 0.0):.2f}, error: {candidate.get('is_error', False)}, prob: {prob:.3f}",
+                uncertainty=round(1.0 - prob, 3),
+                detected_at=_utcnow()
+            )
+            self._entries.append(entry)
+            created_entries.append(entry)
+        return created_entries
+
     def clear(self):
         self._entries.clear()

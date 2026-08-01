@@ -59,7 +59,15 @@ export function Sidebar() {
       </div>
       <div className="p-4 border-t border-zinc-800 text-xs text-zinc-500">
         v2.0.0-beta.1 <br/>
-        <span className="text-blue-500 font-semibold mt-1 inline-block cursor-pointer">Start Golden Demo</span>
+        <span 
+          className="text-blue-500 font-semibold mt-1 inline-block cursor-pointer hover:text-blue-400 transition-colors"
+          onClick={() => {
+            const event = new CustomEvent('start-golden-demo');
+            window.dispatchEvent(event);
+          }}
+        >
+          Start Golden Demo
+        </span>
       </div>
     </div>
   )
