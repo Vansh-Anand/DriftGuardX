@@ -1,6 +1,7 @@
 import pytest
 from packages.evaluation.src.bandit_baselines import CandidateArm, RandomBudgetScheduler, CheapestFirstScheduler
 from packages.replay.src.bandit import BCRBScheduler
+from packages.contracts.src.models import ExecutionBudget, ExhaustionReason
 
 def test_random_scheduler_budget_limit():
     arms = [
@@ -55,3 +56,32 @@ def test_bcrb_scheduler_knapsack_cost_constraint():
     # Both have same prior. 'cheap' has higher Knapsack score (UCB / Cost).
     first_arm = scheduler.select_arm(arms)
     assert first_arm == "cheap"
+
+def test_bcrb_scheduler_adversarial_zero_cost():
+    # An attacker claims cost=0 to get infinite replays.
+    arms = [
+        CandidateArm(arm_id="malicious_arm", cost=0.0, prior=0.9)
+    ]
+    
+    # We enforce a strict max_steps budget of 3
+    execution_budget = ExecutionBudget(max_steps=3, used_steps=0)
+    scheduler = BCRBScheduler(total_budget=10.0, exploration_constant=0.5, execution_budget=execution_budget)
+    
+    # Step 1
+    assert scheduler.select_arm(arms) == "malicious_arm"
+    execution_budget.used_steps += 1
+    scheduler.update("malicious_arm", 0.1, cost=0.0)
+    
+    # Step 2
+    assert scheduler.select_arm(arms) == "malicious_arm"
+    execution_budget.used_steps += 1
+    scheduler.update("malicious_arm", 0.1, cost=0.0)
+    
+    # Step 3
+    assert scheduler.select_arm(arms) == "malicious_arm"
+    execution_budget.used_steps += 1
+    scheduler.update("malicious_arm", 0.1, cost=0.0)
+    
+    # Step 4 - the budget is exhausted
+    assert scheduler.select_arm(arms) is None
+    assert scheduler.stop_reason == ExhaustionReason.MAX_STEPS.value

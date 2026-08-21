@@ -17,3 +17,8 @@ This document serves to transparently bound the epistemic and causal claims that
 
 ## 4. Reproducibility
 - While `TraceArtifact` preserves seeds and provider configs, black-box APIs do not guarantee exact bit-for-bit reproducibility over long time horizons. Therefore, older traces may exhibit different downstream effects if replayed months later.
+
+## 5. Security and Adversarial Hardening
+- **Adversarial Resilience:** The prototype framework has undergone a 20-point adversarial hardening sweep addressing cryptographic integrity (Merkle DAG canonicalization), policy bypass via Unicode encoding, cross-tenant memory isolation, and Replay Engine resource exhaustion.
+- **Production Scale Security:** While these defenses hold at the prototype phase, the system remains a research vehicle. Deep canonicalization, complex AST-level execution limits, and multi-node tenant separation must be subjected to ongoing review if scaled to a distributed production setting.
+- **Algorithmic Confidence:** Heuristics and semantic boundary detectors have been augmented, but sophisticated prompt injections and semantic adversarial attacks on the evaluation models themselves remain an active research limitation.

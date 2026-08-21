@@ -1,74 +1,95 @@
 'use client';
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PageLayout } from '@/components/PageLayout';
+import Link from 'next/link';
 import { format } from 'date-fns';
 
+const certs = [
+  {
+    id: 'cert_1a2b3c4d',
+    timestamp: new Date().toISOString(),
+    action: 'Rollback Query Rewriter to v1.1',
+    hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    domain_prefix: '0x01',
+    status: 'verified',
+    tenant: 'T_111',
+  },
+  {
+    id: 'cert_9f8e7d6c',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    action: 'Override Rate Limit (Operator)',
+    hash: '59a597a7605e557b7f1981d11ff3e4b47f7d98be22fb39cb012a6136d8db76cc',
+    domain_prefix: '0x01',
+    status: 'verified',
+    tenant: 'T_222',
+  },
+  {
+    id: 'cert_5c4d3e2f',
+    timestamp: new Date(Date.now() - 172800000).toISOString(),
+    action: 'Apply Semantic Drift Threshold Update',
+    hash: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
+    domain_prefix: '0x00',
+    status: 'verified',
+    tenant: 'T_111',
+  },
+];
+
 export default function LedgerPage() {
-  const certs = [
-    {
-      id: 'cert_1a2b3c4d',
-      timestamp: new Date().toISOString(),
-      action: 'Rollback Query Rewriter to v1.1',
-      hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      status: 'verified'
-    },
-    {
-      id: 'cert_9f8e7d6c',
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      action: 'Override Rate Limit (Operator)',
-      hash: '59a597a7605e557b7f1981d11ff3e4b47f7d98be22fb39cb012a6136d8db76cc',
-      status: 'verified'
-    }
-  ];
+  const badge = (
+    <span className="font-mono text-[10px] border border-[#0a0a0a] px-3 py-1.5 uppercase tracking-widest bg-[#0a0a0a] text-[#ECEAE2]">
+      Ledger Intact
+    </span>
+  );
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Certificate Ledger</h1>
-          <p className="text-zinc-400">Cryptographic audit log for recovery actions</p>
-        </div>
-        <Badge variant="certified">Ledger Intact</Badge>
-      </div>
+    <PageLayout title="Certificate Ledger" subtitle="Tamper-evident cryptographic audit log for recovery actions" badge={badge}>
+      <div className="p-8">
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tamper-Evident Logs</CardTitle>
-          <CardDescription>Append-only ledger linking diagnoses to state rollbacks.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cert ID</TableHead>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Cryptographic Hash</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {certs.map(cert => (
-                <TableRow key={cert.id}>
-                  <TableCell className="font-mono text-xs">{cert.id}</TableCell>
-                  <TableCell className="text-zinc-400">{format(new Date(cert.timestamp), 'MMM d, HH:mm:ss')}</TableCell>
-                  <TableCell className="font-medium">{cert.action}</TableCell>
-                  <TableCell className="font-mono text-[10px] text-zinc-500 max-w-[200px] truncate" title={cert.hash}>
-                    {cert.hash}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={cert.status === 'verified' ? 'certified' : 'destructive'}>
-                      {cert.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+        {/* Integrity summary */}
+        <div className="grid grid-cols-3 border border-[#0a0a0a] mb-8">
+          <div className="p-5">
+            <div className="font-mono text-[10px] text-[#888] uppercase tracking-[0.15em] mb-2">Total Certificates</div>
+            <div className="font-sans font-bold text-3xl">{certs.length}</div>
+          </div>
+          <div className="border-l border-[#0a0a0a] p-5">
+            <div className="font-mono text-[10px] text-[#888] uppercase tracking-[0.15em] mb-2">Hash Function</div>
+            <div className="font-mono text-sm font-bold">SHA-256</div>
+            <div className="font-mono text-[10px] text-[#888]">Domain-separated (0x00/0x01)</div>
+          </div>
+          <div className="border-l border-[#0a0a0a] p-5">
+            <div className="font-mono text-[10px] text-[#888] uppercase tracking-[0.15em] mb-2">Verified</div>
+            <div className="font-sans font-bold text-3xl text-[#0a0a0a]">{certs.filter(c => c.status === 'verified').length}</div>
+            <div className="font-mono text-[10px] text-[#888]">All entries verified</div>
+          </div>
+        </div>
+
+        {/* Certificate table */}
+        <div className="border border-[#0a0a0a]">
+          {/* Header */}
+          <div className="grid grid-cols-[120px_150px_1fr_200px_70px_80px] border-b border-[#0a0a0a] bg-[#0a0a0a] text-[#ECEAE2]">
+            {['Cert ID', 'Timestamp', 'Action', 'Hash (SHA-256)', 'Domain', 'Status'].map(h => (
+              <div key={h} className="font-mono text-[10px] tracking-[0.1em] uppercase px-4 py-3">{h}</div>
+            ))}
+          </div>
+          {certs.map((cert, i) => (
+            <div key={cert.id} className={`grid grid-cols-[120px_150px_1fr_200px_70px_80px] items-start ${i > 0 ? 'border-t border-[#0a0a0a]/10' : ''} hover:bg-[#0a0a0a]/5 transition-colors`}>
+              <div className="px-4 py-4 font-mono text-[10px] text-[#0a0a0a] break-all">{cert.id}</div>
+              <div className="px-4 py-4 font-mono text-[10px] text-[#888]">{format(new Date(cert.timestamp), 'MMM d, HH:mm:ss')}</div>
+              <div className="px-4 py-4 font-mono text-xs font-medium text-[#0a0a0a]">{cert.action}</div>
+              <div className="px-4 py-4 font-mono text-[10px] text-[#888] truncate" title={cert.hash}>{cert.hash.substring(0, 24)}...</div>
+              <div className="px-4 py-4 font-mono text-[10px] text-[#888]">{cert.domain_prefix}</div>
+              <div className="px-4 py-4">
+                <span className={`font-mono text-[10px] border px-2 py-0.5 uppercase tracking-wider ${cert.status === 'verified' ? 'border-[#0a0a0a] text-[#0a0a0a]' : 'border-red-500 text-red-600'}`}>
+                  {cert.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 font-mono text-[10px] text-[#888] border border-[#0a0a0a]/20 px-4 py-3">
+          Merkle root computed with domain separation: LEAF_DOMAIN=0x00, INTERNAL_DOMAIN=0x01. Deterministic JSON canonicalization. Append-only log.
+        </div>
+      </div>
+    </PageLayout>
   );
 }

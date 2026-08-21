@@ -38,6 +38,7 @@ class RecoveryActionType(str, enum.Enum):
     # ── Memory / tool safety ───────────────────────────────────────────────────
     DISABLE_TEST_TOOL      = "disable_test_tool"       # MEDIUM: disable flagged tool
     QUARANTINE_MEMORY_NS   = "quarantine_memory_ns"    # MEDIUM: read-only fence on namespace
+    QUARANTINE_PROVENANCE_PARTITION = "quarantine_provenance_partition" # MEDIUM: adversarial provenance quarantine (Update 3)
 
     # ── Prompt / config ────────────────────────────────────────────────────────
     REVERT_PROMPT_VERSION  = "revert_prompt_version"   # MEDIUM: restore previous prompt tag
@@ -137,6 +138,14 @@ ACTION_REGISTRY: Dict[RecoveryActionType, ActionDefinition] = {
         required_params=("namespace_id", "tenant_id"),
         optional_params=("ttl_hours",),
         description="Place a test memory namespace into read-only quarantine.",
+    ),
+    RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION: ActionDefinition(
+        action_type=RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION,
+        risk_tier="medium",
+        is_reversible=True,
+        required_params=("partition_id",),
+        optional_params=("document_set", "tool_route", "preserve_challenge_examples"),
+        description="Quarantine a specific provenance partition (e.g., specific document set or agent route) without global rollback.",
     ),
     RecoveryActionType.REVERT_PROMPT_VERSION: ActionDefinition(
         action_type=RecoveryActionType.REVERT_PROMPT_VERSION,

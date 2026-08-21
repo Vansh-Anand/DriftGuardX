@@ -19,6 +19,7 @@ const navItems = [
   { name: 'Policy', href: '/policy', icon: ShieldAlert },
   { name: 'Recovery', href: '/recovery', icon: ShieldCheck },
   { name: 'Ledger', href: '/ledger', icon: Key },
+  { name: 'Security & Hardening', href: '/security', icon: ShieldAlert },
   { name: 'System Health', href: '/reports', icon: HeartPulse },
 ]
 

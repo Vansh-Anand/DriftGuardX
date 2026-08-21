@@ -1,109 +1,119 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Spinner } from '@/components/ui/spinner';
+import { PageLayout } from '@/components/PageLayout';
+
+const NODES = [
+  { id: 'root', label: 'RAG Pipeline Root', x: '50%', y: '10%', tx: '-50%', key: 'root' },
+  { id: 'rewriter', label: 'Query Rewriter', x: '20%', y: '42%', tx: '-50%', key: 'rewriter' },
+  { id: 'retriever', label: 'Vector Retriever', x: '75%', y: '42%', tx: '-50%', key: 'retriever' },
+  { id: 'embeddings', label: 'Embeddings Model', x: '75%', y: '78%', tx: '-50%', key: 'embeddings' },
+];
 
 export default function CausalGraphPage() {
+  const [stage, setStage] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [stage, setStage] = useState(0); // 0: initial, 1: checking, 2: found drift
   const { toast } = useToast();
 
   const runDiagnostics = () => {
     setIsRunning(true);
     setStage(1);
-    
-    toast({
-      title: 'Diagnostics Started',
-      description: 'Tracing execution graph and checking for drift...',
-    });
-
+    toast({ title: 'Diagnostics Started', description: 'Tracing execution graph and checking for drift...' });
     setTimeout(() => {
       setStage(2);
       setIsRunning(false);
-      toast({
-        title: 'Drift Detected',
-        description: 'Found root cause at the Embeddings Model.',
-        variant: 'destructive'
-      });
+      toast({ title: 'Drift Detected', description: 'Root cause: Embeddings Model version drift.', variant: 'destructive' });
     }, 2500);
   };
 
-  return (
-    <div className="p-8 h-full flex flex-col">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Causal Graph</h1>
-          <p className="text-zinc-400">Reliability attribution and drift propagation</p>
-        </div>
-        <div className="flex gap-4">
-          <Badge variant={stage === 2 ? 'destructive' : 'inferred'}>
-            {stage === 2 ? 'Drift Detected' : 'Scores Inferred'}
-          </Badge>
-          <Button onClick={runDiagnostics} disabled={isRunning} variant="outline" className="bg-zinc-800 text-white hover:bg-zinc-700 hover:text-white">
-            {isRunning ? <Spinner className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-            {isRunning ? 'Running...' : stage === 2 ? 'Re-run Diagnostics' : 'Run Diagnostics'}
-          </Button>
-        </div>
-      </div>
+  const nodeStyle = (key: string) => {
+    if (stage === 0) return { border: '1px solid #0a0a0a', background: '#ECEAE2', color: '#0a0a0a' };
+    if (stage === 1) return { border: '1px solid #0a0a0a', background: '#0a0a0a', color: '#ECEAE2' };
+    if (stage === 2) {
+      if (key === 'retriever') return { border: '2px solid #dc2626', background: '#fef2f2', color: '#dc2626' };
+      if (key === 'embeddings') return { border: '2px solid #f97316', background: '#fff7ed', color: '#c2410c' };
+      if (key === 'root') return { border: '2px solid #dc2626', background: '#ECEAE2', color: '#dc2626' };
+      return { border: '1px solid #0a0a0a', background: '#ECEAE2', color: '#0a0a0a' };
+    }
+    return {};
+  };
 
-      <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-950/50 p-6 relative overflow-hidden flex items-center justify-center">
-        {/* Mocking a Causal Graph using CSS/HTML structure instead of heavy D3 */}
-        <div className="relative w-full max-w-4xl h-[500px]">
-          
-          {/* Nodes */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 transition-transform duration-500 hover:scale-105 z-10">
-            <Card className={`w-64 shadow-lg transition-colors duration-500 ${stage === 2 ? 'border-red-900/50 bg-red-950/20' : stage === 1 ? 'border-blue-500/50 bg-blue-950/20 animate-pulse' : 'border-blue-900/50 bg-blue-950/20'}`}>
-              <CardContent className="p-4">
-                <div className={`font-semibold mb-1 ${stage === 2 ? 'text-red-400' : 'text-blue-400'}`}>RAG Pipeline Root</div>
-                <div className="flex justify-between text-xs text-zinc-400">
-                  <span>Reliability: {stage === 2 ? '0.65' : stage === 1 ? 'Testing...' : '0.99'}</span>
-                  {stage === 2 && <Badge variant="destructive" className="scale-75 animate-in zoom-in">Drift Detected</Badge>}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+  const scoreFor = (key: string) => {
+    if (stage === 0) return key === 'root' ? '0.99' : key === 'rewriter' ? '0.98' : key === 'retriever' ? '0.97' : '0.99';
+    if (stage === 1) return 'Testing...';
+    if (key === 'root') return '0.65 ↓';
+    if (key === 'rewriter') return '0.98';
+    if (key === 'retriever') return '0.52 (Symptom)';
+    if (key === 'embeddings') return '0.41 (Root Cause)';
+    return '';
+  };
 
-          <div className="absolute top-48 left-1/4 -translate-x-1/2 transition-transform duration-500 hover:scale-105 z-10">
-            <Card className={`w-56 transition-colors duration-500 ${stage === 1 ? 'border-blue-500/50 bg-blue-950/20 animate-pulse' : ''}`}>
-              <CardContent className="p-4">
-                <div className="font-semibold mb-1">Query Rewriter</div>
-                <div className="text-xs text-zinc-400">Reliability: {stage === 1 ? 'Testing...' : '0.98'}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="absolute top-48 right-1/4 translate-x-1/2 transition-transform duration-500 hover:scale-105 z-10">
-            <Card className={`w-56 transition-colors duration-500 ${stage === 2 ? 'border-red-900/50 bg-red-950/20' : stage === 1 ? 'border-blue-500/50 bg-blue-950/20 animate-pulse' : ''}`}>
-              <CardContent className="p-4">
-                <div className={`font-semibold mb-1 ${stage === 2 ? 'text-red-400' : ''}`}>Vector Retriever</div>
-                <div className="text-xs text-zinc-400">Reliability: {stage === 2 ? '0.52 (Symptom)' : stage === 1 ? 'Testing...' : '0.97'}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="absolute bottom-10 right-1/4 translate-x-1/2 transition-transform duration-500 hover:scale-105 z-10">
-            <Card className={`w-56 transition-colors duration-500 ${stage === 2 ? 'border-orange-900/50 bg-orange-950/20' : stage === 1 ? 'border-blue-500/50 bg-blue-950/20 animate-pulse delay-500' : ''}`}>
-              <CardContent className="p-4">
-                <div className={`font-semibold mb-1 ${stage === 2 ? 'text-orange-400' : ''}`}>Embeddings Model</div>
-                <div className="text-xs text-zinc-400">Reliability: {stage === 2 ? '0.41 (Root Cause)' : stage === 1 ? 'Testing...' : '0.99'}</div>
-                {stage === 2 && <div className="mt-2 text-[10px] text-zinc-500 bg-black/50 p-1 rounded animate-in fade-in slide-in-from-bottom-2">Version drift detected</div>}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* SVG Edges */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-            <path d="M 450 100 L 250 190" stroke={stage === 1 ? '#3b82f6' : '#3f3f46'} strokeWidth="2" fill="none" strokeDasharray="5,5" className={stage === 1 ? 'animate-pulse' : ''} />
-            <path d="M 450 100 L 650 190" stroke={stage === 2 ? '#7f1d1d' : stage === 1 ? '#3b82f6' : '#3f3f46'} strokeWidth="3" fill="none" className={stage === 1 ? 'animate-pulse' : ''} />
-            <path d="M 650 250 L 650 420" stroke={stage === 2 ? '#7f1d1d' : stage === 1 ? '#3b82f6' : '#3f3f46'} strokeWidth="3" fill="none" className={stage === 1 ? 'animate-pulse' : ''} />
-          </svg>
-        </div>
-      </div>
+  const badgeComp = (
+    <div className="flex gap-3 items-center">
+      <span className={`font-mono text-[10px] border px-3 py-1.5 tracking-widest uppercase ${stage === 2 ? 'border-red-600 text-red-600' : 'border-[#0a0a0a] text-[#0a0a0a]'}`}>
+        {stage === 2 ? 'Drift Detected' : 'Scores Inferred'}
+      </span>
+      <button
+        onClick={runDiagnostics}
+        disabled={isRunning}
+        className="flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase border border-[#0a0a0a] px-4 py-1.5 hover:bg-[#0a0a0a] hover:text-[#ECEAE2] transition-colors disabled:opacity-40"
+      >
+        {isRunning ? <Spinner className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+        {isRunning ? 'Running...' : stage === 2 ? 'Re-run' : 'Run Diagnostics'}
+      </button>
     </div>
+  );
+
+  return (
+    <PageLayout title="Causal Graph" subtitle="Reliability attribution and drift propagation" badge={badgeComp}>
+      <div className="p-8">
+        <div className="border border-[#0a0a0a] relative overflow-hidden" style={{ height: 520 }}>
+          {/* SVG edges */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+            <path d="M 50% 18% L 22% 40%" stroke={stage === 1 ? '#0a0a0a' : stage === 2 ? '#0a0a0a55' : '#0a0a0a33'} strokeWidth="1.5" fill="none" strokeDasharray={stage === 1 ? "4,4" : "none"} />
+            <path d="M 50% 18% L 76% 40%" stroke={stage === 2 ? '#dc2626' : stage === 1 ? '#0a0a0a' : '#0a0a0a33'} strokeWidth={stage === 2 ? 2.5 : 1.5} fill="none" />
+            <path d="M 76% 55% L 76% 76%" stroke={stage === 2 ? '#f97316' : stage === 1 ? '#0a0a0a' : '#0a0a0a33'} strokeWidth={stage === 2 ? 2.5 : 1.5} fill="none" />
+          </svg>
+
+          {/* Nodes */}
+          {NODES.map((n) => (
+            <div
+              key={n.id}
+              className="absolute w-52 p-4 transition-all duration-500"
+              style={{ left: n.x, top: n.y, transform: `translateX(${n.tx})`, zIndex: 10, ...nodeStyle(n.key) }}
+            >
+              <div className="font-mono text-xs font-bold mb-1.5">{n.label}</div>
+              <div className="font-mono text-[10px] opacity-60">Reliability: {scoreFor(n.key)}</div>
+              {stage === 2 && n.key === 'embeddings' && (
+                <div className="font-mono text-[10px] mt-2 border-t border-current pt-2 opacity-70">↑ Version drift detected</div>
+              )}
+            </div>
+          ))}
+
+          {/* Empty state */}
+          {stage === 0 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-xs text-[#888] text-center">
+              Run diagnostics to trace attribution and detect drift
+            </div>
+          )}
+        </div>
+
+        {/* Legend */}
+        <div className="flex gap-6 mt-4">
+          <span className="font-mono text-[10px] text-[#888] flex items-center gap-2">
+            <span className="w-4 h-[1px] bg-[#0a0a0a33] inline-block"/>Healthy path
+          </span>
+          <span className="font-mono text-[10px] text-red-500 flex items-center gap-2">
+            <span className="w-4 h-[2px] bg-red-500 inline-block"/>Drift propagation
+          </span>
+          <span className="font-mono text-[10px] text-orange-500 flex items-center gap-2">
+            <span className="w-4 h-[2px] bg-orange-500 inline-block"/>Root cause
+          </span>
+        </div>
+      </div>
+    </PageLayout>
   );
 }

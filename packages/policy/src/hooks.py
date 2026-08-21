@@ -20,7 +20,7 @@ node, verdict, rule_id, policy_version, requester, and timestamp.
 from __future__ import annotations
 
 from packages.policy.src.engine import PolicyEngine, EngineDecision
-from typing import Optional
+from typing import Optional, List
 
 
 class PolicyDeniedError(PermissionError):
@@ -30,6 +30,13 @@ class PolicyDeniedError(PermissionError):
         super().__init__(
             f"[POLICY DENIED] action={decision.action!r} "
             f"rule={decision.rule_id!r} reason={decision.rationale!r}"
+        )
+
+class QuarantineEnforcementError(PermissionError):
+    """Raised when an agent attempts to read from a quarantined partition."""
+    def __init__(self, partition_id: str):
+        super().__init__(
+            f"[QUARANTINE ENFORCED] Read access denied for quarantined partition '{partition_id}'."
         )
 
 
@@ -125,3 +132,23 @@ def pre_rollback_check(
         engine, "apply_rollback",
         tenant_id, node_id, requester_id, requester_role, existing_approval_id,
     )
+
+def pre_memory_read_check(
+    partition_id: str,
+    active_quarantined_partitions: List[str],
+    requester_role: str = "agent"
+) -> None:
+    """
+    Hard enforcement hook preventing reads from quarantined provenance partitions (Issue 13).
+    Bypasses the policy engine and explicitly denies access at the storage layer.
+    Allows forensic auditors explicit access with logging.
+    """
+    if partition_id in active_quarantined_partitions:
+        if requester_role == "forensic_auditor":
+            # Real implementation would log to an immutable audit trail here
+            import logging
+            logging.getLogger("driftguardx.audit").info(
+                f"[FORENSIC AUDIT] Authorized read access to quarantined partition '{partition_id}'."
+            )
+        else:
+            raise QuarantineEnforcementError(partition_id=partition_id)

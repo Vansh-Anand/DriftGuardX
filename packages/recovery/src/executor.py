@@ -269,6 +269,12 @@ class LocalDevExecutor(RecoveryExecutor):
         if t == RecoveryActionType.QUARANTINE_MEMORY_NS:
             ns = params.get("namespace_id", "")
             return {"namespace_id": ns, "quarantined": ns in self._quarantined_ns}
+        if t == RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION:
+            pid = params.get("partition_id", "")
+            # Assume not quarantined initially if not tracked, store handles reality
+            from packages.memory.src.store import global_provenance_store
+            is_quarantined = pid in global_provenance_store._active_quarantines
+            return {"partition_id": pid, "quarantined": is_quarantined}
         if t == RecoveryActionType.REVERT_PROMPT_VERSION:
             pid = params.get("prompt_id", "")
             return {"prompt_id": pid, "version_tag": self._prompt_versions.get(pid, "v1")}
@@ -357,6 +363,16 @@ class LocalDevExecutor(RecoveryExecutor):
                     side_effects={"namespace_id": ns, "quarantined": True},
                 )
 
+            if t == RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION:
+                pid = params["partition_id"]
+                from packages.memory.src.store import global_provenance_store
+                global_provenance_store.quarantine_partition(pid)
+                return ExecutionResult(
+                    proposal_id=proposal.proposal_id, success=True,
+                    outcome_description=f"Provenance partition {pid!r} quarantined globally.",
+                    side_effects={"partition_id": pid, "quarantined": True},
+                )
+
             if t == RecoveryActionType.REVERT_PROMPT_VERSION:
                 pid = params["prompt_id"]
                 vtag = params["target_version_tag"]
@@ -410,6 +426,10 @@ class LocalDevExecutor(RecoveryExecutor):
             elif t == RecoveryActionType.QUARANTINE_MEMORY_NS.value:
                 if not prev.get("quarantined", False):
                     self._quarantined_ns.discard(prev["namespace_id"])
+            elif t == RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION.value:
+                if not prev.get("quarantined", False):
+                    from packages.memory.src.store import global_provenance_store
+                    global_provenance_store.unquarantine_partition(prev["partition_id"])
             elif t == RecoveryActionType.REVERT_PROMPT_VERSION.value:
                 self._prompt_versions[prev["prompt_id"]] = prev["version_tag"]
             elif t == RecoveryActionType.ROLLBACK_COMPONENT.value:

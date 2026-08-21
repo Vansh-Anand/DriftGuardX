@@ -9,30 +9,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#111111",
-        foreground: "#ffffff",
-        primary: "#000000",
-        mint: "#dcf6cc",
+        background: "#ECEAE2",
+        foreground: "#0a0a0a",
+        accent: "#E8FF00",
+        dark: "#0a0a0a",
+        border: "#0a0a0a",
+        mint: "#E8FF00",   // repurpose mint slot to yellow accent
         muted: "#888888",
-        card: "#1a1a1a",
-        border: "#333333"
+        card: "#0a0a0a",
       },
       fontFamily: {
-        sans: ['var(--font-outfit)', 'sans-serif'],
+        sans: ['var(--font-grotesk)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       animation: {
         'fade-up': 'fadeUp 0.8s ease-out forwards',
-        'zoom-in': 'zoomIn 0.8s ease-out forwards',
+        'marquee': 'marquee 20s linear infinite',
       },
       keyframes: {
         fadeUp: {
           '0%': { opacity: '0', transform: 'translateY(40px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        zoomIn: {
-          '0%': { opacity: '0', transform: 'scale(0.95)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
-        }
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       }
     },
   },

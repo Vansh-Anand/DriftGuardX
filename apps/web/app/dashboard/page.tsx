@@ -1,14 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { PageLayout } from '@/components/PageLayout';
 import { Spinner } from '@/components/ui/spinner';
 import { fetchTelemetry, fetchProviders } from '@/lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
 
-export default function Home() {
+function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <div className="border border-[#0a0a0a] p-6 bg-[#ECEAE2]">
+      <div className="font-mono text-[10px] text-[#888] tracking-[0.2em] uppercase mb-3">{label}</div>
+      <div className="font-sans font-bold text-4xl tracking-tight text-[#0a0a0a]">{value}</div>
+      {sub && <div className="font-mono text-xs text-[#888] mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+export default function DashboardPage() {
   const { toast } = useToast();
   const [telemetry, setTelemetry] = useState<any>(null);
   const [providers, setProviders] = useState<any>(null);
@@ -25,10 +34,7 @@ export default function Home() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [telData, provData] = await Promise.all([
-          fetchTelemetry(),
-          fetchProviders()
-        ]);
+        const [telData, provData] = await Promise.all([fetchTelemetry(), fetchProviders()]);
         setTelemetry(telData);
         setProviders(provData);
       } catch (err) {
@@ -39,7 +45,6 @@ export default function Home() {
     }
     loadData();
 
-    // Simulate live telemetry stream
     const interval = setInterval(() => {
       setTelemetry((prev: any) => {
         if (!prev) return prev;
@@ -53,160 +58,99 @@ export default function Home() {
           }
         };
       });
-
       setData((prev) => {
         const newData = [...prev];
         const last = newData[newData.length - 1];
         newData.shift();
-        
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        newData.push({
-          name: timeStr,
-          traces: last.traces + (Math.random() * 40 - 20),
-          latency: last.latency + (Math.random() * 20 - 10),
-        });
+        newData.push({ name: timeStr, traces: last.traces + (Math.random() * 40 - 20), latency: last.latency + (Math.random() * 20 - 10) });
         return newData;
       });
     }, 3000);
 
-    const handleGoldenDemo = () => {
-      toast({
-        title: 'Golden Demo Started',
-        description: 'Generating traces and simulating multi-agent pipeline...',
-        variant: 'success'
-      });
-      // Simulate spike in traces
-      setTelemetry((prev: any) => ({
-        ...prev,
-        metrics: {
-          ...prev?.metrics,
-          total_traces: (prev?.metrics?.total_traces || 0) + 500,
-          total_spans: (prev?.metrics?.total_spans || 0) + 1500,
-          total_errors: (prev?.metrics?.total_errors || 0) + 2,
-        }
-      }));
-    };
-    
-    window.addEventListener('start-golden-demo', handleGoldenDemo);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('start-golden-demo', handleGoldenDemo);
-    };
+    return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="p-12 flex justify-center"><Spinner className="w-8 h-8" /></div>;
+  const badge = (
+    <span className="font-mono text-[10px] tracking-widest uppercase border border-[#0a0a0a] px-3 py-1.5 bg-[#0a0a0a] text-[#ECEAE2]">
+      ● Live
+    </span>
+  );
+
+  if (loading) return (
+    <PageLayout title="Overview" subtitle="System health and aggregated metrics" badge={badge}>
+      <div className="p-12 flex justify-center"><Spinner className="w-8 h-8" /></div>
+    </PageLayout>
+  );
 
   return (
-    <main className="flex-1 p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-          <p className="text-zinc-400">System health and aggregated metrics</p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="certified">System Stable</Badge>
-          <Badge variant="measured">Telemetry Active</Badge>
-        </div>
-      </div>
+    <PageLayout title="Overview" subtitle="System health and aggregated metrics" badge={badge}>
+      <div className="p-8">
 
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-4 mb-8">
-        <h3 className="text-amber-500 font-semibold mb-1">Confidential Research Prototype</h3>
-        <p className="text-zinc-300 text-sm">
-          This system is an experimental evaluation platform. Diagnoses and certificates represent statistical bounds calculated over measured graph topologies, not absolute causal guarantees or production safety certifications.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Total Traces</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{telemetry?.metrics?.total_traces || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Total Spans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{telemetry?.metrics?.total_spans || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Errors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-400">{telemetry?.metrics?.total_errors || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Ingestion Lag</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{telemetry?.metrics?.ingestion_lag_ms || 0}ms</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Trace Volume & Latency</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                    <XAxis dataKey="name" stroke="#888" />
-                    <YAxis yAxisId="left" stroke="#888" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#888" />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
-                      itemStyle={{ color: '#e4e4e7' }}
-                    />
-                    <Line yAxisId="left" type="monotone" dataKey="traces" stroke="#3b82f6" strokeWidth={2} />
-                    <Line yAxisId="right" type="monotone" dataKey="latency" stroke="#10b981" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Research disclaimer */}
+        <div className="border border-[#0a0a0a]/30 border-l-4 border-l-amber-500 p-4 mb-8 bg-amber-50/50">
+          <h3 className="font-mono text-xs font-bold text-amber-700 tracking-widest uppercase mb-1">Confidential Research Prototype</h3>
+          <p className="font-mono text-xs text-[#888]">
+            Diagnoses represent statistical bounds over measured graph topologies — not absolute causal guarantees or production safety certifications.
+          </p>
         </div>
 
-        <div>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Providers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {providers && Object.entries(providers).map(([name, config]: [string, any]) => (
-                  <div key={name} className="flex justify-between items-center p-3 border border-zinc-800 rounded-lg">
-                    <div>
-                      <div className="font-semibold">{name}</div>
-                      <div className="text-xs text-zinc-400">${config.cost_per_1k} / 1k tkns</div>
-                    </div>
-                    <Badge variant={config.status === 'healthy' ? 'measured' : 'destructive'}>
-                      {config.status}
-                    </Badge>
+        {/* Stat Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 border border-[#0a0a0a] mb-8">
+          <StatCard label="Total Traces" value={telemetry?.metrics?.total_traces || 0} />
+          <div className="border-l border-[#0a0a0a]">
+            <StatCard label="Total Spans" value={telemetry?.metrics?.total_spans || 0} />
+          </div>
+          <div className="border-l border-[#0a0a0a]">
+            <StatCard label="Errors" value={telemetry?.metrics?.total_errors || 0} sub="Pipeline errors detected" />
+          </div>
+          <div className="border-l border-[#0a0a0a]">
+            <StatCard label="Ingestion Lag" value={`${telemetry?.metrics?.ingestion_lag_ms || 0}ms`} sub="Realtime stream" />
+          </div>
+        </div>
+
+        {/* Chart + Providers */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 border border-[#0a0a0a] p-6">
+            <div className="font-mono text-xs tracking-[0.15em] uppercase text-[#888] mb-6">Trace Volume & Latency</div>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#0a0a0a22" vertical={false} />
+                  <XAxis dataKey="name" stroke="#888" tick={{ fontFamily: 'var(--font-mono)', fontSize: 10 }} />
+                  <YAxis yAxisId="left" stroke="#888" tick={{ fontFamily: 'var(--font-mono)', fontSize: 10 }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#888" tick={{ fontFamily: 'var(--font-mono)', fontSize: 10 }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#ECEAE2', border: '1px solid #0a0a0a', fontFamily: 'var(--font-mono)', fontSize: 11 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="traces" stroke="#0a0a0a" strokeWidth={2} dot={false} />
+                  <Line yAxisId="right" type="monotone" dataKey="latency" stroke="#888" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex gap-6 mt-4">
+              <span className="font-mono text-xs text-[#0a0a0a] flex items-center gap-2"><span className="w-4 h-0.5 bg-[#0a0a0a] inline-block"/> Trace Volume</span>
+              <span className="font-mono text-xs text-[#888] flex items-center gap-2"><span className="w-4 h-0.5 bg-[#888] inline-block border-dashed"/> Latency (ms)</span>
+            </div>
+          </div>
+
+          <div className="border border-[#0a0a0a] p-6">
+            <div className="font-mono text-xs tracking-[0.15em] uppercase text-[#888] mb-4">Providers</div>
+            <div className="space-y-0">
+              {providers && Object.entries(providers).map(([name, config]: [string, any], i) => (
+                <div key={name} className={`py-3 flex justify-between items-center ${i > 0 ? 'border-t border-[#0a0a0a]/10' : ''}`}>
+                  <div>
+                    <div className="font-mono text-xs font-bold text-[#0a0a0a]">{name}</div>
+                    <div className="font-mono text-[10px] text-[#888]">${config.cost_per_1k} / 1k tokens</div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <span className={`font-mono text-[10px] border px-2 py-1 ${config.status === 'healthy' ? 'border-[#0a0a0a] text-[#0a0a0a]' : 'border-red-500 text-red-600'}`}>
+                    {config.status?.toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </main>
+    </PageLayout>
   );
 }

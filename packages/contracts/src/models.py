@@ -540,6 +540,7 @@ class DetectorOutput(DGXBaseModel):
     value: float
     is_anomaly: bool
     likelihood: SymptomLikelihood
+    drift_channel: CausalDriftChannel | None = None
     evidence: dict[str, Any] = Field(default_factory=dict)
     calculated_at: datetime = Field(default_factory=_utcnow)
 
@@ -558,6 +559,33 @@ class DetectorThreshold(DGXBaseModel):
     is_active: bool = True
 
 
+class CausalDriftChannel(str, enum.Enum):
+    RETRIEVAL = "RETRIEVAL"
+    MODEL = "MODEL"
+    MEMORY = "MEMORY"
+    TOOL = "TOOL"
+    PROMPT = "PROMPT"
+    DATA = "DATA"
+    UNKNOWN = "UNKNOWN"
+
+    # Legacy mappings
+    CORPUS_STALENESS = "DATA"
+    RETRIEVAL_DEGRADATION = "RETRIEVAL"
+    TOOL_SCHEMA_DRIFT = "TOOL"
+    PROMPT_POLICY_SHIFT = "PROMPT"
+    HOSTED_MODEL_SHIFT = "MODEL"
+    OUTCOME_DRIFT = "UNKNOWN"
+
+
+class TypedCausalMap(DGXBaseModel):
+    """
+    Decomposes an opaque drift score into typed channels (Update 2).
+    """
+    primary_channel: CausalDriftChannel
+    channel_scores: dict[CausalDriftChannel, float] = Field(default_factory=dict)
+    containment_partition_id: str | None = None
+
+
 class SymptomRegistryEntry(DGXBaseModel):
     """A registered symptom linked to a graph node. Distinct from Causal Diagnosis."""
     id: UUID = Field(default_factory=_new_uuid)
@@ -569,6 +597,7 @@ class SymptomRegistryEntry(DGXBaseModel):
     detector_version: str
     evidence_snippet: str = ""
     uncertainty: float | None = None  # 0.0 - 1.0
+    typed_causal_map: TypedCausalMap | None = None
 
 # ─── Root Cause Report (Prompt 08) ───────────────────────────────────────────
 
@@ -613,4 +642,82 @@ class RootCauseReport(DGXBaseModel):
     human_review_required: bool = True       # defaults True; cleared only when CERTIFIED
     block_automated_action: bool = True      # defaults True; cleared only when CERTIFIED
 
+
+# ─── RAEB (Replay Admissibility and Evidence Budget) (Update 1) ───────────────
+
+class AdmissibilityScore(str, enum.Enum):
+    ADMISSIBLE = "admissible"
+    LIMITED = "limited"
+    UNSUPPORTED = "unsupported"
+
+class EquivalenceVector(DGXBaseModel):
+    """
+    Measures the equivalence between a live run and a proposed replay.
+    """
+    freshness_score: float = Field(ge=0.0, le=1.0)
+    determinism_score: float = Field(ge=0.0, le=1.0)
+    dependency_impact_score: float = Field(ge=0.0, le=1.0)
+
+class RAEBEvaluation(DGXBaseModel):
+    """
+    Result of evaluating a replay proposal against the RAEB gateway.
+    """
+    equivalence_vector: EquivalenceVector
+    admissibility: AdmissibilityScore
+    information_gain_estimate: float = 0.0
+    risk_score: float = 0.0
+    rejection_reason: str | None = None
+    evaluated_at: datetime = Field(default_factory=_utcnow)
+
+
+# ─── Pareto Replay Set (Update 5) ─────────────────────────────────────────────
+
+class ParetoReplayCandidate(DGXBaseModel):
+    arm_id: str
+    information_gain: float
+    recovery_harm: float
+    cost: float
+    admissibility: AdmissibilityScore
+    is_pareto_optimal: bool = True
+
+class ExhaustionReason(str, enum.Enum):
+    WALL_CLOCK = "wall_clock_exhausted"
+    MAX_STEPS = "max_steps_exhausted"
+    MAX_TOKENS = "max_tokens_exhausted"
+    MAX_TOOL_CALLS = "max_tool_calls_exhausted"
+    MAX_REPLAYS = "max_replays_exhausted"
+
+class ExecutionBudget(DGXBaseModel):
+    """
+    Defense-in-depth tracking of actual resource usage (Update 8).
+    """
+    wall_clock_time_s: float | None = None
+    max_steps: int | None = None
+    max_tokens: int | None = None
+    max_tool_calls: int | None = None
+    max_replays: int | None = None
+    
+    # Measured usage state
+    used_wall_clock_s: float = 0.0
+    used_steps: int = 0
+    used_tokens: int = 0
+    used_tool_calls: int = 0
+    used_replays: int = 0
+    
+    def check_exhaustion(self) -> ExhaustionReason | None:
+        """Returns ExhaustionReason if any budget is exceeded."""
+        if self.wall_clock_time_s is not None and self.used_wall_clock_s >= self.wall_clock_time_s:
+            return ExhaustionReason.WALL_CLOCK
+        if self.max_steps is not None and self.used_steps >= self.max_steps:
+            return ExhaustionReason.MAX_STEPS
+        if self.max_tokens is not None and self.used_tokens >= self.max_tokens:
+            return ExhaustionReason.MAX_TOKENS
+        if self.max_tool_calls is not None and self.used_tool_calls >= self.max_tool_calls:
+            return ExhaustionReason.MAX_TOOL_CALLS
+        if self.max_replays is not None and self.used_replays >= self.max_replays:
+            return ExhaustionReason.MAX_REPLAYS
+        return None
+
+class ParetoReplaySet(DGXBaseModel):
+    candidates: list[ParetoReplayCandidate] = Field(default_factory=list)
 

@@ -8,6 +8,8 @@ from packages.contracts.src.models import (
     DetectorOutput, 
     SymptomLikelihood, 
     SymptomRegistryEntry,
+    TypedCausalMap,
+    CausalDriftChannel,
     _new_uuid,
     _utcnow
 )
@@ -32,6 +34,21 @@ class SymptomRegistry:
         if not detector_output.is_anomaly:
             return None
             
+        # Semantic-Causal Drift Decomposition (Update 2)
+        # Use explicit drift_channel from DetectorOutput if provided, fallback to UNKNOWN
+        if detector_output.drift_channel:
+            channel = CausalDriftChannel(detector_output.drift_channel)
+        else:
+            import warnings
+            warnings.warn(f"Detector {detector_output.detector_name} did not explicitly register a drift channel. Defaulting to UNKNOWN.")
+            channel = CausalDriftChannel.UNKNOWN
+            
+        typed_map = TypedCausalMap(
+            primary_channel=channel,
+            channel_scores={channel: detector_output.value},
+            containment_partition_id=graph_node_id
+        )
+            
         entry = SymptomRegistryEntry(
             id=_new_uuid(),
             tenant_id=tenant_id,
@@ -42,6 +59,7 @@ class SymptomRegistry:
             detector_version=detector_version,
             evidence_snippet=str(detector_output.evidence),
             uncertainty=0.1,  # Baseline uncertainty
+            typed_causal_map=typed_map,
             detected_at=_utcnow()
         )
         self._entries.append(entry)

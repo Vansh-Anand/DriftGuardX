@@ -1,5 +1,7 @@
+'use client';
+import { PageLayout } from '@/components/PageLayout';
 import React from 'react';
-import { Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 
 const MOCK_SYMPTOMS = [
   {
@@ -38,55 +40,61 @@ const MOCK_SYMPTOMS = [
 ];
 
 export default function TimelinePage() {
+  const badge = (
+    <span className="font-mono text-[10px] border border-[#0a0a0a] px-3 py-1.5 uppercase tracking-widest">
+      {MOCK_SYMPTOMS.length} Events
+    </span>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-            <Clock className="w-8 h-8 text-blue-600" />
-            Drift Timeline
-          </h1>
-          <div className="flex gap-4 text-sm font-medium">
-            <span className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500"></span> Anomaly
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-yellow-400"></span> False Positive
-            </span>
-          </div>
+    <PageLayout title="Drift Timeline" subtitle="Versioned execution spans and anomaly detection events" badge={badge}>
+      <div className="p-8">
+        {/* Legend */}
+        <div className="flex gap-8 mb-8 border-b border-[#0a0a0a]/10 pb-4">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-[#888] flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-[#0a0a0a] inline-block"/>Anomaly
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-[#888] flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-[#888] inline-block border border-[#0a0a0a]"/>False Positive
+          </span>
         </div>
-        
-        <div className="relative border-l-2 border-gray-200 ml-4 space-y-8">
-          {MOCK_SYMPTOMS.map((sym) => (
-            <div key={sym.id} className="relative pl-8">
-              <div className={`absolute -left-2.5 top-1.5 w-5 h-5 rounded-full border-4 border-white flex items-center justify-center ${sym.false_positive ? 'bg-yellow-400' : 'bg-red-500'}`}>
+
+        {/* Timeline */}
+        <div className="relative border-l border-[#0a0a0a] ml-4 space-y-0">
+          {MOCK_SYMPTOMS.map((sym, i) => (
+            <div key={sym.id} className={`relative pl-10 pb-8 ${i < MOCK_SYMPTOMS.length - 1 ? '' : ''}`}>
+              {/* Dot */}
+              <div className={`absolute -left-2 top-1 w-4 h-4 border border-[#0a0a0a] flex items-center justify-center ${sym.false_positive ? 'bg-[#888]' : 'bg-[#0a0a0a]'}`}>
+                <span className="text-[6px] text-[#ECEAE2]">{sym.false_positive ? '?' : '!'}</span>
               </div>
-              
-              <div className={`bg-white rounded-xl shadow-sm border p-5 ${sym.false_positive ? 'border-yellow-200' : 'border-red-100'}`}>
+
+              {/* Card */}
+              <div className={`border ${sym.false_positive ? 'border-[#888]' : 'border-[#0a0a0a]'} p-5`}>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
-                      {sym.layer}
+                    <span className="font-mono text-[10px] border border-[#0a0a0a] px-2 py-0.5 uppercase tracking-wider">{sym.layer}</span>
+                    <span className={`font-mono text-[10px] border px-2 py-0.5 uppercase tracking-wider ${sym.severity === 'high' ? 'border-red-500 text-red-600' : 'border-[#888] text-[#888]'}`}>
+                      {sym.severity}
                     </span>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {sym.symptom_name}
-                    </h3>
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="font-mono text-[10px] text-[#888]">
                     {new Date(sym.detected_at).toLocaleTimeString()}
                   </span>
                 </div>
-                
-                <p className="text-sm text-gray-700 mb-3 font-mono bg-gray-50 p-2 rounded border border-gray-100">
+
+                <h3 className="font-mono text-xs font-bold text-[#0a0a0a] mb-3">{sym.symptom_name}</h3>
+
+                <div className="font-mono text-xs text-[#888] bg-[#0a0a0a]/5 border border-[#0a0a0a]/10 px-3 py-2 mb-3">
                   {sym.evidence_snippet}
-                </p>
-                
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Node: <code className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">{sym.graph_node_id}</code></span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] text-[#888]">
+                    Node: <code className="text-[#0a0a0a] bg-[#0a0a0a]/10 px-1">{sym.graph_node_id}</code>
+                  </span>
                   {sym.false_positive && (
-                    <span className="flex items-center gap-1 text-yellow-700 font-medium bg-yellow-50 px-2 py-1 rounded-full">
-                      <AlertTriangle className="w-3 h-3" />
-                      Retained False Positive
+                    <span className="font-mono text-[10px] text-[#888] flex items-center gap-1 border border-[#888] px-2 py-0.5">
+                      <AlertTriangle className="w-3 h-3" /> Retained False Positive
                     </span>
                   )}
                 </div>
@@ -95,6 +103,6 @@ export default function TimelinePage() {
           ))}
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

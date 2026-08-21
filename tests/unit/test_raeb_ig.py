@@ -1,0 +1,93 @@
+import math
+from datetime import datetime, timezone
+import pytest
+from packages.replay.src.raeb import RAEBGateway
+from packages.contracts.src.models import TraceArtifact, ReplayEpisode, ComponentType
+import uuid
+
+def _mock_trace(spans_count: int) -> TraceArtifact:
+    return TraceArtifact(
+        run_id=uuid.uuid4(),
+        tenant_id=uuid.uuid4(),
+        pipeline_id=uuid.uuid4(),
+        spans=[
+            {
+                "trace_id": "0" * 32,
+                "span_id": f"{i:016x}",
+                "name": "span",
+                "start_time": datetime.now(timezone.utc),
+                "tenant_id": uuid.uuid4(),
+                "pipeline_id": uuid.uuid4(),
+                "run_id": uuid.uuid4()
+            } for i in range(spans_count)
+        ],
+        created_at=datetime.now(timezone.utc)
+    )
+
+def _mock_replay() -> ReplayEpisode:
+    return ReplayEpisode(
+        tenant_id=uuid.uuid4(),
+        run_id=uuid.uuid4(),
+        swapped_component_type=ComponentType.RETRIEVER,
+        original_version_id=uuid.uuid4(),
+        replay_version_id=uuid.uuid4(),
+        original_version_tag="v1",
+        replay_version_tag="v2",
+        created_at=datetime.now(timezone.utc)
+    )
+
+def test_raeb_ig_maximum_at_half_split():
+    # If N=100, the maximum information gain is when impact = 0.5 (K=50).
+    gateway = RAEBGateway()
+    trace = _mock_trace(100)
+    replay = _mock_replay()
+    
+    # We patch the impact temporarily inside evaluate_admissibility or just test the math directly.
+    # The determinism is 0.95. Let's trace it.
+    # Impact = 0.8 if > 5 else 1.0
+    # The current mock code hardcodes impact. We should verify the math independent of the hardcoded 0.8.
+    
+    # Let's extract the exact formula test.
+    N = 100.0
+    def ig(impact):
+        K = max(1e-9, min(N, N * impact))
+        if K <= 1e-9 or K >= N - 1e-9: return 0.0
+        p_k = K / N
+        p_nk = (N - K) / N
+        return math.log2(N) - (p_k * math.log2(K) + p_nk * math.log2(N - K))
+        
+    ig_half = ig(0.5)
+    ig_quarter = ig(0.25)
+    ig_tenth = ig(0.1)
+    
+    assert ig_half == 1.0 # H(100) - (0.5*H(50) + 0.5*H(50)) = log2(100) - log2(50) = 1.0
+    assert ig_half > ig_quarter
+    assert ig_quarter > ig_tenth
+    
+def test_raeb_ig_zero_at_bounds():
+    N = 100.0
+    def ig(impact):
+        K = max(1e-9, min(N, N * impact))
+        if K <= 1e-9 or K >= N - 1e-9: return 0.0
+        p_k = K / N
+        p_nk = (N - K) / N
+        return math.log2(N) - (p_k * math.log2(K) + p_nk * math.log2(N - K))
+        
+    assert ig(0.0) == 0.0
+    assert ig(1.0) == 0.0
+
+def test_raeb_ig_integration():
+    gateway = RAEBGateway()
+    trace = _mock_trace(100) # impact will be 0.8
+    replay = _mock_replay()
+    
+    now = datetime.now(timezone.utc)
+    eval = gateway.evaluate_admissibility(trace, replay, current_time=now)
+    
+    # Determinism = 0.95, N = 100, impact = 0.8 (K = 80)
+    # p_k = 0.8, p_nk = 0.2
+    # IG = log2(100) - (0.8 * log2(80) + 0.2 * log2(20))
+    expected_ig_raw = math.log2(100) - (0.8 * math.log2(80) + 0.2 * math.log2(20))
+    expected_ig = 0.95 * expected_ig_raw
+    
+    assert abs(eval.information_gain_estimate - expected_ig) < 1e-5

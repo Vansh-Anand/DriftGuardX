@@ -149,7 +149,13 @@ class MockGeneratorV1(ComponentExecutor):
 
 class MockMemoryReadV1(ComponentExecutor):
     def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
-        return {"memory_entries": [], "memory_read_version": version.version_tag}
+        partition_id = inputs.get("partition_id", "default_partition")
+        requester_role = inputs.get("requester_role", "agent")
+        tenant_id = inputs.get("tenant_id", "default_tenant")
+        from packages.memory.src.store import global_provenance_store
+        
+        entries = global_provenance_store.read(partition_id, tenant_id=tenant_id, requester_role=requester_role)
+        return {"memory_entries": entries, "memory_read_version": version.version_tag}
 
 
 class MockMemoryWriteV1(ComponentExecutor):
@@ -264,6 +270,11 @@ class ReplayEngine:
         ]
 
         current_inputs = dict(request_inputs)
+        if "tenant_id" not in current_inputs:
+            current_inputs["tenant_id"] = str(tenant_id)
+        if "partition_id" not in current_inputs:
+            current_inputs["partition_id"] = f"{tenant_id}_{replay_id}"
+            
         all_spans: list[SpanRecord] = []
         root_span_id: str | None = None
 
@@ -291,18 +302,32 @@ class ReplayEngine:
 
             executor = get_executor(component_type, cv.version_tag)
 
-            # Time and execute
+            # Time and execute with strict timeout enforcement
             start = datetime.now(timezone.utc)
             try:
-                output = executor.execute(current_inputs, version=cv, seed=seed)
+                import concurrent.futures
+                
+                # Execute with a strict 30-second bounded timeout to prevent Replay DoS
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tp:
+                    future = tp.submit(executor.execute, current_inputs, version=cv, seed=seed)
+                    output = future.result(timeout=30.0)
+                    
+                # Enforce payload size limit (e.g., 5MB roughly 5_000_000 chars of string repr)
+                if len(str(output)) > 5_000_000:
+                    raise MemoryError("Component output exceeded resource bounds")
+                    
                 error_type = None
                 error_msg = None
+            except concurrent.futures.TimeoutError:
+                output = {}
+                error_type = "TimeoutError"
+                error_msg = "Execution exceeded hard timeout limit (30.0s)"
             except Exception as e:
                 output = {}
                 error_type = type(e).__name__
                 error_msg = str(e)
-
-            end = datetime.now(timezone.utc)
+            finally:
+                end = datetime.now(timezone.utc)
 
             # Build span
             builder = ctx.start_span(

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Space_Grotesk, Space_Mono } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AuthProvider } from "@/lib/auth-context";
@@ -7,11 +7,12 @@ import { ToastProvider } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: '--font-grotesk' });
+const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: '--font-mono' });
 
 export const metadata: Metadata = {
   title: "DriftGuard-X",
-  description: "Agentic RAG Reliability Platform",
+  description: "Agentic RAG Reliability Platform — Trace, Detect, Recover.",
 };
 
 export default function RootLayout({
@@ -21,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${outfit.variable} font-sans min-h-screen bg-background text-foreground antialiased flex flex-col selection:bg-primary selection:text-white`}>
+      <body className={`${spaceGrotesk.variable} ${spaceMono.variable} font-sans min-h-screen bg-[#ECEAE2] text-[#0a0a0a] antialiased flex flex-col`}>
         <AuthProvider>
           <ToastProvider>
             <Navbar />

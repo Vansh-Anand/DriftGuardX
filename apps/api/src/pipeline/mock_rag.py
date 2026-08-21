@@ -243,6 +243,8 @@ class MockRAGPipeline:
         request_inputs: dict[str, Any] = {
             "query": query,
             "seed": seed,
+            "tenant_id": str(tenant_id),
+            "partition_id": f"{tenant_id}_{run_id}",
         }
         request_hash = hash_payload(request_inputs)
 

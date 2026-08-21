@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { createReplay } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { PageLayout } from '@/components/PageLayout';
 
 export default function ReplayLabPage() {
   const [runId, setRunId] = useState('');
@@ -17,11 +15,9 @@ export default function ReplayLabPage() {
   const handleReplay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!runId) return;
-    
     setLoading(true);
     setError('');
     setResult(null);
-
     try {
       const res = await createReplay(runId, seed);
       setResult(res);
@@ -33,76 +29,88 @@ export default function ReplayLabPage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Replay Lab</h1>
-        <p className="text-zinc-400">Budgeted counterfactual execution</p>
-      </div>
-
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Launch Counterfactual Replay</CardTitle>
-          <CardDescription>
-            Select a target run and define the execution seed to deterministically replay the pipeline.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleReplay} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Target Run ID</label>
-              <input 
-                type="text"
-                value={runId}
-                onChange={e => setRunId(e.target.value)}
-                placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Execution Seed (Determinism)</label>
-              <input 
-                type="number"
-                value={seed}
-                onChange={e => setSeed(Number(e.target.value))}
-                className="w-full max-w-[200px] bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <Button type="submit" disabled={loading || !runId}>
-              {loading ? <Spinner className="mr-2" /> : null}
-              Trigger Replay Job
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {error && (
-        <div className="p-4 bg-red-900/20 border border-red-900 rounded-lg text-red-200 mb-8">
-          <span className="font-bold">Error: </span> {error}
-        </div>
-      )}
-
-      {result && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
+    <PageLayout title="Replay Lab" subtitle="Budget-constrained counterfactual execution">
+      <div className="p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Form */}
+          <div className="border border-[#0a0a0a] p-6">
+            <div className="font-mono text-xs tracking-[0.15em] uppercase text-[#888] mb-6">Launch Counterfactual Replay</div>
+            <p className="font-mono text-xs text-[#888] mb-6 leading-relaxed">
+              Select a target run and define the execution seed to deterministically replay the pipeline with a new intervention hypothesis.
+            </p>
+            <form onSubmit={handleReplay} className="space-y-6">
               <div>
-                <CardTitle>Replay Job Enqueued</CardTitle>
-                <CardDescription>The background orchestrator is processing the request.</CardDescription>
+                <label className="font-mono text-[10px] tracking-widest uppercase text-[#888] block mb-2">Target Run ID</label>
+                <input
+                  type="text"
+                  value={runId}
+                  onChange={e => setRunId(e.target.value)}
+                  placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+                  className="w-full border border-[#0a0a0a] bg-transparent px-3 py-2.5 font-mono text-xs text-[#0a0a0a] placeholder:text-[#888] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+                  required
+                />
               </div>
-              <Badge variant="inferred">Processing</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-md font-mono text-sm text-zinc-300 overflow-x-auto">
-              <pre>{JSON.stringify(result, null, 2)}</pre>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              <div>
+                <label className="font-mono text-[10px] tracking-widest uppercase text-[#888] block mb-2">Execution Seed (Determinism)</label>
+                <input
+                  type="number"
+                  value={seed}
+                  onChange={e => setSeed(Number(e.target.value))}
+                  className="w-36 border border-[#0a0a0a] bg-transparent px-3 py-2.5 font-mono text-xs text-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !runId}
+                className="flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase border border-[#0a0a0a] px-6 py-2.5 bg-[#0a0a0a] text-[#ECEAE2] hover:bg-transparent hover:text-[#0a0a0a] transition-colors disabled:opacity-40"
+              >
+                {loading ? <Spinner className="w-3 h-3" /> : null}
+                Trigger Replay Job
+              </button>
+            </form>
 
-    </div>
+            {error && (
+              <div className="mt-6 border border-red-500 border-l-4 border-l-red-500 p-4 font-mono text-xs text-red-700">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
+          </div>
+
+          {/* Info panel */}
+          <div className="border border-[#0a0a0a] p-6">
+            <div className="font-mono text-xs tracking-[0.15em] uppercase text-[#888] mb-6">How It Works</div>
+            <div className="space-y-5">
+              {[
+                ['01', 'Seed-Pinned', 'Replay uses a fixed random seed to ensure deterministic component selection and ordering across trial runs.'],
+                ['02', 'Budget-Bounded', 'The BCRB Scheduler enforces a hard $10.00 compute budget. Trials are halted when the budget is exhausted.'],
+                ['03', 'Timeout-Enforced', 'Every replay execution is wrapped in a 30.0s hard timeout via ThreadPoolExecutor to prevent resource exhaustion.'],
+                ['04', 'Policy-Gated', 'All replay actions are subject to pre-execution policy checks before any state mutations occur.'],
+              ].map(([num, title, desc]) => (
+                <div key={num} className="border-t border-[#0a0a0a]/10 pt-4 grid grid-cols-[30px_1fr] gap-3">
+                  <span className="font-mono text-xs text-[#888]">{num}</span>
+                  <div>
+                    <div className="font-mono text-xs font-bold text-[#0a0a0a] mb-1">{title}</div>
+                    <div className="font-mono text-[10px] text-[#888] leading-relaxed">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Result */}
+        {result && (
+          <div className="mt-8 border border-[#0a0a0a] p-6">
+            <div className="flex justify-between items-center mb-4">
+              <div className="font-mono text-xs tracking-[0.15em] uppercase text-[#888]">Replay Job Enqueued</div>
+              <span className="font-mono text-[10px] border border-[#0a0a0a] px-3 py-1 uppercase tracking-widest">Processing</span>
+            </div>
+            <pre className="font-mono text-xs text-[#0a0a0a] bg-[#0a0a0a]/5 border border-[#0a0a0a]/20 p-4 overflow-x-auto leading-relaxed">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+    </PageLayout>
   );
 }

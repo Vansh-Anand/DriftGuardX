@@ -6,6 +6,14 @@ PRIVATE — All Rights Reserved.
 import math
 from typing import List, Dict, Optional
 from packages.evaluation.src.bandit_baselines import CandidateArm, BaseScheduler
+from packages.contracts.src.models import (
+    ParetoReplaySet,
+    ParetoReplayCandidate,
+    AdmissibilityScore,
+    RAEBEvaluation,
+    ExecutionBudget,
+    ExhaustionReason
+)
 
 # Confidence threshold above which an arm is shed before entering the GPU queue.
 _SHED_CONFIDENCE_THRESHOLD = 0.99
@@ -28,9 +36,10 @@ class BCRBScheduler(BaseScheduler):
     interventions at selection time.
     """
 
-    def __init__(self, total_budget: float, exploration_constant: float = 1.0):
+    def __init__(self, total_budget: float, exploration_constant: float = 1.0, execution_budget: Optional[ExecutionBudget] = None):
         super().__init__(total_budget)
         self.c = exploration_constant
+        self.execution_budget = execution_budget
         self.rewards: Dict[str, float] = {}
         self.total_pulls = 0
         self.stop_reason = None
@@ -88,6 +97,13 @@ class BCRBScheduler(BaseScheduler):
     # ── Arm Selection ─────────────────────────────────────────────────────────
 
     def select_arm(self, arms: List[CandidateArm]) -> Optional[str]:
+        # Filter 0: Hard execution limits based on ACTUAL measured usage
+        if self.execution_budget:
+            exhaustion = self.execution_budget.check_exhaustion()
+            if exhaustion:
+                self.stop_reason = exhaustion.value
+                return None
+                
         # Filter 1: hard budget constraint (arm declared cost > remaining)
         eligible = [a for a in arms if a.cost <= self.remaining_budget]
         if not eligible:
@@ -140,3 +156,87 @@ class BCRBScheduler(BaseScheduler):
         if arm_id not in self._cost_history:
             self._cost_history[arm_id] = []
         self._cost_history[arm_id].append(cost)
+
+    def select_pareto_set(
+        self, 
+        arms: List[CandidateArm], 
+        raeb_evaluations: Dict[str, RAEBEvaluation]
+    ) -> ParetoReplaySet:
+        """
+        Rank replays by admissibility, expected information gain, recovery harm, and cost.
+        Returns a Pareto set of replays instead of a single opaque UCB winner.
+        """
+        eligible = []
+        for arm in arms:
+            if self._should_shed(arm):
+                self.shed_log.append(arm.arm_id)
+                continue
+            if arm.cost > self.remaining_budget:
+                continue
+                
+            eval_data = raeb_evaluations.get(arm.arm_id)
+            if not eval_data or eval_data.admissibility == AdmissibilityScore.UNSUPPORTED:
+                continue
+                
+            eligible.append(arm)
+            
+        # Convert eligible arms to candidates
+        candidates = []
+        for arm in eligible:
+            eval_data = raeb_evaluations[arm.arm_id]
+            candidates.append(
+                ParetoReplayCandidate(
+                    arm_id=arm.arm_id,
+                    information_gain=eval_data.information_gain_estimate,
+                    recovery_harm=eval_data.risk_score,
+                    cost=arm.cost,
+                    admissibility=AdmissibilityScore(eval_data.admissibility),
+                    is_pareto_optimal=False  # To be computed
+                )
+            )
+            
+        # Compute Pareto Frontier (Non-Dominated Sorting)
+        # Filter out candidates with NaN or invalid metrics
+        valid_candidates = []
+        for c in candidates:
+            if math.isnan(c.information_gain) or math.isnan(c.recovery_harm) or math.isnan(c.cost):
+                continue
+            valid_candidates.append(c)
+            
+        pareto_candidates = []
+        for i, c1 in enumerate(valid_candidates):
+            is_dominated = False
+            for j, c2 in enumerate(valid_candidates):
+                if i == j:
+                    continue
+                # c2 dominates c1 if it is better or equal in all dimensions and strictly better in at least one.
+                # Maximize info_gain, Minimize recovery_harm, Minimize cost
+                info_geq = c2.information_gain >= c1.information_gain
+                harm_leq = c2.recovery_harm <= c1.recovery_harm
+                cost_leq = c2.cost <= c1.cost
+                
+                info_strict = c2.information_gain > c1.information_gain
+                harm_strict = c2.recovery_harm < c1.recovery_harm
+                cost_strict = c2.cost < c1.cost
+                
+                no_worse = info_geq and harm_leq and cost_leq
+                strictly_better = info_strict or harm_strict or cost_strict
+                
+                if no_worse and strictly_better:
+                    is_dominated = True
+                    break
+                elif no_worse and not strictly_better:
+                    # They are mathematically identical in all objectives.
+                    # Handle duplicate deterministically using arm_id to tie-break
+                    if c2.arm_id < c1.arm_id:
+                        is_dominated = True
+                        break
+                    
+            if not is_dominated:
+                c1.is_pareto_optimal = True
+                pareto_candidates.append(c1)
+                
+        # Optional sorting for deterministic output order
+        pareto_candidates.sort(key=lambda x: x.arm_id)
+                
+        return ParetoReplaySet(candidates=pareto_candidates)

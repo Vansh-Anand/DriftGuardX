@@ -1,14 +1,35 @@
 'use client';
 
 import Link from "next/link";
-import { Activity, ChevronDown, LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import { Spinner } from "@/components/ui/spinner";
+
+function LiveClock({ label, offset }: { label: string; offset: number }) {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const update = () => {
+      const d = new Date();
+      const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+      const local = new Date(utc + 3600000 * offset);
+      setTime(local.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [offset]);
+
+  return (
+    <span className="font-mono text-xs tracking-widest text-[#0a0a0a]">
+      {label} {time}
+    </span>
+  );
+}
 
 export function Navbar() {
   const { user, login, logout, isLoading } = useAuth();
@@ -33,112 +54,105 @@ export function Navbar() {
 
   const handleLogout = () => {
     logout();
-    toast({
-      title: 'Logged out',
-      description: 'You have been successfully logged out.',
-    });
+    toast({ title: 'Logged out', description: 'You have been successfully logged out.' });
   };
 
   return (
     <>
-      <div className="fixed top-8 left-0 w-full flex justify-center z-40 px-4 pointer-events-none">
-        <nav className="bg-[#1a1a1a] text-white rounded-full px-6 h-[60px] flex items-center justify-between gap-8 shadow-2xl border border-[#333] pointer-events-auto">
-          <Link href="/" className="flex items-center gap-2 pr-4 border-r border-[#333]">
-            <Activity className="h-5 w-5 text-white" />
-            <span className="font-medium text-lg tracking-tight">
-              DriftGuard-X
-            </span>
+      {/* 2xA Style flat top bar */}
+      <header className="fixed top-0 left-0 w-full z-50 bg-[#ECEAE2] border-b border-[#0a0a0a]">
+        <div className="flex items-center justify-between h-12 px-6">
+          {/* Left: Logo */}
+          <Link href="/" className="font-mono text-xs font-bold tracking-[0.15em] uppercase text-[#0a0a0a]">
+            DriftGuard-X
           </Link>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="/dashboard" className="flex items-center gap-1 hover:text-[#dcf6cc] transition-colors">
-              ABOUT <ChevronDown className="w-4 h-4 opacity-70" />
-            </Link>
-            <Link href="/experiments" className="flex items-center gap-1 hover:text-[#dcf6cc] transition-colors">
-              ECOSYSTEM <ChevronDown className="w-4 h-4 opacity-70" />
-            </Link>
-            <Link href="/dashboard" className="flex items-center gap-1 hover:text-[#dcf6cc] transition-colors">
-              BUILD <ChevronDown className="w-4 h-4 opacity-70" />
-            </Link>
+
+          {/* Center: Live clocks like 2xA */}
+          <div className="hidden md:flex items-center gap-12">
+            <LiveClock label="NYC(US)" offset={-4} />
+            <LiveClock label="LON(UK)" offset={1} />
+            <LiveClock label="IST(IN)" offset={5.5} />
           </div>
 
-          <div className="ml-4 flex items-center">
+          {/* Right: Nav links */}
+          <nav className="flex items-center gap-8">
+            <Link href="/dashboard" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+              Console
+            </Link>
+            <Link href="/reports" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+              Reports
+            </Link>
+            <Link href="/security" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+              Security
+            </Link>
+            <Link href="/experiments" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+              Experiments
+            </Link>
+
             {isLoading ? (
-              <div className="w-10 h-10 flex items-center justify-center">
-                 <Spinner className="w-4 h-4" />
-              </div>
+              <Spinner className="w-3 h-3" />
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger className="outline-none">
-                  <Avatar className="w-9 h-9 border border-zinc-700 hover:border-zinc-500 transition-colors">
+                  <Avatar className="w-7 h-7 border border-[#0a0a0a]">
                     <AvatarImage src={user.avatarUrl} />
-                    <AvatarFallback className="bg-zinc-800 text-xs">
+                    <AvatarFallback className="bg-[#0a0a0a] text-[#ECEAE2] text-[10px] font-mono">
                       {user.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-[#1a1a1a] border-[#333] text-white">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
-                      <p className="text-xs leading-none text-zinc-400">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-48 bg-[#0a0a0a] border-[#333] text-[#ECEAE2] font-mono text-xs">
+                  <DropdownMenuLabel className="font-mono text-xs">{user.email}</DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-[#333]" />
-                  <DropdownMenuItem asChild className="focus:bg-[#333] focus:text-white cursor-pointer">
-                    <Link href="/dashboard">
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </Link>
+                  <DropdownMenuItem asChild className="focus:bg-[#222] cursor-pointer">
+                    <Link href="/dashboard"><UserIcon className="mr-2 h-3 w-3" /> Dashboard</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-[#333]" />
-                  <DropdownMenuItem onClick={handleLogout} className="focus:bg-[#333] focus:text-white cursor-pointer text-red-400">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                  <DropdownMenuItem onClick={handleLogout} className="focus:bg-[#222] cursor-pointer text-red-400">
+                    <LogOut className="mr-2 h-3 w-3" /> Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <button 
+              <button
                 onClick={() => setLoginOpen(true)}
-                className="px-6 py-2 rounded-full bg-white text-black font-bold text-sm hover:bg-[#dcf6cc] transition-colors uppercase tracking-wide"
+                className="font-mono text-xs tracking-widest uppercase border border-[#0a0a0a] px-4 py-1.5 hover:bg-[#0a0a0a] hover:text-[#ECEAE2] transition-colors"
               >
-                Get Started
+                Sign In
               </button>
             )}
-          </div>
-        </nav>
-      </div>
+          </nav>
+        </div>
+      </header>
 
       <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
-        <DialogContent className="sm:max-w-md bg-[#1a1a1a] border-[#333] text-white">
+        <DialogContent className="sm:max-w-md bg-[#ECEAE2] border border-[#0a0a0a] text-[#0a0a0a] font-mono">
           <DialogHeader>
-            <DialogTitle>Sign in to DriftGuard-X</DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              Enter your email below to access the platform.
+            <DialogTitle className="font-mono text-sm tracking-widest uppercase">Sign in to DriftGuard-X</DialogTitle>
+            <DialogDescription className="font-mono text-xs text-[#888]">
+              Enter your email to access the platform.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleLogin} className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-medium text-zinc-300">
-                Email address
-              </label>
+              <label htmlFor="email" className="font-mono text-xs uppercase tracking-widest">Email address</label>
               <input
                 id="email"
                 type="email"
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#dcf6cc] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 w-full border border-[#0a0a0a] bg-transparent px-3 py-2 text-sm font-mono text-[#0a0a0a] placeholder:text-[#888] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="mt-2 flex h-10 w-full items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-[#dcf6cc] focus:outline-none disabled:opacity-50"
+              className="flex h-10 w-full items-center justify-center border border-[#0a0a0a] bg-[#0a0a0a] text-[#ECEAE2] font-mono text-xs tracking-widest uppercase hover:bg-[#333] transition-colors disabled:opacity-50"
             >
               {isLoggingIn ? <Spinner className="w-4 h-4 mr-2" /> : null}
-              Sign In
+              Access Platform
             </button>
           </form>
         </DialogContent>
