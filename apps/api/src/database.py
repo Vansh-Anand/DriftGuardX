@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from apps.api.src.models import Base
+import apps.api.src.models_ingestion  # noqa: F401
+import apps.api.src.models_manifest  # noqa: F401
 
 # Default: SQLite for local dev without Docker; override via env
 _DB_URL = os.environ.get(

@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     
     # Feature Flags
     enable_canary: bool = False
+    use_real_rag_pipeline: bool = False
+    llm_api_key: SecretStr | None = None
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     

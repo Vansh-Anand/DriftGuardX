@@ -447,11 +447,15 @@ class ReplayStateManifest(DGXBaseModel):
     tenant_id: UUID
 
     # Pinning state
+    original_query_hash: str | None = None
+    corpus_version_id: str | None = None
     model_provider: str | None = None
     model_identifier: str | None = None
     model_config_hash: str | None = None
     prompt_template_hash: str | None = None
     retriever_version: str | None = None
+    retriever_settings: dict[str, Any] = Field(default_factory=dict)
+    retrieved_chunk_ids: list[str] = Field(default_factory=list)
     embedding_model_version: str | None = None
     vector_index_snapshot_id: str | None = None
     tool_schemas_hash: str | None = None
@@ -477,7 +481,19 @@ class ReplayStateManifest(DGXBaseModel):
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     @model_validator(mode="after")
-    def validate_hash(self) -> "ReplayStateManifest":
+    def validate_hash_and_versions(self) -> "ReplayStateManifest":
+        forbidden_tag = "latest"
+        version_fields = [
+            self.model_identifier, 
+            self.retriever_version, 
+            self.embedding_model_version, 
+            self.vector_index_snapshot_id
+        ]
+        
+        for field in version_fields:
+            if field and forbidden_tag in field.lower():
+                raise ValueError(f"The 'latest' tag is forbidden in ReplayStateManifest. Found in field value: {field}")
+                
         if not self.manifest_hash:
             self.manifest_hash = self.compute_hash()
         return self
@@ -485,11 +501,15 @@ class ReplayStateManifest(DGXBaseModel):
     def is_fully_pinned(self) -> bool:
         """Returns True if all required pinning state is present."""
         required = [
+            self.original_query_hash,
+            self.corpus_version_id,
             self.model_provider,
             self.model_identifier,
             self.model_config_hash,
             self.prompt_template_hash,
             self.retriever_version,
+            True if self.retriever_settings else False,
+            True if self.retrieved_chunk_ids else False,
             self.embedding_model_version,
             self.vector_index_snapshot_id,
             self.tool_schemas_hash,

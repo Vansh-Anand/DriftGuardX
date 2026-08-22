@@ -1,0 +1,27 @@
+{
+  "episode": {
+    "episode_id": "23998ed7-680d-4b6d-81b8-6daef6c7da86",
+    "query": "Does DriftGuard-X cryptographically bind traces to recovery capsules?",
+    "difficulty": "medium",
+    "corpus_version": "scifact-v1",
+    "fault_id": "none",
+    "ground_truth_rca": "none"
+  },
+  "metrics": {
+    "retrieval_recall@2": 1.0,
+    "retrieval_precision@2": 1.0,
+    "retrieval_mrr": 1.0,
+    "retrieval_ndcg@2": 1.0,
+    "latency_ms": 0.4279613494873047,
+    "cost_usd": 0.0,
+    "tokens_total": 20,
+    "rca_accuracy": 0.0,
+    "rca_precision": 0.0,
+    "rca_recall": 0.0,
+    "rca_f1": 0.0,
+    "answer_correctness": 0.0,
+    "faithfulness": 0.0,
+    "context_precision": 0.0,
+    "used_llm": 0.0
+  }
+}

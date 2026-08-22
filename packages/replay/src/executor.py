@@ -70,19 +70,21 @@ class ContainerReplayExecutor(ReplayExecutor):
     """
     Production-oriented replay executor enforcing hard sandboxing using Docker.
     """
-    def __init__(self, image: str = "python:3.11-alpine"):
-        self.image = image
+    def __init__(self, image: str = "python:3.11-slim"):
+        self.base_image = image
+        self.image = "driftguard-sandbox:latest"
         try:
             import docker
+            import io
             self.client = docker.from_env()
-            # Ensure image exists or pull it
+            
             try:
                 self.client.images.get(self.image)
             except docker.errors.ImageNotFound:
-                self.client.images.pull(self.image)
+                dockerfile = f"FROM {self.base_image}\nRUN pip install cloudpickle\n"
+                self.client.images.build(fileobj=io.BytesIO(dockerfile.encode('utf-8')), tag=self.image)
                 
             self.image_info = self.client.images.get(self.image)
-            # Find digest
             self.image_digest = self.image_info.id
             repo_digests = self.image_info.attrs.get("RepoDigests", [])
             if repo_digests:
@@ -95,8 +97,20 @@ class ContainerReplayExecutor(ReplayExecutor):
         if not self.client:
             raise RuntimeError("Docker SDK not installed or daemon unavailable.")
             
+        MAX_REQUEST_SIZE_BYTES = 5 * 1024 * 1024
+        
         # Serialize the function and arguments
         payload_data = cloudpickle.dumps((func, kwargs))
+        if len(payload_data) > MAX_REQUEST_SIZE_BYTES:
+            return ReplayResult(
+                payload=None,
+                error="Payload exceeds 5MB limit",
+                manifest=ReplayStateManifest(
+                    executor_type="ContainerReplayExecutor",
+                    image_digest=self.image_digest,
+                    execution_time_seconds=0
+                )
+            )
         
         # Create a temporary directory to share with the container
         temp_dir = tempfile.mkdtemp(prefix="driftguard_sandbox_")
@@ -112,22 +126,24 @@ import sys
 import pickle
 import os
 
-try:
-    import cloudpickle
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "cloudpickle"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    import cloudpickle
+import cloudpickle
 
 def main():
     try:
         with open('/sandbox/payload.pkl', 'rb') as f:
             func, kwargs = cloudpickle.load(f)
         
+        # Add DriftGuard-X to python path
+        sys.path.insert(0, '/app')
+        
         result = func(**kwargs)
         
+        out_data = cloudpickle.dumps({"status": "success", "payload": result})
+        if len(out_data) > 10 * 1024 * 1024:
+            raise RuntimeError("Response payload exceeds 10MB limit.")
+            
         with open('/sandbox/result.pkl', 'wb') as f:
-            cloudpickle.dump({"status": "success", "payload": result}, f)
+            f.write(out_data)
             
     except Exception as e:
         with open('/sandbox/result.pkl', 'wb') as f:
@@ -149,7 +165,8 @@ if __name__ == '__main__':
             # Docker Desktop on Mac/Windows or native Linux supports mapping /tmp.
             # Convert Windows path if needed, but docker-py usually handles it.
             volumes = {
-                temp_dir: {'bind': '/sandbox', 'mode': 'rw'}
+                temp_dir: {'bind': '/sandbox', 'mode': 'rw'},
+                os.getcwd(): {'bind': '/app', 'mode': 'ro'}
             }
             
             # Spin up the container with hard boundaries
@@ -157,8 +174,10 @@ if __name__ == '__main__':
                 self.image,
                 command=["python", "/sandbox/runner.py"],
                 volumes=volumes,
+                working_dir="/app",
                 network_mode="none",  # Default deny network
                 mem_limit="128m",     # Memory cap
+                nano_cpus=1000000000, # 1 CPU core
                 pids_limit=10,        # Prevent fork bombs
                 tmpfs={'/tmp': 'size=64m'}, # Storage limit
                 detach=True,

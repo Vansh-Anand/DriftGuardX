@@ -1,0 +1,27 @@
+{
+  "episode": {
+    "episode_id": "0b8b1a15-88d8-4d91-81f3-0ca1a03c05cf",
+    "query": "What is the purpose of the ReplayStateManifest?",
+    "difficulty": "hard",
+    "corpus_version": "scifact-v1",
+    "fault_id": "fault-prompt-tampering",
+    "ground_truth_rca": "PROMPT_HALLUCINATION"
+  },
+  "metrics": {
+    "retrieval_recall@2": 1.0,
+    "retrieval_precision@2": 1.0,
+    "retrieval_mrr": 1.0,
+    "retrieval_ndcg@2": 1.0,
+    "latency_ms": 0.43702125549316406,
+    "cost_usd": 0.0,
+    "tokens_total": 20,
+    "rca_accuracy": 1.0,
+    "rca_precision": 1.0,
+    "rca_recall": 1.0,
+    "rca_f1": 1.0,
+    "answer_correctness": 0.0,
+    "faithfulness": 0.0,
+    "context_precision": 0.0,
+    "used_llm": 0.0
+  }
+}
