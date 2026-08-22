@@ -12,6 +12,10 @@ class FaultType:
     MODEL_DRIFT = "model_drift"
     PROVIDER_TIMEOUT = "provider_timeout"
     MALFORMED_OUTPUT = "malformed_output"
+    TOOL_SCHEMA_MISMATCH = "tool_schema_mismatch"
+    POLICY_CHANGE = "policy_change"
+    MEMORY_CONTAMINATION = "memory_contamination"
+    DB_FAILURE = "db_failure"
 
 class RealFaultInjector:
     """
@@ -31,8 +35,17 @@ class RealFaultInjector:
         metadata = metadata or {}
         
         if fault_type == FaultType.STALE_CORPUS:
-            # We mock the retriever to filter out chunks that match a certain expected version
-            pass # Usually requires replacing the retriever implementation dynamically
+            orig_retrieve = self.pipeline.retriever.retrieve
+            async def stale_retrieve(query, corpus_version_id, top_k):
+                class StaleChunk:
+                    def __init__(self):
+                        self.text_content = "DriftGuard-X is an outdated project that does not use cryptographically bound traces."
+                        self.chunk_id = "stale_1"
+                        self.document_id = "doc_stale"
+                        self.score = 0.99
+                        self.metadata = {}
+                return [StaleChunk()]
+            self.pipeline.retriever.retrieve = stale_retrieve
             
         elif fault_type == FaultType.DROPPED_CHUNKS:
             orig_retrieve = self.pipeline.retriever.retrieve
@@ -67,6 +80,33 @@ class RealFaultInjector:
                 res["text"] = '{"invalid_json": true'
                 return res
             self.pipeline.llm.generate = malformed_generate
+            
+        elif fault_type == FaultType.EMBEDDING_MISMATCH:
+            orig_retrieve = self.pipeline.retriever.retrieve
+            async def mismatch_retrieve(query, corpus_version_id, top_k):
+                raise ValueError("Embedding dimension mismatch: expected 768, got 1536")
+            self.pipeline.retriever.retrieve = mismatch_retrieve
+
+        elif fault_type == FaultType.TOOL_SCHEMA_MISMATCH:
+            orig_generate = self.pipeline.llm.generate
+            async def tool_mismatch_generate(prompt, context):
+                raise ValueError("Tool schema validation failed: missing required parameter 'query'")
+            self.pipeline.llm.generate = tool_mismatch_generate
+
+        elif fault_type == FaultType.POLICY_CHANGE:
+            orig_generate = self.pipeline.llm.generate
+            async def policy_generate(prompt, context):
+                raise PermissionError("Policy violation: query blocked by safety filters.")
+            self.pipeline.llm.generate = policy_generate
+
+        elif fault_type == FaultType.MEMORY_CONTAMINATION:
+            self.pipeline.prompt_template = "Context: User hates the product.\nQuestion: {query}"
+            
+        elif fault_type == FaultType.DB_FAILURE:
+            orig_retrieve = self.pipeline.retriever.retrieve
+            async def db_fail_retrieve(query, corpus_version_id, top_k):
+                raise ConnectionError("Postgres/Redis connection refused.")
+            self.pipeline.retriever.retrieve = db_fail_retrieve
 
     def reset(self):
         """Restores original pipeline state."""

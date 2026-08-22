@@ -110,3 +110,43 @@ class GraphOnlyScheduler(BaseScheduler):
     """Uses only structural graph causal analysis; does not execute replays."""
     def select_next(self, candidates: List[str], history: List[Dict[str, Any]]) -> str:
         return None # No replays allowed
+
+from packages.replay.src.bandit import ResourceAdmittedBCRBController
+from packages.evaluation.src.bandit_baselines import CandidateArm
+
+class BCRBSchedulerWrapper(BaseScheduler):
+    """Wraps the actual BCRB controller for benchmark use."""
+    def __init__(self, total_budget: float = 1.0):
+        self.bcrb = ResourceAdmittedBCRBController(total_budget=total_budget)
+        self.mock_costs = {
+            "RETRIEVAL_FAILURE": 0.05,
+            "PROMPT_HALLUCINATION": 0.1,
+            "PARSER_FAILURE": 0.02,
+            "STALE_CORPUS_FAILURE": 0.05,
+            "EMBEDDING_MISMATCH_FAILURE": 0.1,
+            "TOPK_REGRESSION_FAILURE": 0.05,
+            "MODEL_DRIFT_FAILURE": 0.1,
+            "TIMEOUT_FAILURE": 0.0,
+            "TOOL_MISMATCH_FAILURE": 0.05,
+            "POLICY_VIOLATION_FAILURE": 0.01,
+            "MEMORY_CONTAMINATION_FAILURE": 0.05,
+            "DB_FAILURE": 0.1
+        }
+        
+    def select_next(self, candidates: List[str], history: List[Dict[str, Any]]) -> str:
+        tested = {h['candidate'] for h in history}
+        
+        arms = []
+        for c in candidates:
+            if c not in tested:
+                arms.append(CandidateArm(arm_id=c, cost=self.mock_costs.get(c, 0.1), prior=0.5))
+        
+        if not arms:
+            return None
+            
+        selected_arm_id = self.bcrb.select_arm(arms)
+        return selected_arm_id
+        
+    def update(self, candidate: str, success: bool, cost: float):
+        reward = 1.0 if success else 0.0
+        self.bcrb.update(candidate, reward, cost)

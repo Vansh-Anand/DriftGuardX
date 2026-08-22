@@ -1,0 +1,11 @@
+{
+  "episode": {
+    "fault": "db_failure",
+    "scheduler": "graph_only"
+  },
+  "metrics": {
+    "acc": 0.03333333333333333,
+    "cost": 0.0,
+    "succ": 0.0
+  }
+}
