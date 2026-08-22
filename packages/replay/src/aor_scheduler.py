@@ -5,7 +5,7 @@ Hardware-Gated Compute Scheduler.
 from typing import Any, Callable, Dict, List, Optional, Set
 import concurrent.futures
 import threading
-from packages.replay.src.sandbox import SandboxedWorker
+from packages.replay.src.executor import LocalDevExecutor
 
 class TaskStatus:
     PENDING = "PENDING"
@@ -80,11 +80,13 @@ class AORScheduler:
         """
         Background sandboxed execution (VTI) for counterfactual testing.
         """
+        import asyncio
+        executor = LocalDevExecutor()
         try:
-            # We wrap the function in the SandboxedWorker to physically isolate the test
-            diag_result = SandboxedWorker.run(task.func, task.inputs, timeout_seconds=5)
+            # We wrap the function in the LocalDevExecutor to physically isolate the test
+            diag_result = asyncio.run(executor.execute(task.func, budget_seconds=5, **task.inputs))
             with self._lock:
-                task.diagnostic_result = diag_result
+                task.diagnostic_result = {"payload": diag_result.payload, "error": diag_result.error}
                 task.status = TaskStatus.FAILED
                 self._condition.notify_all()
         except Exception as e:

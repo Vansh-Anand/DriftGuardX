@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 
-### [v2.0.0-rc.1] - 2026-07-25
+### [Unreleased]
+### Added
+- **Production Replay Sandbox (`packages/replay/src/executor.py`)**: Replaced fixture-based timeouts with a production-oriented container execution sandbox.
+- **Container Isolation**: Uses Python Docker SDK to run Do-Operator actions within isolated containers.
+- **Hard Resource Constraints**: Imposes memory limits (`128m`), CPU constraints, read-only mounts, and default-deny networking (`network_mode="none"`).
+- **Adversarial Testing Suite (`tests/e2e/test_container_sandbox.py`)**: Tests designed to actively trigger hanging job scenarios, memory pressure, unauthorized payloads, and network isolation.
+- Added `docker` and `cloudpickle` dependencies for orchestration.
+
+### [v2.0.0-rc.1] - 2026-08-25
 ### Added
 - **Final Release Candidate (Stage 20)**: Completed the rigorous final system audit mapping all implemented logic to mechanism claims.
 - **Patent Documentation Pack (`docs/`)**: Authored `patent_evidence_matrix.md`, `patent_technical_disclosure.md`, and `prior_art_worksheet.md` to support formal filing without constituting legal advice.

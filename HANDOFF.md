@@ -3,6 +3,10 @@
 **1. Stage completed:** Prompt 20 - Final System Audit, Patent Evidence Mapping, Research Package, and Release Candidate
 **2. Estimated cumulative completion after verified gates:** 100%
 
+- [x] Prompt 1: Trace Context SDK
+- [x] Prompt 2: Core State Management
+- [x] Prompt 3: Real Isolated Replay Executor
+- [x] Prompt 4: Replay Logical Validation, Security, Chaos, and Performance Engineering
 - [x] Prompt 16: Web Console
 - [x] Prompt 17: Public Benchmark Integration and Experimental Orchestration
 - [x] Prompt 18: Statistical Validation, Security, Chaos, and Performance Engineering
