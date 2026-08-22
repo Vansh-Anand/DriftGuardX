@@ -62,6 +62,58 @@ class TenantORM(Base):
     )
 
 
+# ─── Auth Models ──────────────────────────────────────────────────────────────
+
+class UserORM(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    auth_subject: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+    memberships: Mapped[list["TenantMembershipORM"]] = relationship("TenantMembershipORM", back_populates="user")
+
+
+class TenantMembershipORM(Base):
+    __tablename__ = "tenant_memberships"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    roles_json: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    user: Mapped["UserORM"] = relationship("UserORM", back_populates="memberships")
+    tenant: Mapped["TenantORM"] = relationship("TenantORM")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "tenant_id", name="uq_tenant_membership"),
+        Index("ix_tenant_memberships_user_id", "user_id"),
+        Index("ix_tenant_memberships_tenant_id", "tenant_id"),
+    )
+
+
+# ─── Idempotency ──────────────────────────────────────────────────────────────
+
+class IdempotencyKeyORM(Base):
+    __tablename__ = "idempotency_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    key: Mapped[str] = mapped_column(String(255), nullable=False)
+    request_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    response_status: Mapped[int] = mapped_column(Integer, nullable=False)
+    response_body: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "key", name="uq_idempotency_tenant_key"),
+    )
+
+
+
 # ─── Audit Event ──────────────────────────────────────────────────────────────
 
 class AuditEventORM(Base):

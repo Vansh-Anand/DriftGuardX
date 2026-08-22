@@ -4,11 +4,12 @@
 
 ### [Unreleased]
 ### Added
-- **Production Replay Sandbox (`packages/replay/src/executor.py`)**: Replaced fixture-based timeouts with a production-oriented container execution sandbox.
-- **Container Isolation**: Uses Python Docker SDK to run Do-Operator actions within isolated containers.
-- **Hard Resource Constraints**: Imposes memory limits (`128m`), CPU constraints, read-only mounts, and default-deny networking (`network_mode="none"`).
-- **Adversarial Testing Suite (`tests/e2e/test_container_sandbox.py`)**: Tests designed to actively trigger hanging job scenarios, memory pressure, unauthorized payloads, and network isolation.
-- Added `docker` and `cloudpickle` dependencies for orchestration.
+- **Production OIDC Authentication (`apps/api/src/auth/auth.py`)**: Replaced mock authentication with JWKS-backed JWT validation via `python-jose`, ensuring secure token verification for `iss`, `aud`, `exp`, and RSA signatures.
+- **Tenant Isolation (`apps/api/src/models.py`)**: Introduced `UserORM`, `TenantMembershipORM`, and `IdempotencyKeyORM` to guarantee rigorous tenant boundaries. Idempotency keys are now durably tenant-scoped.
+- **Dependency Injection**: Overhauled `get_current_tenant` to strictly check `X-Tenant-ID` headers against `TenantMembershipORM` associations with role extraction.
+- **Database Migrations (`apps/api/alembic/`)**: Drafted a migration script configuring PostgreSQL Row Level Security (RLS) on all tenant-aware tables.
+- **Security Tests (`tests/e2e/test_tenant_isolation.py`)**: Implemented IDOR, role escalation, missing header, and invalid token tests.
+- **Production Sandbox (Prompt 3)**: Container isolation features implemented previously.
 
 ### [v2.0.0-rc.1] - 2026-08-25
 ### Added

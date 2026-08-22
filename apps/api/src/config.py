@@ -16,7 +16,10 @@ class Settings(BaseSettings):
     redis_url: SecretStr = Field(default=SecretStr("redis://localhost:6379/0"))
     
     # Security (Must be provided in staging/prod)
-    jwt_secret_key: SecretStr = Field(default=SecretStr("dev-unsafe-secret"))
+    auth_mode: Literal["mock", "oidc"] = "mock"
+    oidc_issuer: str | None = None
+    oidc_audience: str | None = None
+    oidc_jwks_uri: str | None = None
     kms_key_arn: str | None = None
     
     # Feature Flags
@@ -27,8 +30,10 @@ class Settings(BaseSettings):
     def check_unsafe_settings(self):
         """Validates that unsafe settings are not used in production."""
         if self.environment in ["staging", "prod"]:
-            if self.jwt_secret_key.get_secret_value() == "dev-unsafe-secret":
-                raise ValueError("Unsafe jwt_secret_key detected in production environment!")
+            if self.auth_mode == "mock":
+                raise ValueError("Unsafe auth_mode 'mock' detected in production environment!")
+            if not self.oidc_issuer or not self.oidc_audience or not self.oidc_jwks_uri:
+                raise ValueError("OIDC parameters must be set in production mode!")
             if "localhost" in self.database_url.get_secret_value():
                 raise ValueError("Localhost database URL detected in production environment!")
 
