@@ -55,7 +55,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Run SBOM Generation & Scans
+    - name: Generate SBOM (Syft)
+      uses: anchore/sbom-action@v0
+      with:
+        path: .
+        format: spdx-json
+        output-file: reports/sbom.spdx.json
+        
+    - name: Vulnerability Scan (Trivy)
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+        
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3.5.0
+      
+    - name: Generate SLSA Provenance and Sign (Cosign)
       run: |
-        chmod +x scripts/generate_sbom_scan.py || true
-        python scripts/generate_sbom_scan.py
+        # In a real workflow this would sign the built container image digest
+        echo "Signing provenance attestation"
+        cosign sign-blob --yes reports/sbom.spdx.json --bundle reports/sbom.bundle

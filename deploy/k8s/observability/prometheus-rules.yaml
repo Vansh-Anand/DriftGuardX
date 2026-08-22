@@ -1,0 +1,55 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: driftguard-rules
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+  - name: driftguard.alerts
+    rules:
+    - alert: ReplayBudgetExhausted
+      expr: rate(dgx_replay_budget_exhaustion_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Replay budget exhausted"
+        description: "DriftGuard-X has exhausted replay budget. Some replays are being aborted to preserve resources."
+
+    - alert: HighReplayFailureRate
+      expr: sum(rate(dgx_replay_failures_total[5m])) / sum(rate(dgx_replays_total[5m])) > 0.1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High replay failure rate"
+        description: "More than 10% of Replay jobs are failing in the last 5 minutes."
+
+    - alert: CertificateVerificationFailures
+      expr: rate(dgx_certificate_verification_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Recovery eligibility certificate verification failed"
+        description: "A cryptographic verification of a recovery certificate failed. Possible tampering or drift in environment state."
+
+    - alert: TenantAccessDenials
+      expr: rate(dgx_tenant_access_denials_total[5m]) > 10
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High tenant access denials"
+        description: "Spike in cross-tenant isolation enforcement denials. Possible IDOR attempt or misconfigured query."
+
+    - alert: RecoveryFailureRate
+      expr: sum(rate(dgx_recovery_failures_total[10m])) / sum(rate(dgx_recoveries_total[10m])) > 0.05
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High recovery failure rate"
+        description: "More than 5% of attempted recoveries have failed. Immediate investigation required."

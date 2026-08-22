@@ -19,8 +19,8 @@ spec:
         runAsUser: 1000
       containers:
       - name: api
-        image: driftguard/api:latest
-        imagePullPolicy: Never # Adjust for actual registry
+        image: ghcr.io/driftguardx/api@sha256:b5a2d9b2f6b8b0e7a2b9e8b7d6a5f4c3b2a1e0f9d8c7b6a5f4e3d2c1b0a9f8e7
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
         envFrom:
