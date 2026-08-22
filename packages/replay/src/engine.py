@@ -25,6 +25,7 @@ from packages.contracts.src.models import (
     Intervention,
     InterventionType,
     ReplayEpisode,
+    ReplayStateManifest,
     ReplayStatus,
     RequestRun,
     RunStatus,
@@ -231,13 +232,20 @@ class ReplayEngine:
         original_reliability_vector: dict[str, float],
         request_inputs: dict[str, Any],
         seed: int = 42,
+        manifest: ReplayStateManifest | None = None,
     ) -> tuple[ReplayEpisode, TraceArtifact]:
         """
         Execute a deterministic replay with one component version swapped.
 
+        Refuses replay if the required replay state manifest is absent or not fully pinned.
         Returns (ReplayEpisode, new TraceArtifact) — does NOT persist automatically.
         Caller is responsible for persistence.
         """
+        if manifest is None:
+            raise ValueError("Replay refused: required state manifest is absent.")
+        if not manifest.is_fully_pinned():
+            raise ValueError("Replay refused: required state manifest cannot be fully pinned.")
+
         replay_id = uuid4()
         tenant_id = original_run.tenant_id
         pipeline_id = original_run.pipeline_id
@@ -415,6 +423,8 @@ class ReplayEngine:
             completed_at=datetime.now(timezone.utc),
             is_synthetic=original_run.is_synthetic,
             status=ReplayStatus.COMPLETED,
+            manifest_id=manifest.id,
+            is_pinned=True,
         )
 
         return episode, replay_trace

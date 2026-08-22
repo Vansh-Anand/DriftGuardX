@@ -24,10 +24,18 @@ async def get_replay(
     db: AsyncSession = Depends(get_db),
 ) -> ReplayResponse:
     """Get replay metrics and provenance."""
-    result = await db.execute(select(ReplayEpisodeORM).where(ReplayEpisodeORM.id == replay_id))
+    # Need to join with manifest to get manifest_hash
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(ReplayEpisodeORM)
+        .options(selectinload(ReplayEpisodeORM.manifest))
+        .where(ReplayEpisodeORM.id == replay_id)
+    )
     episode = result.scalar_one_or_none()
     if episode is None:
         raise HTTPException(status_code=404, detail=f"Replay {replay_id} not found")
+
+    manifest_hash = episode.manifest.manifest_hash if episode.manifest else None
 
     return ReplayResponse(
         id=episode.id,
@@ -45,4 +53,7 @@ async def get_replay(
         created_at=episode.created_at,
         completed_at=episode.completed_at,
         is_synthetic=episode.is_synthetic,
+        manifest_id=episode.manifest_id,
+        manifest_hash=manifest_hash,
+        is_pinned=episode.is_pinned,
     )

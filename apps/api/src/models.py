@@ -284,6 +284,8 @@ class ReplayEpisodeORM(Base):
     pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     intervention_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("interventions.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    manifest_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("replay_state_manifests.id"), nullable=True)
+    is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
 
     swapped_component_type: Mapped[str] = mapped_column(String(64), nullable=False)
     original_version_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
@@ -312,10 +314,48 @@ class ReplayEpisodeORM(Base):
         "RequestRunORM", back_populates="replay_episodes",
         foreign_keys=[original_run_id],
     )
+    manifest: Mapped["ReplayStateManifestORM | None"] = relationship(
+        "ReplayStateManifestORM",
+        foreign_keys=[manifest_id],
+    )
 
     __table_args__ = (
         Index("ix_replay_episodes_original_run_id", "original_run_id"),
         Index("ix_replay_episodes_status", "status"),
+    )
+
+
+# ─── ReplayStateManifest ──────────────────────────────────────────────────────
+
+class ReplayStateManifestORM(Base):
+    __tablename__ = "replay_state_manifests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+
+    model_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    model_identifier: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    model_config_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    prompt_template_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    retriever_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    embedding_model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    vector_index_snapshot_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    tool_schemas_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    policy_config_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    memory_snapshot_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    random_seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    generation_parameters: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    container_image_digest: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    dependency_lockfile_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    trace_root_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("ix_replay_state_manifests_run_id", "run_id"),
+        Index("ix_replay_state_manifests_hash", "manifest_hash"),
     )
 
 

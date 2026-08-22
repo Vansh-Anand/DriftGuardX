@@ -90,13 +90,24 @@ def test_replay_engine_timeout_enforcement():
     concurrent.futures.ThreadPoolExecutor = lambda *args, **kwargs: FakeExecutor()
     
     try:
+        from packages.contracts.src.models import ReplayStateManifest
+        manifest = ReplayStateManifest(
+            run_id=dummy_run.id,
+            tenant_id=dummy_run.tenant_id,
+            model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
+            retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+            tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
+            random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
+        )
         episode, trace = engine.execute_replay(
             original_run=dummy_run,
             original_trace=dummy_trace,
             intervention=intervention,
             replay_version=registry.list_by_type(ComponentType.RETRIEVER)[0],
             original_reliability_vector={},
-            request_inputs={}
+            request_inputs={},
+            seed=42,
+            manifest=manifest
         )
         
         # Verify the engine caught the timeout and injected an error span
@@ -154,13 +165,24 @@ def test_replay_engine_memory_bound():
     )
     
     try:
+        from packages.contracts.src.models import ReplayStateManifest
+        manifest = ReplayStateManifest(
+            run_id=dummy_run.id,
+            tenant_id=dummy_run.tenant_id,
+            model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
+            retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+            tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
+            random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
+        )
         episode, trace = engine.execute_replay(
             original_run=dummy_run,
             original_trace=dummy_trace,
             intervention=intervention,
             replay_version=registry.list_by_type(ComponentType.RETRIEVER)[0],
             original_reliability_vector={},
-            request_inputs={}
+            request_inputs={},
+            seed=42,
+            manifest=manifest
         )
         
         retriever_span = next(s for s in trace.spans if s.component_type == ComponentType.RETRIEVER)

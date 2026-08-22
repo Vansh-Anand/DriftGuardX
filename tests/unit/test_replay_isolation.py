@@ -23,6 +23,7 @@ from packages.contracts.src.models import (
     SpanKind,
     SpanRecord,
     TraceArtifact,
+    ReplayStateManifest,
 )
 from packages.replay.src.engine import (
     ReplayEngine,
@@ -76,6 +77,14 @@ def test_replay_only_swaps_one_component() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
+    manifest = ReplayStateManifest(
+        run_id=original_run.id,
+        tenant_id=original_run.tenant_id,
+        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
+        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
+        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
+    )
     episode, replay_trace = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
@@ -84,6 +93,7 @@ def test_replay_only_swaps_one_component() -> None:
         original_reliability_vector=original_run.reliability_vector,
         request_inputs={"query": "test query", "seed": 42},
         seed=42,
+        manifest=manifest,
     )
 
     # Check: retriever version in replay trace must be v1 (stable)
@@ -116,6 +126,15 @@ def test_replay_pins_non_swapped_versions() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
+    manifest = ReplayStateManifest(
+        run_id=original_run.id,
+        tenant_id=original_run.tenant_id,
+        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
+        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
+        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
+    )
+
     episode, replay_trace = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
@@ -124,6 +143,7 @@ def test_replay_pins_non_swapped_versions() -> None:
         original_reliability_vector=original_run.reliability_vector,
         request_inputs={"query": "test", "seed": 42},
         seed=42,
+        manifest=manifest,
     )
 
     # Generator, reranker must still be v1 in replay
@@ -152,6 +172,15 @@ def test_replay_improves_reliability_over_experimental() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
+    
+    manifest = ReplayStateManifest(
+        run_id=original_run.id,
+        tenant_id=original_run.tenant_id,
+        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
+        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
+        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
+    )
     episode, _ = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
@@ -160,6 +189,7 @@ def test_replay_improves_reliability_over_experimental() -> None:
         original_reliability_vector=original_run.reliability_vector,
         request_inputs={"query": "test", "seed": 42},
         seed=42,
+        manifest=manifest,
     )
 
     assert episode.reliability_improvement is not None
@@ -186,6 +216,15 @@ def test_replay_episode_has_correct_version_ids() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
+    
+    manifest = ReplayStateManifest(
+        run_id=original_run.id,
+        tenant_id=original_run.tenant_id,
+        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
+        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
+        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
+    )
     episode, _ = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
@@ -194,6 +233,7 @@ def test_replay_episode_has_correct_version_ids() -> None:
         original_reliability_vector=original_run.reliability_vector,
         request_inputs={"query": "test", "seed": 42},
         seed=42,
+        manifest=manifest,
     )
 
     assert episode.original_version_id == RETRIEVER_V2_EXP.id

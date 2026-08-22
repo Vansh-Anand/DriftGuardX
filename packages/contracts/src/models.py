@@ -431,6 +431,77 @@ class ReplayEpisode(DGXBaseModel):
     completed_at: datetime | None = None
     is_synthetic: bool = False
 
+    # Manifest
+    manifest_id: UUID | None = None
+    is_pinned: bool = False
+
+
+# ─── ReplayStateManifest ──────────────────────────────────────────────────────
+
+class ReplayStateManifest(DGXBaseModel):
+    """
+    Immutable manifest that binds all state required for reproducible replay.
+    """
+    id: UUID = Field(default_factory=_new_uuid)
+    run_id: UUID
+    tenant_id: UUID
+
+    # Pinning state
+    model_provider: str | None = None
+    model_identifier: str | None = None
+    model_config_hash: str | None = None
+    prompt_template_hash: str | None = None
+    retriever_version: str | None = None
+    embedding_model_version: str | None = None
+    vector_index_snapshot_id: str | None = None
+    tool_schemas_hash: str | None = None
+    policy_config_hash: str | None = None
+    memory_snapshot_id: str | None = None
+    random_seed: int | None = None
+    generation_parameters: dict[str, Any] = Field(default_factory=dict)
+    container_image_digest: str | None = None
+    dependency_lockfile_hash: str | None = None
+    trace_root_hash: str | None = None
+
+    manifest_hash: str = ""
+    created_at: datetime = Field(default_factory=_utcnow)
+
+    def compute_hash(self) -> str:
+        """Computes SHA-256 hash of canonical JSON representation."""
+        import json
+        data = self.model_dump(
+            exclude={"id", "run_id", "tenant_id", "created_at", "manifest_hash"},
+            exclude_none=True
+        )
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    @model_validator(mode="after")
+    def validate_hash(self) -> "ReplayStateManifest":
+        if not self.manifest_hash:
+            self.manifest_hash = self.compute_hash()
+        return self
+
+    def is_fully_pinned(self) -> bool:
+        """Returns True if all required pinning state is present."""
+        required = [
+            self.model_provider,
+            self.model_identifier,
+            self.model_config_hash,
+            self.prompt_template_hash,
+            self.retriever_version,
+            self.embedding_model_version,
+            self.vector_index_snapshot_id,
+            self.tool_schemas_hash,
+            self.policy_config_hash,
+            self.memory_snapshot_id,
+            self.random_seed is not None,
+            self.container_image_digest,
+            self.dependency_lockfile_hash,
+            self.trace_root_hash,
+        ]
+        return all(bool(r) for r in required)
+
 
 # ─── Diagnosis ────────────────────────────────────────────────────────────────
 

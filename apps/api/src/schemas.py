@@ -113,6 +113,9 @@ class ReplayResponse(APIBase):
     created_at: datetime
     completed_at: datetime | None
     is_synthetic: bool
+    manifest_id: uuid.UUID | None = None
+    manifest_hash: str | None = None
+    is_pinned: bool = False
 
 
 # ─── Span Ingestion ───────────────────────────────────────────────────────────

@@ -20,6 +20,7 @@ from apps.api.src.models import (
     AgentPipelineORM,
     InterventionORM,
     ReplayEpisodeORM,
+    ReplayStateManifestORM,
     RequestRunORM,
     SpanRecordORM,
     TenantORM,
@@ -459,6 +460,50 @@ async def create_replay(
     original_rv = original_run_orm.reliability_vector or {}
     request_inputs = {"query": "What are the latest AI safety guidelines?", "seed": request.seed}
 
+    # Create ReplayStateManifest
+    from packages.contracts.src.models import ReplayStateManifest
+    manifest_contract = ReplayStateManifest(
+        run_id=run_id,
+        tenant_id=original_run_orm.tenant_id,
+        model_provider="mock-provider",
+        model_identifier="mock-model",
+        model_config_hash="mock-config-hash",
+        prompt_template_hash="mock-prompt-hash",
+        retriever_version=to_version.version_tag,
+        embedding_model_version="mock-embed",
+        vector_index_snapshot_id="mock-index",
+        tool_schemas_hash="mock-schema-hash",
+        policy_config_hash="mock-policy-hash",
+        memory_snapshot_id="mock-memory",
+        random_seed=request.seed,
+        container_image_digest="mock-container",
+        dependency_lockfile_hash="mock-lockfile",
+        trace_root_hash="mock-trace-hash",
+    )
+
+    manifest_orm = ReplayStateManifestORM(
+        id=manifest_contract.id,
+        run_id=manifest_contract.run_id,
+        tenant_id=manifest_contract.tenant_id,
+        model_provider=manifest_contract.model_provider,
+        model_identifier=manifest_contract.model_identifier,
+        model_config_hash=manifest_contract.model_config_hash,
+        prompt_template_hash=manifest_contract.prompt_template_hash,
+        retriever_version=manifest_contract.retriever_version,
+        embedding_model_version=manifest_contract.embedding_model_version,
+        vector_index_snapshot_id=manifest_contract.vector_index_snapshot_id,
+        tool_schemas_hash=manifest_contract.tool_schemas_hash,
+        policy_config_hash=manifest_contract.policy_config_hash,
+        memory_snapshot_id=manifest_contract.memory_snapshot_id,
+        random_seed=manifest_contract.random_seed,
+        generation_parameters=manifest_contract.generation_parameters,
+        container_image_digest=manifest_contract.container_image_digest,
+        dependency_lockfile_hash=manifest_contract.dependency_lockfile_hash,
+        trace_root_hash=manifest_contract.trace_root_hash,
+        manifest_hash=manifest_contract.manifest_hash,
+    )
+    db.add(manifest_orm)
+
     episode, replay_trace = engine.execute_replay(
         original_run=original_run_contract,
         original_trace=original_trace,
@@ -467,6 +512,7 @@ async def create_replay(
         original_reliability_vector=original_rv,
         request_inputs=request_inputs,
         seed=request.seed,
+        manifest=manifest_contract,
     )
 
     # Persist replay episode
@@ -494,6 +540,8 @@ async def create_replay(
         seed=episode.seed,
         completed_at=episode.completed_at,
         is_synthetic=episode.is_synthetic,
+        manifest_id=episode.manifest_id,
+        is_pinned=episode.is_pinned,
     )
     db.add(episode_orm)
 
@@ -544,4 +592,7 @@ async def create_replay(
         created_at=episode_orm.created_at,
         completed_at=episode_orm.completed_at,
         is_synthetic=episode_orm.is_synthetic,
+        manifest_id=manifest_orm.id,
+        manifest_hash=manifest_orm.manifest_hash,
+        is_pinned=episode_orm.is_pinned,
     )
