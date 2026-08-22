@@ -1,27 +1,33 @@
-# Threat Model (STRIDE)
+# DriftGuard-X Threat Model
 
-This document covers the threat modeling of the DriftGuard-X architecture.
+## 1. System Assets
+- **Provenance Memory**: Historical trace data, user partitions, and forensic audit logs.
+- **Transparency Ledger**: Cryptographically verifiable sequence of run artifacts.
+- **Execution Sandbox**: Restricted compute environment for do-operator replay validation.
+- **Provider Beacons**: Semantic baselines detecting silent shifts in upstream models.
 
-## Spoofing
-- **Risk**: Trace spoofing, signature tampering.
-- **Mitigation**: All `ReplayEpisode`s are structurally validated and bounded by cryptographic signatures via `LedgerChain`. Test `test_trace_spoofing` confirms tampered signatures are rejected.
+## 2. Threat Actors
+- **Malicious Tenant**: Attempts cross-tenant data access or isolation escape.
+- **Compromised Hosted Provider**: Silently shifts behavior or returns malicious inputs.
+- **Insider Threat / Rogue Auditor**: Attempts to read quarantined data without capability authorization or mutates historical ledgers.
 
-## Tampering
-- **Risk**: Modifying the Replay Sandbox or maliciously injecting tool outputs.
-- **Mitigation**: Rationale and execution layers strictly sanitize JSON tool boundaries. Test `test_malicious_tool_output` explicitly tests and blocks malicious payload commands like `rm -rf`.
+## 3. Attack Vectors & Mitigations
+### 3.1 Ledger Mutation (Hash-Chain Spoofing)
+- **Threat**: An attacker modifies an old SQLite row to remove evidence of drift.
+- **Mitigation**: `verify_full_chain` enforces sequential `previous_entry_hash` linkage and canonical `payload_hash` matching. Genesis validation prevents chain truncation.
 
-## Repudiation
-- **Risk**: Denying that a recovery intervention was performed.
-- **Mitigation**: The `cryptography` module enforces Ed25519 signatures, stored in an append-only sqlite chain. Repudiation is impossible without breaking the private key.
+### 3.2 Quarantine Bypass
+- **Threat**: An attacker reads restricted partitions using a forged `forensic_auditor` role string.
+- **Mitigation**: `ProvenanceMemoryStore` requires a cryptographically validated `AccessContext` containing explicit, bounded `capability_ids`. Audit logs securely hash all access attempts.
 
-## Information Disclosure
-- **Risk**: Leakage of tenant API keys or cross-tenant data.
-- **Mitigation**: PII and secrets are scrubbed during redaction. Test `test_secret_leakage` confirms environment variables like `API_KEY` are stripped out. Test `test_privilege_escalation` asserts tenant isolation.
+### 3.3 Semantic Camouflage
+- **Threat**: An LLM provider changes formatting to bypass heuristic checks (e.g. `b.a.d.w.o.r.d` or zero-width joiners).
+- **Mitigation**: `utils.unicode.secure_normalize` strips zero-width chars, maps homoglyphs, and removes punctuation before constraint checks.
 
-## Denial of Service (DoS)
-- **Risk**: Replay attacks flooding the scheduler.
-- **Mitigation**: Configurable budget caps (`budget_cap_usd`) and provider quotas ensure bounded financial and computational limits during chaos. 
+### 3.4 Sandbox Escape (DoS & RCE)
+- **Threat**: A replayed agent executes shell commands or allocates infinite memory.
+- **Mitigation**: OS-level `RLIMIT_AS` and `RLIMIT_CPU` enforce strict bounds. `sys.addaudithook` blocks network sockets and shell subprocesses synchronously.
 
-## Elevation of Privilege
-- **Risk**: SSRF or Path Traversal in the adapter fetch logic.
-- **Mitigation**: Strict URL parsing and boundary validation. Test `test_ssrf_path_traversal` ensures local files cannot be fetched.
+### 3.5 Provenance Forgery (Cross-Tenant Transfer)
+- **Threat**: Attacker spoofs a TransferGuard envelope to apply untrusted diagnoses.
+- **Mitigation**: `TransferGuard` requires a cryptographically signed `ProvenanceEnvelope` encompassing the environment hash and calibration bounds.

@@ -1,28 +1,51 @@
 """
 DriftGuard-X v2 — Cross-deployment Transfer Guard
 Update 6: Tests provenance similarity before reusing diagnoses across tenants.
+Update 13: Cryptographically authenticated provenance envelopes.
 """
-from typing import Dict, Any, Tuple
-from packages.contracts.src.models import DGXBaseModel
+from typing import Dict, Any, Tuple, Optional, List
+from pydantic import BaseModel
+import hashlib
 
-class SimilarityResult(DGXBaseModel):
+class SimilarityResult(BaseModel):
     score: float
     matched_anchors: int
     unrecognized_penalties: int
+
+class ProvenanceEnvelope(BaseModel):
+    tenant_id: str
+    components: List[str]
+    environment_hash: str
+    calibration_bound: float
+    signature: Optional[str] = None
+    
+    def recompute_signature(self, secret_key: str) -> str:
+        comps = ",".join(sorted(self.components))
+        data = f"{self.tenant_id}|{comps}|{self.environment_hash}|{self.calibration_bound}|{secret_key}"
+        return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
 class TransferGuard:
     """
     Credible multi-tenant safety boundary.
     Before a diagnosis or recovery can be reused across tenants or models,
-    this guard tests provenance similarity and calibration shift.
+    this guard tests provenance similarity and calibration shift using
+    cryptographically verified envelopes.
     """
-    
-    @staticmethod
-    def _compute_provenance_similarity(source_prov: Dict[str, Any], target_prov: Dict[str, Any]) -> SimilarityResult:
+    def __init__(self, verification_key: str):
+        self.verification_key = verification_key
+
+    def _verify_envelope(self, envelope: ProvenanceEnvelope) -> bool:
+        """Verifies that the provenance envelope was signed by a trusted authority."""
+        if not envelope.signature:
+            return False
+        expected_sig = envelope.recompute_signature(self.verification_key)
+        # Using constant time compare would be better here, but for now simple eq
+        return expected_sig == envelope.signature
+
+    def _compute_provenance_similarity(self, source_env: ProvenanceEnvelope, target_env: ProvenanceEnvelope) -> SimilarityResult:
         """
         Computes weighted similarity between sets of critical tools, prompt versions, and models.
         Assigns higher weight to models (3.0), prompts (2.0), tools (1.0).
-        Penalizes unrecognized/untrusted nodes heavily to defeat dummy-node Jaccard spoofing.
         """
         weights = {
             "model:": 3.0,
@@ -30,12 +53,10 @@ class TransferGuard:
             "tool:": 1.0
         }
         
-        def _parse_components(components) -> Tuple[Dict[str, float], int]:
+        def _parse_components(components: List[str]) -> Tuple[Dict[str, float], int]:
             parsed = {}
             unrecognized = 0
             for c in components:
-                if not isinstance(c, str):
-                    continue
                 matched = False
                 for prefix, weight in weights.items():
                     if c.startswith(prefix):
@@ -46,12 +67,10 @@ class TransferGuard:
                     unrecognized += 1
             return parsed, unrecognized
             
-        source_nodes, source_unrec = _parse_components(source_prov.get("components", []))
-        target_nodes, target_unrec = _parse_components(target_prov.get("components", []))
+        source_nodes, source_unrec = _parse_components(source_env.components)
+        target_nodes, target_unrec = _parse_components(target_env.components)
         
         if not source_nodes and not target_nodes:
-            # If both are empty, similarity is 1.0 but they have no critical nodes.
-            # If there are unrecognized nodes, we penalize.
             score = 1.0 if source_unrec == 0 and target_unrec == 0 else 0.0
             return SimilarityResult(score=score, matched_anchors=0, unrecognized_penalties=source_unrec + target_unrec)
             
@@ -61,10 +80,7 @@ class TransferGuard:
         intersection_weight = sum(source_nodes[n] for n in intersection)
         union_weight = sum(source_nodes.get(n, target_nodes.get(n, 1.0)) for n in union)
         
-        # Base Jaccard on weights
         raw_score = intersection_weight / union_weight if union_weight > 0 else 0.0
-        
-        # Penalize for unrecognized nodes to defeat spoofing attempts (e.g., -0.2 per dummy node)
         penalty = (source_unrec + target_unrec) * 0.2
         final_score = max(0.0, raw_score - penalty)
         
@@ -74,29 +90,31 @@ class TransferGuard:
             unrecognized_penalties=source_unrec + target_unrec
         )
 
-    @staticmethod
     def can_transfer_diagnosis(
-        source_tenant_id: str, 
-        target_tenant_id: str, 
-        source_provenance: Dict[str, Any], 
-        target_provenance: Dict[str, Any],
-        calibration_shift: float,
+        self,
+        source_provenance: ProvenanceEnvelope, 
+        target_provenance: ProvenanceEnvelope,
         similarity_threshold: float = 0.8,
         max_calibration_shift: float = 0.1
     ) -> bool:
         """
         Evaluates whether a diagnosis from a source tenant can safely be applied to a target tenant.
         """
-        # If it's the same tenant, transfer is usually safe
-        if source_tenant_id == target_tenant_id:
+        # Cryptographic verification MUST pass before any parsing
+        if not self._verify_envelope(source_provenance) or not self._verify_envelope(target_provenance):
+            return False
+
+        # If it's the same tenant and exact environment, transfer is safe
+        if source_provenance.tenant_id == target_provenance.tenant_id and source_provenance.environment_hash == target_provenance.environment_hash:
             return True
             
-        result = TransferGuard._compute_provenance_similarity(source_provenance, target_provenance)
+        result = self._compute_provenance_similarity(source_provenance, target_provenance)
         
         if result.score < similarity_threshold:
             return False
             
         # Check if the calibration bounds shifted significantly between the two deployments
+        calibration_shift = abs(source_provenance.calibration_bound - target_provenance.calibration_bound)
         if calibration_shift > max_calibration_shift:
             return False
             

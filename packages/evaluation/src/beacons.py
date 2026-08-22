@@ -2,12 +2,11 @@
 DriftGuard-X v2 — Hosted-provider Drift Beacons
 Update 11: Probe black-box dependencies to detect silent provider shifts.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import hashlib
-from typing import Optional
 
-from packages.evaluation.src.semantics import SemanticDriftComparator, CosineDriftComparator, DeterministicFakeEncoder
+from packages.evaluation.src.semantics import SemanticEncoder, CosineDriftComparator, get_semantic_encoder
 
 class DriftBeacon:
     """
@@ -18,14 +17,14 @@ class DriftBeacon:
         self, 
         provider_id: str, 
         baseline_outputs: Dict[str, str],
-        comparator: Optional[SemanticDriftComparator] = None
+        encoder: Optional[SemanticEncoder] = None
     ):
         self.provider_id = provider_id
-        # We now store raw baseline output text instead of signatures to allow arbitrary semantic comparators
         self.baseline_outputs = baseline_outputs 
         
-        # Default to fake deterministic encoder if none provided (for tests)
-        self.comparator = comparator if comparator else CosineDriftComparator(DeterministicFakeEncoder())
+        # In production this will throw if forced to fake
+        enc = encoder if encoder else get_semantic_encoder()
+        self.comparator = CosineDriftComparator(enc)
         
     def _compute_identity_hash(self, output: str) -> str:
         """

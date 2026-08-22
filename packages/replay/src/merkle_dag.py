@@ -127,6 +127,8 @@ class MerkleDAGStore:
             parent_node = self._nodes.get(pid)
             if parent_node:
                 parent_hashes.append(parent_node.node_hash)
+            else:
+                raise ValueError(f"Parent node '{pid}' not found in DAG. Orphaned parents are rejected.")
 
         node = MerkleNode(
             node_id=node_id,

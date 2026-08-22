@@ -7,68 +7,202 @@ Enforces partition quarantine securely before any read operation.
 """
 from typing import Any, Dict, List, Optional
 import threading
+import sqlite3
+import json
+import hashlib
+from datetime import datetime, timezone
+import os
 
-from packages.policy.src.hooks import pre_memory_read_check
+from packages.memory.src.auth import AccessContext, AuditEvent
 
+class QuarantineViolationError(Exception):
+    pass
+
+class AuthorizationError(Exception):
+    pass
 
 class ProvenanceMemoryStore:
     """
-    Thread-safe in-memory store for provenance-backed memory.
-    Enforces quarantine boundaries using the central policy hook.
+    Thread-safe store for provenance-backed memory with Persistent Quarantine.
+    Enforces access control using AccessContext capabilities.
     """
 
-    def __init__(self):
+    def __init__(self, db_path: str = "quarantine_state.db"):
+        self.db_path = db_path
         self._lock = threading.RLock()
         self._partitions: Dict[str, List[Dict[str, Any]]] = {}
-        self._active_quarantines: set[str] = set()
+        self._init_db()
 
-    def write(self, partition_id: str, data: Dict[str, Any], tenant_id: str) -> None:
+    def _init_db(self):
+        with sqlite3.connect(self.db_path, isolation_level="EXCLUSIVE") as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS quarantine_state (
+                    partition_id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL,
+                    status TEXT NOT NULL
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS access_audit (
+                    event_id TEXT PRIMARY KEY,
+                    requester TEXT NOT NULL,
+                    tenant TEXT NOT NULL,
+                    partition TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    capability_id TEXT,
+                    timestamp TEXT NOT NULL,
+                    policy_version TEXT NOT NULL,
+                    result TEXT NOT NULL,
+                    event_hash TEXT NOT NULL
+                )
+            ''')
+
+    def _hash_audit_event(self, event: AuditEvent) -> str:
+        data = f"{event.event_id}|{event.requester}|{event.tenant}|{event.partition}|{event.action}|{event.result}|{event.timestamp.isoformat()}"
+        return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
+    def _log_audit(self, event: AuditEvent):
+        event.event_hash = self._hash_audit_event(event)
+        with sqlite3.connect(self.db_path, isolation_level="EXCLUSIVE") as conn:
+            conn.execute('''
+                INSERT INTO access_audit (
+                    event_id, requester, tenant, partition, action, 
+                    capability_id, timestamp, policy_version, result, event_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                event.event_id, event.requester, event.tenant, event.partition,
+                event.action, event.capability_id, event.timestamp.isoformat(),
+                event.policy_version, event.result, event.event_hash
+            ))
+
+    def _is_quarantined(self, partition_id: str) -> bool:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("SELECT status FROM quarantine_state WHERE partition_id = ?", (partition_id,))
+            row = cursor.fetchone()
+            if row and row[0] == "ACTIVE":
+                return True
+        return False
+
+    def write(self, partition_id: str, data: Dict[str, Any], context: AccessContext) -> None:
         """Write data to a partition. Fails if quarantined."""
         with self._lock:
-            # Check quarantine before allowing write
-            pre_memory_read_check(partition_id, list(self._active_quarantines))
-            
-            # Enforce cross-tenant isolation
-            if not partition_id.startswith(f"{tenant_id}_"):
-                raise PermissionError(f"Cross-tenant write violation: tenant {tenant_id} cannot write to partition {partition_id}")
+            if not context.is_valid():
+                raise AuthorizationError("AccessContext is invalid or expired.")
+                
+            if not partition_id.startswith(f"{context.tenant_id}_"):
+                raise AuthorizationError(f"Cross-tenant write violation: tenant {context.tenant_id} cannot write to partition {partition_id}")
+                
+            if self._is_quarantined(partition_id):
+                self._log_audit(AuditEvent(
+                    requester=context.requester_id, tenant=context.tenant_id,
+                    partition=partition_id, action="WRITE", capability_id=None,
+                    policy_version="v2", result="DENIED_QUARANTINE"
+                ))
+                raise QuarantineViolationError(f"Partition {partition_id} is quarantined. Write denied.")
                 
             if partition_id not in self._partitions:
                 self._partitions[partition_id] = []
             self._partitions[partition_id].append(data)
+            
+            self._log_audit(AuditEvent(
+                requester=context.requester_id, tenant=context.tenant_id,
+                partition=partition_id, action="WRITE", capability_id=None,
+                policy_version="v2", result="ALLOWED"
+            ))
 
-    def read(self, partition_id: str, tenant_id: str, requester_role: str = "agent") -> List[Dict[str, Any]]:
-        """Read data from a partition. Enforces quarantine and tenant isolation."""
+    def read(self, partition_id: str, context: AccessContext) -> List[Dict[str, Any]]:
+        """Read data from a partition. Enforces quarantine and capability capabilities."""
         with self._lock:
-            # Enforce cross-tenant isolation
-            if not partition_id.startswith(f"{tenant_id}_"):
-                raise PermissionError(f"Cross-tenant read violation: tenant {tenant_id} cannot read from partition {partition_id}")
+            if not context.is_valid():
+                raise AuthorizationError("AccessContext is invalid or expired.")
                 
-            # THIS IS THE CRITICAL ENFORCEMENT BOUNDARY
-            pre_memory_read_check(
-                partition_id,
-                list(self._active_quarantines),
-                requester_role=requester_role
-            )
+            if not partition_id.startswith(f"{context.tenant_id}_"):
+                raise AuthorizationError(f"Cross-tenant read violation: tenant {context.tenant_id} cannot read from partition {partition_id}")
+                
+            is_quar = self._is_quarantined(partition_id)
+            
+            if is_quar:
+                # Requires explicit forensic authorization
+                if "forensic_auditor" not in context.authenticated_roles:
+                    self._log_audit(AuditEvent(
+                        requester=context.requester_id, tenant=context.tenant_id,
+                        partition=partition_id, action="READ", capability_id=None,
+                        policy_version="v2", result="DENIED_QUARANTINE"
+                    ))
+                    raise QuarantineViolationError("Read denied. Partition is quarantined and caller lacks forensic_auditor role.")
+                    
+                if not context.capability_ids:
+                    self._log_audit(AuditEvent(
+                        requester=context.requester_id, tenant=context.tenant_id,
+                        partition=partition_id, action="READ", capability_id=None,
+                        policy_version="v2", result="DENIED_MISSING_CAPABILITY"
+                    ))
+                    raise AuthorizationError("Read denied. Forensic access requires an explicit approval capability ID.")
+                    
+                # Forensic access granted
+                self._log_audit(AuditEvent(
+                    requester=context.requester_id, tenant=context.tenant_id,
+                    partition=partition_id, action="FORENSIC_READ", 
+                    capability_id=context.capability_ids[0],
+                    policy_version="v2", result="ALLOWED"
+                ))
+            else:
+                self._log_audit(AuditEvent(
+                    requester=context.requester_id, tenant=context.tenant_id,
+                    partition=partition_id, action="READ", capability_id=None,
+                    policy_version="v2", result="ALLOWED"
+                ))
+                
             return list(self._partitions.get(partition_id, []))
 
-    def quarantine_partition(self, partition_id: str) -> None:
-        """
-        Quarantine a partition.
-        Immediately restricts access and drops it from the readable cache if any existed.
-        """
+    def quarantine_partition(self, partition_id: str, context: AccessContext, reason: str) -> None:
+        """Quarantine a partition persistently."""
         with self._lock:
-            self._active_quarantines.add(partition_id)
+            if not context.is_valid() or "security_admin" not in context.authenticated_roles:
+                raise AuthorizationError("Quarantine requires security_admin role.")
+                
+            with sqlite3.connect(self.db_path, isolation_level="EXCLUSIVE") as conn:
+                conn.execute('''
+                    INSERT OR REPLACE INTO quarantine_state (
+                        partition_id, tenant_id, reason, created_at, created_by, status
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    partition_id, context.tenant_id, reason,
+                    datetime.now(timezone.utc).isoformat(),
+                    context.requester_id, "ACTIVE"
+                ))
+                
+            self._log_audit(AuditEvent(
+                requester=context.requester_id, tenant=context.tenant_id,
+                partition=partition_id, action="QUARANTINE", capability_id=None,
+                policy_version="v2", result="SUCCESS"
+            ))
 
-    def unquarantine_partition(self, partition_id: str) -> None:
-        """Restore access to a quarantined partition."""
+    def unquarantine_partition(self, partition_id: str, context: AccessContext) -> None:
+        """Restore access to a quarantined partition requires auth."""
         with self._lock:
-            self._active_quarantines.discard(partition_id)
+            if not context.is_valid() or "security_admin" not in context.authenticated_roles:
+                raise AuthorizationError("Unquarantine requires security_admin role.")
+                
+            with sqlite3.connect(self.db_path, isolation_level="EXCLUSIVE") as conn:
+                conn.execute("UPDATE quarantine_state SET status = 'RELEASED' WHERE partition_id = ?", (partition_id,))
+                
+            self._log_audit(AuditEvent(
+                requester=context.requester_id, tenant=context.tenant_id,
+                partition=partition_id, action="UNQUARANTINE", capability_id=None,
+                policy_version="v2", result="SUCCESS"
+            ))
 
     def clear(self) -> None:
         """Clear the store (for testing)."""
         with self._lock:
             self._partitions.clear()
-            self._active_quarantines.clear()
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("DELETE FROM quarantine_state")
+                conn.execute("DELETE FROM access_audit")
 
 # Global instance for the Mock RAG pipeline to use
 global_provenance_store = ProvenanceMemoryStore()

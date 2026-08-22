@@ -1,52 +1,32 @@
 """
 DriftGuard-X v2 — Context Compaction Trust-Boundary Guard
 Update 8: Protect against drift during agent memory summarization.
+Update 12: Real NLI Provider
 """
 import re
-import enum
-from typing import List, Dict, Any, Protocol, Optional
+from typing import List, Dict, Any, Optional
 
-class EntailmentResult(str, enum.Enum):
-    SUPPORTED = "SUPPORTED"
-    UNSUPPORTED = "UNSUPPORTED"
-    CONTRADICTED = "CONTRADICTED"
-    UNKNOWN = "UNKNOWN"
-
-class EntailmentProvider(Protocol):
-    def score(self, premise: str, hypothesis: str) -> EntailmentResult:
-        """Scores whether the premise entails the hypothesis."""
-        ...
-
-class FakeEntailmentProvider:
-    """A deterministic fake entailment provider for testing."""
-    def score(self, premise: str, hypothesis: str) -> EntailmentResult:
-        h = hypothesis.lower()
-        p = premise.lower()
-        if "contradict" in h:
-            return EntailmentResult.CONTRADICTED
-        if "unknown" in h:
-            return EntailmentResult.UNKNOWN
-        # Support if words overlap significantly, else unsupported
-        h_words = set(re.findall(r'\b[a-zA-Z]{4,}\b', h))
-        p_words = set(re.findall(r'\b[a-zA-Z]{4,}\b', p))
-        if not h_words:
-            return EntailmentResult.SUPPORTED
-        
-        overlap = len(h_words.intersection(p_words))
-        ratio = overlap / len(h_words)
-        if ratio > 0.5:
-            return EntailmentResult.SUPPORTED
-        return EntailmentResult.UNSUPPORTED
+from packages.memory.src.entailment import EntailmentProvider, get_entailment_provider
 
 class CompactionGuard:
     """
     Treats each context summary as a trust-boundary transformation.
     Carries source lineage and authority labels through compaction.
-    Rejects summaries that introduce unsupported claims.
+    Rejects summaries that introduce unsupported claims using Real NLI.
     """
-    def __init__(self, entailment_provider: Optional[EntailmentProvider] = None):
-        self.provider = entailment_provider if entailment_provider else FakeEntailmentProvider()
+    def __init__(self, entailment_provider: Optional[EntailmentProvider] = None, fail_behavior: str = "fail_closed"):
+        # In production this will throw if forced to fake
+        self.provider = entailment_provider if entailment_provider else get_entailment_provider()
+        self.fail_behavior = fail_behavior
         self.unsupported_threshold = 0.3
+
+    def _segment_claims(self, text: str) -> List[str]:
+        # Improved segmentation logic to prevent naive punctuation splitting failure
+        # e.g., Mr. Smith -> Mr, Smith. 
+        # For prototype, we use a basic regex that avoids splitting on common abbreviations.
+        text = re.sub(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', '\n', text)
+        claims = [c.strip() for c in text.split('\n') if c.strip()]
+        return claims
 
     def validate_compaction(
         self,
@@ -56,23 +36,20 @@ class CompactionGuard:
     ) -> bool:
         """
         Validates that a summary does not merge incompatible trust levels
-        and maintains supported evidence.
+        and maintains supported evidence via NLI.
         
         Returns True if valid, False if rejected.
         """
-        # Determine the maximum trust level in the original spans
         source_trust_levels = set(span.get("trust_level", "low") for span in original_spans)
         
-        # If we have mixed trust levels (e.g. user input mixed with verified DB records)
-        # we must not assign a "high" trust level to the resulting summary.
         if "low" in source_trust_levels and trust_level == "high":
             return False
             
+        # Bind source lineage to spans
         source_text = " ".join(str(span.get("content", "")) for span in original_spans)
+        source_id = original_spans[0].get("id", "unknown_source") if original_spans else "unknown_source"
         
-        # Segment into claims (sentences)
-        # Using a very naive split for prototype, usually handled by spaCy or similar
-        claims = [c.strip() for c in re.split(r'[.!?]+', summary_text) if c.strip()]
+        claims = self._segment_claims(summary_text)
         
         if not claims:
             return True
@@ -80,17 +57,19 @@ class CompactionGuard:
         unsupported_count = 0
         
         for claim in claims:
-            result = self.provider.score(premise=source_text, hypothesis=claim)
+            decision = self.provider.check_entailment(premise=source_text, hypothesis=claim, source_id=source_id)
             
-            # Any contradiction is an immediate fail
-            if result == EntailmentResult.CONTRADICTED:
+            if decision.classification == "CONTRADICTED":
                 return False
                 
-            if result == EntailmentResult.UNSUPPORTED:
+            if decision.classification == "UNSUPPORTED":
                 unsupported_count += 1
                 
-            # UNKNOWN is NOT classified as hallucination by default, 
-            # policy dictates fail open/closed, but here we treat it neutrally.
+            if decision.classification == "UNKNOWN":
+                if self.fail_behavior == "fail_closed":
+                    return False
+                elif self.fail_behavior == "require_human_review":
+                    return False # For automation, require_human_review fails open loop
             
         unsupported_ratio = unsupported_count / len(claims)
         
