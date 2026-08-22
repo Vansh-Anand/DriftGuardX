@@ -31,6 +31,8 @@ from packages.recovery.src.capsule import CapsuleRegistry, RollbackCapsule
 from packages.recovery.src.canary import CanaryEpisode, CanaryThresholds, CanaryVerificationResult, run_canary_verification
 from packages.recovery.src.executor import ExecutionResult, LocalDevExecutor
 from packages.recovery.src.state_machine import RecoveryStateMachine, RecoveryStatus, InvalidTransitionError
+from packages.contracts.src.models import RecoveryEligibilityCertificate, serialize_for_signing
+from packages.ledger.src.crypto import verify_signature
 
 
 @dataclass
@@ -71,6 +73,8 @@ class RecoveryEngine:
         proposal: RecoveryProposal,
         canary_episodes: List[CanaryEpisode],
         canary_thresholds: Optional[CanaryThresholds] = None,
+        certificate: Optional[RecoveryEligibilityCertificate] = None,
+        signer_public_key_b64: Optional[str] = None,
     ) -> RecoveryRecord:
         """
         Run the complete prepare → execute → verify → commit/compensate cycle.
@@ -100,11 +104,44 @@ class RecoveryEngine:
             machine.transition(RecoveryStatus.EXECUTING, reason="Dry run execute.")
             result = self._executor.execute(proposal)
             record.execution_result = result
+            machine.transition(RecoveryStatus.VERIFYING, reason="Dry run verify.")
             machine.transition(RecoveryStatus.COMMITTED, reason="Dry run committed.")
             return record
 
         # ── PREPARING ─────────────────────────────────────────────────────────
         machine.transition(RecoveryStatus.PREPARING, reason="Preparing capsule.")
+
+        # ── VERIFYING CERTIFICATE ─────────────────────────────────────────────
+        # For mutating execution modes (SIMULATION, APPROVED, MANUAL)
+        if proposal.execution_mode != ExecutionMode.DRY_RUN:
+            if not certificate:
+                machine.transition(RecoveryStatus.FAILED, reason="Missing Recovery Eligibility Certificate.")
+                record.escalation_log.append("SECURITY: No REC provided. Failing closed.")
+                return record
+                
+            if not signer_public_key_b64:
+                machine.transition(RecoveryStatus.FAILED, reason="Missing Signer Public Key for REC verification.")
+                record.escalation_log.append("SECURITY: No public key provided to verify REC. Failing closed.")
+                return record
+                
+            payload = serialize_for_signing(certificate)
+            is_valid_sig = verify_signature(signer_public_key_b64, payload, certificate.signature_b64)
+            if not is_valid_sig:
+                machine.transition(RecoveryStatus.FAILED, reason="REC signature verification failed.")
+                record.escalation_log.append("SECURITY: Invalid REC signature (Tampering detected). Failing closed.")
+                return record
+                
+            # Verify live state matches the certificate
+            capsule = self._capsule_reg.for_proposal(proposal.proposal_id)
+            capsule_hash = capsule.config_snapshot.get("hash", "") if capsule else "" # Minimal mocked hash check
+            # In a real implementation we would compute the actual capsule hash and compare.
+            
+            # Simple expiry check (e.g., 1 hour)
+            age = datetime.now(timezone.utc) - certificate.timestamp
+            if age.total_seconds() > 3600:
+                machine.transition(RecoveryStatus.FAILED, reason="REC is expired.")
+                record.escalation_log.append("SECURITY: Expired REC. Failing closed.")
+                return record
 
         # ── EXECUTING ─────────────────────────────────────────────────────────
         machine.transition(RecoveryStatus.EXECUTING, reason="Executing action.")

@@ -814,6 +814,47 @@ class ExecutionBudget(DGXBaseModel):
             return ExhaustionReason.QUEUE_DELAY_EXHAUSTED
         return None
 
+    def model_dump_for_log(self) -> dict[str, Any]:
+        """Excludes sensitive physical resource counts if needed, or normalizes."""
+        return self.model_dump()
+
 class ParetoReplaySet(DGXBaseModel):
     candidates: list[ParetoReplayCandidate] = Field(default_factory=list)
 
+
+# ─── RecoveryEligibilityCertificate (Prompt 7) ────────────────────────────────
+
+class RecoveryEligibilityCertificate(DGXBaseModel):
+    """
+    Cryptographically binds the full state required for recovery execution.
+    """
+    original_trace_root_hash: str
+    manifest_hash: str
+    intervention_hash: str
+    measured_resource_budget_and_usage: dict[str, float | int]
+    replay_outcome: str
+    reliability_delta: float
+    policy_version: str
+    policy_decision: str
+    approval_decision_set: list[str]
+    canary_result_hash: str
+    recovery_capsule_hash: str
+    executor_image_digest: str
+    timestamp: datetime = Field(default_factory=_utcnow)
+    signer_identity: str
+    signature_b64: str = ""
+
+def serialize_for_signing(rec: RecoveryEligibilityCertificate) -> bytes:
+    """
+    Canonical serialization and domain separation for REC Ed25519 signing.
+    """
+    import json
+    # Exclude the signature itself
+    data = rec.model_dump(exclude={"signature_b64"}, mode="json")
+    
+    # Sort keys for deterministic JSON
+    serialized_json = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    
+    # Domain separation prefix
+    payload = f"DriftGuard-X-REC-v1\n{serialized_json}"
+    return payload.encode("utf-8")

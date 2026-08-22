@@ -557,3 +557,40 @@ class LedgerEntryORM(Base):
         Index("ix_ledger_entries_commit_hash", "commit_hash"),
     )
 
+# ─── Recovery Eligibility Certificate (Prompt 7) ──────────────────────────────
+
+class RecoveryCertificateORM(Base):
+    __tablename__ = "recovery_certificates"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    
+    # Core cryptographic binding
+    original_trace_root_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    intervention_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    
+    # Metadata and decisions
+    measured_resource_budget_and_usage: Mapped[dict] = mapped_column(_JSON_TYPE, nullable=False)
+    replay_outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    reliability_delta: Mapped[float] = mapped_column(Float, nullable=False)
+    
+    policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_decision: Mapped[str] = mapped_column(String(32), nullable=False)
+    approval_decision_set: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
+    
+    canary_result_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    recovery_capsule_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    executor_image_digest: Mapped[str] = mapped_column(String(128), nullable=False)
+    
+    # Attestation
+    signer_identity: Mapped[str] = mapped_column(String(128), nullable=False)
+    signature_b64: Mapped[str] = mapped_column(Text, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("ix_recovery_certificates_tenant_id", "tenant_id"),
+        Index("ix_recovery_certificates_trace", "original_trace_root_hash"),
+        Index("ix_recovery_certificates_capsule", "recovery_capsule_hash"),
+    )
+
