@@ -130,3 +130,8 @@ build/
 # MLflow & Large Media
 mlruns/
 *.mp4
+
+# Data
+data/raw/
+data/dataset_registry.json
+data/*.zip

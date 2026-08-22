@@ -30,3 +30,5 @@ pgvector>=0.2.5
 minio>=7.2.5
 presidio-analyzer>=2.2.353
 sentence-transformers>=2.7.0
+openai>=1.14.0
+tiktoken>=0.6.0

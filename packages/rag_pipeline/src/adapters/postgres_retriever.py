@@ -32,28 +32,17 @@ class PostgresHybridRetriever(RetrieverAdapter):
                 FROM chunks c
                 JOIN documents d ON c.document_id = d.id
                 WHERE d.corpus_version_id = :corpus_version_id
+                  AND d.tenant_id = :tenant_id
                 ORDER BY vector_score
-                LIMIT :top_k_pool
-            ),
-            keyword_search AS (
-                SELECT c.id, c.text_content, c.document_id,
-                       ts_rank_cd(to_tsvector('english', c.text_content), plainto_tsquery('english', :query)) as bm25_score,
-                       RANK() OVER (ORDER BY ts_rank_cd(to_tsvector('english', c.text_content), plainto_tsquery('english', :query)) DESC) as keyword_rank
-                FROM chunks c
-                JOIN documents d ON c.document_id = d.id
-                WHERE d.corpus_version_id = :corpus_version_id
-                  AND to_tsvector('english', c.text_content) @@ plainto_tsquery('english', :query)
-                ORDER BY bm25_score DESC
                 LIMIT :top_k_pool
             )
             SELECT 
-                COALESCE(v.id, k.id) as chunk_id,
-                COALESCE(v.text_content, k.text_content) as text_content,
-                COALESCE(v.document_id, k.document_id) as document_id,
-                -- RRF formula: 1 / (k + rank) where k=60 is standard
-                COALESCE(1.0 / (60 + v.vector_rank), 0.0) + COALESCE(1.0 / (60 + k.keyword_rank), 0.0) as rrf_score
+                v.id as chunk_id,
+                v.text_content,
+                v.document_id,
+                -- RRF formula simplified for vector only since we skip hybrid
+                1.0 / (60 + v.vector_rank) as rrf_score
             FROM vector_search v
-            FULL OUTER JOIN keyword_search k ON v.id = k.id
             ORDER BY rrf_score DESC
             LIMIT :top_k
         """)
@@ -61,8 +50,8 @@ class PostgresHybridRetriever(RetrieverAdapter):
         # We fetch a larger pool for ranking
         result = await self.db.execute(sql, {
             "embedding": str(query_embedding),
-            "query": query,
             "corpus_version_id": corpus_version_id,
+            "tenant_id": self.tenant_id,
             "top_k_pool": top_k * 5,
             "top_k": top_k
         })

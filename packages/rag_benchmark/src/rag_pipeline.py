@@ -187,3 +187,95 @@ class RAGPipeline:
             "output": output,
             "trace_ctx": trace_ctx
         }
+
+# ─── Real Async RAG Pipeline ──────────────────────────────────────────────────
+
+import asyncio
+from packages.rag_pipeline.src.adapters.llm_adapter import SafeLLMAdapter
+from packages.rag_pipeline.src.adapters.postgres_retriever import PostgresHybridRetriever
+
+class RealRAGPipeline:
+    """
+    A real, asynchronous RAG pipeline connecting to Postgres and OpenAI.
+    """
+    def __init__(
+        self,
+        db_session,
+        embedding_adapter,
+        corpus_version_id: str,
+        tenant_id: uuid.UUID,
+        model_name: str = "gpt-3.5-turbo",
+        temperature: float = 0.0,
+        system_prompt: str = "You are a helpful assistant. Use the context.",
+    ):
+        self.retriever = PostgresHybridRetriever(db_session, embedding_adapter)
+        self.retriever.tenant_id = tenant_id
+        self.llm = SafeLLMAdapter(model_name)
+        self.policy = DummyPolicyEnforcer()
+        
+        self.temperature = temperature
+        self.top_k = 3
+        self.system_prompt = system_prompt
+        self.prompt_template = system_prompt
+        self.corpus_version_id = corpus_version_id
+        self.tenant_id = tenant_id
+
+    async def run(self, query: str, run_id: Optional[str] = None) -> Dict[str, Any]:
+        run_id_val = uuid.UUID(run_id) if run_id else uuid.uuid4()
+        pipeline_id = uuid.UUID(int=1)
+        
+        trace_ctx = TraceContext(
+            tenant_id=self.tenant_id,
+            pipeline_id=pipeline_id,
+            run_id=run_id_val
+        )
+        
+        root_builder = trace_ctx.start_span("rag_pipeline_run", kind=SpanKind.SERVER)
+        root_builder.set_component(ComponentType.AGENT, uuid.UUID(int=4), "real_v1")
+        root_builder.set_input(query)
+        root_builder.set_attribute("query", query)
+        
+        # 1. Retrieve
+        docs_chunks = await self.retriever.retrieve(query, self.corpus_version_id, top_k=self.top_k)
+        docs_text = [c.text_content for c in docs_chunks]
+        
+        # 2. Build Prompt
+        prompt_builder = trace_ctx.start_span("build_prompt", kind=SpanKind.INTERNAL)
+        prompt_builder.set_component(ComponentType.MEMORY_READ, uuid.UUID(int=5), "v1")
+        prompt_builder.set_input({"docs": docs_text, "query": query})
+        
+        context_str = "\n".join(docs_text)
+        prompt = f"{self.system_prompt}\n\nQuery: {query}"
+        
+        prompt_builder.set_attribute("context_length", len(context_str))
+        prompt_builder.set_output(prompt)
+        prompt_builder.finish()
+        trace_ctx.record_span(prompt_builder.build())
+            
+        # 3. Generate
+        llm_output = await self.llm.generate(prompt, context=docs_chunks)
+        response = llm_output["text"]
+        
+        # 4. Policy Check
+        is_safe = self.policy.check(prompt, response, trace_ctx=trace_ctx)
+        
+        if not is_safe:
+            response = "I cannot fulfill this request due to safety policies."
+            root_builder.set_error("SafetyPolicyBlocked", "Safety Policy Blocked Response")
+        
+        output = {
+            "query": query,
+            "response": response,
+            "is_safe": is_safe,
+            "run_id": str(run_id_val),
+            "cost_usd": llm_output.get("cost_usd", 0),
+            "latency_ms": llm_output.get("latency_ms", 0)
+        }
+        root_builder.set_output(output)
+        root_builder.finish()
+        trace_ctx.record_span(root_builder.build())
+        
+        return {
+            "output": output,
+            "trace_ctx": trace_ctx
+        }

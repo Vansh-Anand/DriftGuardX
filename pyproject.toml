@@ -9,6 +9,10 @@ description = "DriftGuard-X v2: Agentic RAG Reliability Platform"
 requires-python = ">=3.11"
 license = { text = "PRIVATE — All Rights Reserved" }
 readme = "README.md"
+dependencies = [
+    "openai>=1.14.0",
+    "tiktoken>=0.6.0"
+]
 
 [tool.hatch.build.targets.wheel]
 packages = [

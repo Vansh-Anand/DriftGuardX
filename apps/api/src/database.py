@@ -15,6 +15,18 @@ from apps.api.src.models import Base
 import apps.api.src.models_ingestion  # noqa: F401
 import apps.api.src.models_manifest  # noqa: F401
 
+from sqlalchemy.ext.compiler import compiles
+from pgvector.sqlalchemy import Vector
+from sqlalchemy.dialects.postgresql import JSONB
+
+@compiles(Vector, "sqlite")
+def compile_vector_sqlite(type_, compiler, **kw):
+    return "JSON"
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
+
 # Default: SQLite for local dev without Docker; override via env
 _DB_URL = os.environ.get(
     "DATABASE_URL",
