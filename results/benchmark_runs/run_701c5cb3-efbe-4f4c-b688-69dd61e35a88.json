@@ -1,0 +1,13 @@
+{
+  "episode": {
+    "fault": "malformed_output",
+    "scheduler": "graph_only"
+  },
+  "metrics": {
+    "latency_ms": 0.2567768096923828,
+    "cost_usd": 0.0,
+    "tokens_total": 20,
+    "recovery_cost": 0.0,
+    "rca_accuracy": 0.0
+  }
+}

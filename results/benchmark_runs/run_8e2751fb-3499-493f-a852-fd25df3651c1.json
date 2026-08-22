@@ -1,0 +1,13 @@
+{
+  "episode": {
+    "fault": "dropped_chunks",
+    "scheduler": "exhaustive"
+  },
+  "metrics": {
+    "latency_ms": 0.2193450927734375,
+    "cost_usd": 0.0,
+    "tokens_total": 20,
+    "recovery_cost": 0.05,
+    "rca_accuracy": 1.0
+  }
+}

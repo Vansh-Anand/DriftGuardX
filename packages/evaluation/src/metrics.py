@@ -86,3 +86,15 @@ class DeterministicMetricsEngine:
             "recall": recall,
             "f1": f1
         }
+
+    @staticmethod
+    def calculate_confidence_intervals(metrics: list[float], confidence: float = 0.95) -> tuple[float, float]:
+        """Calculates the standard error margin (95% CI by default) for a list of metrics."""
+        import scipy.stats as stats
+        if not metrics or len(metrics) < 2:
+            return 0.0, 0.0
+            
+        a = 1.0 * np.array(metrics)
+        m, se = np.mean(a), stats.sem(a)
+        h = se * stats.t.ppf((1 + confidence) / 2., len(a)-1)
+        return float(m - h), float(m + h)

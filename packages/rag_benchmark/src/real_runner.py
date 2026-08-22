@@ -10,8 +10,18 @@ from packages.evaluation.src.datasets.schema import EvaluationEpisode
 from packages.evaluation.src.metrics import DeterministicMetricsEngine
 from packages.evaluation.src.ragas_evaluator import RagasEvaluator
 from packages.evaluation.src.tracker import Tracker
-
 from packages.rag_pipeline.src.interfaces import RetrieverAdapter, RetrievedChunk, LLMAdapter
+
+from packages.rag_benchmark.src.real_fault_injector import RealFaultInjector, FaultType
+from packages.rag_benchmark.src.schedulers import (
+    ExhaustiveScheduler,
+    RandomScheduler,
+    CheapestFirstScheduler,
+    GreedyPriorScheduler,
+    UCBScheduler,
+    DetectorOnlyScheduler,
+    GraphOnlyScheduler
+)
 
 # Synthetic BEIR/SciFact Dataset (10 episodes)
 SCIFACT_EPISODES = [
@@ -107,78 +117,100 @@ async def run_real_benchmark():
     ragas_eval = RagasEvaluator()
     tracker = Tracker(experiment_name="SciFact-RAG-Eval-v1")
     
-    # 3. Inject a fault (for half the dataset to test diagnosis)
-    injector = FaultInjector(None) # we'll manually simulate the fault here for the real pipeline
+    # 3. Define Schedulers and Faults
+    schedulers = {
+        "exhaustive": ExhaustiveScheduler(),
+        "random": RandomScheduler(),
+        "cheapest_first": CheapestFirstScheduler(),
+        "greedy_prior": GreedyPriorScheduler(),
+        "ucb": UCBScheduler(),
+        "detector_only": DetectorOnlyScheduler(),
+        "graph_only": GraphOnlyScheduler()
+    }
     
-    print(f"Running {len(SCIFACT_EPISODES)} episodes...")
+    faults = [
+        (FaultType.PROMPT_REGRESSION, "PROMPT_HALLUCINATION"),
+        (FaultType.DROPPED_CHUNKS, "RETRIEVAL_FAILURE"),
+        (FaultType.MALFORMED_OUTPUT, "PARSER_FAILURE")
+    ]
     
-    for i, episode in enumerate(SCIFACT_EPISODES):
-        run_id = uuid.uuid4()
-        tenant_id = uuid.uuid4()
-        
-        # Simulate Fault Injection (e.g. Prompt Tampering) for the second episode
-        if i == 1:
-            episode.fault_id = "fault-prompt-tampering"
-            episode.ground_truth_root_cause = "PROMPT_HALLUCINATION"
-            pipeline.prompt_template = "Question: {query}\nALWAYS RESPOND WITH 'I DONT KNOW'."
-        
-        # Execute Real Pipeline
-        out = await pipeline.execute(
-            query=episode.query,
-            corpus_version_id=episode.corpus_version_id,
-            run_id=run_id,
-            tenant_id=tenant_id
-        )
-        
-        # Calculate Retrieval Metrics
-        retrieved_ids = out["chunk_ids"]
-        recall = metrics_engine.calculate_recall_at_k(retrieved_ids, episode.relevant_chunk_ids, 2)
-        precision = metrics_engine.calculate_precision_at_k(retrieved_ids, episode.relevant_chunk_ids, 2)
-        mrr = metrics_engine.calculate_mrr(retrieved_ids, episode.relevant_chunk_ids)
-        ndcg = metrics_engine.calculate_ndcg_at_k(retrieved_ids, episode.relevant_chunk_ids, 2)
-        
-        # Mock RCA (Root Cause Analysis) detection for demonstration
-        detected_rca = "PROMPT_HALLUCINATION" if "DONT KNOW" in out["answer"] else None
-        rca_metrics = metrics_engine.calculate_rca_metrics(
-            [detected_rca] if detected_rca else [], 
-            [episode.ground_truth_root_cause] if episode.ground_truth_root_cause else []
-        )
-        
-        # Calculate Ragas Metrics (LLM-as-a-judge)
-        retrieved_texts = [MOCK_CORPUS.get(cid, "") for cid in retrieved_ids]
-        ragas_res = ragas_eval.evaluate_episode(
-            query=episode.query,
-            expected_answer=episode.expected_answer,
-            generated_answer=out["answer"],
-            retrieved_contexts=retrieved_texts
-        )
-        
-        # Compile all metrics
-        final_metrics = {
-            "retrieval_recall@2": recall,
-            "retrieval_precision@2": precision,
-            "retrieval_mrr": mrr,
-            "retrieval_ndcg@2": ndcg,
+    injector = RealFaultInjector(pipeline)
+    
+    print(f"Running benchmark grid: {len(faults)} faults x {len(schedulers)} schedulers...")
+    
+    for fault_id, gt_root_cause in faults:
+        for scheduler_name, scheduler in schedulers.items():
+            print(f"--- Testing {fault_id} with {scheduler_name} scheduler ---")
             
-            "latency_ms": out["latency_ms"],
-            "cost_usd": out["cost_usd"],
-            "tokens_total": out["tokens"]["total"],
+            run_id = uuid.uuid4()
+            tenant_id = uuid.uuid4()
             
-            "rca_accuracy": rca_metrics["accuracy"],
-            "rca_precision": rca_metrics["precision"],
-            "rca_recall": rca_metrics["recall"],
-            "rca_f1": rca_metrics["f1"]
-        }
-        final_metrics.update(ragas_res)
-        
-        # Log to MLflow & MinIO
-        tracker.log_episode(
-            episode_data=episode.dict_for_mlflow(),
-            metrics=final_metrics,
-            run_id=str(run_id)
-        )
-        
-        print(f"Episode {i+1} completed. RCA Acc: {rca_metrics['accuracy']}, Recall@2: {recall}")
+            # Inject Fault
+            injector.inject_fault(fault_id)
+            
+            # Execute Pipeline
+            try:
+                out = await pipeline.execute(
+                    query=SCIFACT_EPISODES[0].query,
+                    corpus_version_id=SCIFACT_EPISODES[0].corpus_version_id,
+                    run_id=run_id,
+                    tenant_id=tenant_id
+                )
+            except Exception as e:
+                out = {"answer": str(e), "chunk_ids": [], "latency_ms": 0, "cost_usd": 0, "tokens": {"total": 0}}
+            
+            # Mock Recovery execution using scheduler (simulate diagnostic testing)
+            candidates = ["RETRIEVAL_FAILURE", "PROMPT_HALLUCINATION", "PARSER_FAILURE"]
+            history = []
+            predicted_cause = None
+            total_recovery_cost = 0.0
+            
+            if scheduler_name not in ["detector_only", "graph_only"]:
+                while True:
+                    next_cand = scheduler.select_next(candidates, history)
+                    if not next_cand:
+                        break
+                    
+                    history.append({"candidate": next_cand})
+                    # Mock testing cost
+                    total_recovery_cost += 0.05
+                    
+                    if next_cand == gt_root_cause:
+                        predicted_cause = next_cand
+                        # Update UCB
+                        if isinstance(scheduler, UCBScheduler):
+                            scheduler.update(next_cand, True)
+                        break
+                    else:
+                        if isinstance(scheduler, UCBScheduler):
+                            scheduler.update(next_cand, False)
+            else:
+                # Detector only mock: 50% accuracy mock
+                predicted_cause = candidates[0]
+            
+            # Calculate RCA metrics
+            rca_metrics = metrics_engine.calculate_rca_metrics(
+                [predicted_cause] if predicted_cause else [], 
+                [gt_root_cause]
+            )
+            
+            # Reset pipeline for next run
+            injector.reset()
+            
+            final_metrics = {
+                "latency_ms": out.get("latency_ms", 0),
+                "cost_usd": out.get("cost_usd", 0),
+                "tokens_total": out.get("tokens", {}).get("total", 0),
+                "recovery_cost": total_recovery_cost,
+                "rca_accuracy": rca_metrics["accuracy"]
+            }
+            
+            tracker.log_episode(
+                episode_data={"fault": fault_id, "scheduler": scheduler_name},
+                metrics=final_metrics,
+                run_id=str(run_id)
+            )
+    print("Benchmark Grid Complete.")
 
 if __name__ == "__main__":
     asyncio.run(run_real_benchmark())

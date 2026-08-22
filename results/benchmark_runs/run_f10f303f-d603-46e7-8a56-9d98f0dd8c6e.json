@@ -1,0 +1,13 @@
+{
+  "episode": {
+    "fault": "prompt_regression",
+    "scheduler": "exhaustive"
+  },
+  "metrics": {
+    "latency_ms": 1.1801719665527344,
+    "cost_usd": 0.0,
+    "tokens_total": 20,
+    "recovery_cost": 0.1,
+    "rca_accuracy": 1.0
+  }
+}
