@@ -757,16 +757,26 @@ class ExhaustionReason(str, enum.Enum):
     MAX_TOKENS = "max_tokens_exhausted"
     MAX_TOOL_CALLS = "max_tool_calls_exhausted"
     MAX_REPLAYS = "max_replays_exhausted"
+    CPU_EXHAUSTED = "cpu_exhausted"
+    GPU_EXHAUSTED = "gpu_exhausted"
+    MEMORY_EXHAUSTED = "memory_exhausted"
+    STORAGE_EXHAUSTED = "storage_exhausted"
+    QUEUE_DELAY_EXHAUSTED = "queue_delay_exhausted"
 
 class ExecutionBudget(DGXBaseModel):
     """
-    Defense-in-depth tracking of actual resource usage (Update 8).
+    Defense-in-depth tracking of actual resource usage (Update 8 + Prompt 6).
     """
     wall_clock_time_s: float | None = None
     max_steps: int | None = None
     max_tokens: int | None = None
     max_tool_calls: int | None = None
     max_replays: int | None = None
+    max_cpu_s: float | None = None
+    max_gpu_s: float | None = None
+    max_memory_mb: float | None = None
+    max_storage_mb: float | None = None
+    max_queue_delay_s: float | None = None
     
     # Measured usage state
     used_wall_clock_s: float = 0.0
@@ -774,6 +784,11 @@ class ExecutionBudget(DGXBaseModel):
     used_tokens: int = 0
     used_tool_calls: int = 0
     used_replays: int = 0
+    used_cpu_s: float = 0.0
+    used_gpu_s: float = 0.0
+    used_memory_mb: float = 0.0
+    used_storage_mb: float = 0.0
+    used_queue_delay_s: float = 0.0
     
     def check_exhaustion(self) -> ExhaustionReason | None:
         """Returns ExhaustionReason if any budget is exceeded."""
@@ -787,6 +802,16 @@ class ExecutionBudget(DGXBaseModel):
             return ExhaustionReason.MAX_TOOL_CALLS
         if self.max_replays is not None and self.used_replays >= self.max_replays:
             return ExhaustionReason.MAX_REPLAYS
+        if self.max_cpu_s is not None and self.used_cpu_s >= self.max_cpu_s:
+            return ExhaustionReason.CPU_EXHAUSTED
+        if self.max_gpu_s is not None and self.used_gpu_s >= self.max_gpu_s:
+            return ExhaustionReason.GPU_EXHAUSTED
+        if self.max_memory_mb is not None and self.used_memory_mb >= self.max_memory_mb:
+            return ExhaustionReason.MEMORY_EXHAUSTED
+        if self.max_storage_mb is not None and self.used_storage_mb >= self.max_storage_mb:
+            return ExhaustionReason.STORAGE_EXHAUSTED
+        if self.max_queue_delay_s is not None and self.used_queue_delay_s >= self.max_queue_delay_s:
+            return ExhaustionReason.QUEUE_DELAY_EXHAUSTED
         return None
 
 class ParetoReplaySet(DGXBaseModel):

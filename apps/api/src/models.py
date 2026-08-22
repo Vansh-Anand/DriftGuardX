@@ -450,3 +450,110 @@ class SymptomRegistryEntryORM(Base):
         Index("ix_symptom_registry_run_id", "run_id"),
         Index("ix_symptom_registry_tenant_id", "tenant_id"),
     )
+
+
+# ─── Durable Workflow & Approvals (Prompt 5) ──────────────────────────────────
+
+class JobORM(Base):
+    __tablename__ = "jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    task_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    result: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    locked_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_jobs_tenant_id", "tenant_id"),
+        Index("ix_jobs_status", "status"),
+    )
+
+
+class ApprovalRequestORM(Base):
+    __tablename__ = "approval_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    resource: Mapped[str] = mapped_column(String(255), nullable=False)
+    requester_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    node_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    risk_tier: Mapped[str] = mapped_column(String(32), nullable=False)
+    required_approvers: Mapped[int] = mapped_column(Integer, default=1)
+    two_person_control: Mapped[bool] = mapped_column(Boolean, default=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    delegated_approvers: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
+    context_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+
+    decisions: Mapped[list["ApprovalDecisionORM"]] = relationship("ApprovalDecisionORM", back_populates="request")
+
+    __table_args__ = (
+        Index("ix_approval_requests_tenant_id", "tenant_id"),
+        Index("ix_approval_requests_status", "status"),
+    )
+
+
+class ApprovalDecisionORM(Base):
+    __tablename__ = "approval_decisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("approval_requests.id"), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    decision: Mapped[str] = mapped_column(String(32), nullable=False)
+    comment: Mapped[str] = mapped_column(Text, default="")
+    decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    is_break_glass: Mapped[bool] = mapped_column(Boolean, default=False)
+    break_glass_justification: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    request: Mapped["ApprovalRequestORM"] = relationship("ApprovalRequestORM", back_populates="decisions")
+
+
+class RecoveryStateORM(Base):
+    __tablename__ = "recovery_states"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    proposal_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    current_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    capsule_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    timeout_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=2)
+    escalated: Mapped[bool] = mapped_column(Boolean, default=False)
+    event_log_json: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+    __table_args__ = (
+        Index("ix_recovery_states_tenant_id", "tenant_id"),
+        Index("ix_recovery_states_status", "current_status"),
+    )
+
+
+class LedgerEntryORM(Base):
+    __tablename__ = "ledger_entries"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    commit_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    timestamp: Mapped[str] = mapped_column(String(64), nullable=False)
+    merkle_root: Mapped[str] = mapped_column(String(64), nullable=False)
+    certificate_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    policy_snapshot: Mapped[str] = mapped_column(Text, nullable=False)
+    canary_passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    payload_json: Mapped[dict] = mapped_column(_JSON_TYPE, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("ix_ledger_entries_tenant_id", "tenant_id"),
+        Index("ix_ledger_entries_commit_hash", "commit_hash"),
+    )
+
