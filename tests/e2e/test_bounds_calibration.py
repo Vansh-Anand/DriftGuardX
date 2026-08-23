@@ -12,23 +12,23 @@ Covers all acceptance gates:
 from __future__ import annotations
 
 import random
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from packages.evaluation.src.bounds import (
-    hoeffding_bound,
+    MIN_N_BOOTSTRAP,
+    MIN_N_HOEFFDING,
     bootstrap_bound,
     conformal_bound,
+    hoeffding_bound,
     unsupported_bound,
-    MIN_N_HOEFFDING,
-    MIN_N_BOOTSTRAP,
 )
 from packages.evaluation.src.calibration import (
+    MIN_CAL_EPISODES,
     CalibrationDataset,
     CalibrationEpisode,
     measure_coverage,
-    MIN_CAL_EPISODES,
 )
 from packages.evaluation.src.certification import (
     CertificationPolicy,
@@ -39,7 +39,6 @@ from packages.evaluation.src.coverage_monitor import (
     DiagnosisEvent,
 )
 
-
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _make_iid_rewards(n: int, mean: float = 0.7, seed: int = 42) -> list[float]:
@@ -48,11 +47,11 @@ def _make_iid_rewards(n: int, mean: float = 0.7, seed: int = 42) -> list[float]:
 
 
 def _recent_dt() -> datetime:
-    return datetime.now(timezone.utc) - timedelta(days=1)
+    return datetime.now(UTC) - timedelta(days=1)
 
 
 def _expired_dt() -> datetime:
-    return datetime.now(timezone.utc) - timedelta(days=40)
+    return datetime.now(UTC) - timedelta(days=40)
 
 
 # ─── [1] Supported regime: Hoeffding ──────────────────────────────────────────
@@ -256,7 +255,7 @@ def test_coverage_monitor_downgrade_on_expiry():
     event = DiagnosisEvent(
         run_id="run_xyz",
         certificate_status="CERTIFIED",
-        issued_at=datetime.now(timezone.utc),
+        issued_at=datetime.now(UTC),
     )
     downgrades = monitor.process_event(event)
     assert len(downgrades) == 1
@@ -274,6 +273,6 @@ def test_coverage_monitor_no_downgrade_for_uncertified():
 
     monitor = CoverageMonitor(dataset=ds, max_calibration_age_days=30)
     event = DiagnosisEvent(run_id="run_uncert", certificate_status="UNCERTIFIED",
-                           issued_at=datetime.now(timezone.utc))
+                           issued_at=datetime.now(UTC))
     downgrades = monitor.process_event(event)
     assert len(downgrades) == 0

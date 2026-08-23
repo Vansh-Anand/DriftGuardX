@@ -4,21 +4,19 @@ DriftGuard-X v2 — Reliability Evaluation Tests (3 tests)
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from packages.contracts.src.models import SpanRecord, TraceArtifact
 from packages.evaluation.src.reliability import (
-    DEFAULT_CONFIG,
-    aggregate_reliability_score,
     compute_reliability_delta,
     compute_reliability_vector,
 )
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _make_trace(
@@ -32,8 +30,7 @@ def _make_trace(
     pid = uuid.uuid4()
     run_id = uuid.uuid4()
     start = _utcnow()
-    from datetime import timedelta
-    end = datetime.now(timezone.utc)
+    end = datetime.now(UTC)
     return TraceArtifact(
         run_id=run_id,
         tenant_id=tid,

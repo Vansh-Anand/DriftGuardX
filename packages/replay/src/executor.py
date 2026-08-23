@@ -2,26 +2,29 @@
 DriftGuard-X v2 — Isolated Replay Executor
 Abstracts execution between local multiprocess sandboxes and production container boundaries.
 """
-from abc import ABC, abstractmethod
-from typing import Callable, Any, Dict, Optional
-from pydantic import BaseModel
 import asyncio
-import time
 import os
 import tempfile
+import time
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from typing import Any
+
 import cloudpickle
-import uuid
+from pydantic import BaseModel
+
 from packages.replay.src.sandbox import SandboxedWorker
+
 
 class ReplayStateManifest(BaseModel):
     executor_type: str
-    image_digest: Optional[str] = None
+    image_digest: str | None = None
     execution_time_seconds: float
-    memory_used_bytes: Optional[int] = None
+    memory_used_bytes: int | None = None
 
 class ReplayResult(BaseModel):
     payload: Any
-    error: Optional[str] = None
+    error: str | None = None
     manifest: ReplayStateManifest
 
 
@@ -38,7 +41,7 @@ class LocalDevExecutor(ReplayExecutor):
     """
     async def execute(self, func: Callable, budget_seconds: float, **kwargs) -> ReplayResult:
         start_time = time.monotonic()
-        
+
         try:
             # Wrap the blocking SandboxedWorker call in a thread
             result = await asyncio.to_thread(
@@ -53,9 +56,9 @@ class LocalDevExecutor(ReplayExecutor):
         except Exception as e:
             result = None
             error = str(e)
-            
+
         execution_time = time.monotonic() - start_time
-        
+
         return ReplayResult(
             payload=result,
             error=error,
@@ -74,31 +77,32 @@ class ContainerReplayExecutor(ReplayExecutor):
         self.base_image = image
         self.image = "driftguard-sandbox:latest"
         try:
-            import docker
             import io
+
+            import docker
             self.client = docker.from_env()
-            
+
             try:
                 self.client.images.get(self.image)
             except docker.errors.ImageNotFound:
                 dockerfile = f"FROM {self.base_image}\nRUN pip install cloudpickle\n"
                 self.client.images.build(fileobj=io.BytesIO(dockerfile.encode('utf-8')), tag=self.image)
-                
+
             self.image_info = self.client.images.get(self.image)
             self.image_digest = self.image_info.id
             repo_digests = self.image_info.attrs.get("RepoDigests", [])
             if repo_digests:
                 self.image_digest = repo_digests[0]
-                
+
         except ImportError:
             self.client = None
-            
+
     async def execute(self, func: Callable, budget_seconds: float, **kwargs) -> ReplayResult:
         if not self.client:
             raise RuntimeError("Docker SDK not installed or daemon unavailable.")
-            
+
         MAX_REQUEST_SIZE_BYTES = 5 * 1024 * 1024
-        
+
         # Serialize the function and arguments
         payload_data = cloudpickle.dumps((func, kwargs))
         if len(payload_data) > MAX_REQUEST_SIZE_BYTES:
@@ -111,15 +115,15 @@ class ContainerReplayExecutor(ReplayExecutor):
                     execution_time_seconds=0
                 )
             )
-        
+
         # Create a temporary directory to share with the container
         temp_dir = tempfile.mkdtemp(prefix="driftguard_sandbox_")
         payload_path = os.path.join(temp_dir, "payload.pkl")
         result_path = os.path.join(temp_dir, "result.pkl")
-        
+
         with open(payload_path, "wb") as f:
             f.write(payload_data)
-            
+
         # Runner script that unpickles, runs, and pickles the result
         runner_script = """
 import sys
@@ -155,11 +159,11 @@ if __name__ == '__main__':
         script_path = os.path.join(temp_dir, "runner.py")
         with open(script_path, "w") as f:
             f.write(runner_script)
-            
+
         container = None
         start_time = time.monotonic()
         error_msg = None
-        
+
         try:
             # We must map the host temp_dir into the container.
             # Docker Desktop on Mac/Windows or native Linux supports mapping /tmp.
@@ -168,7 +172,7 @@ if __name__ == '__main__':
                 temp_dir: {'bind': '/sandbox', 'mode': 'rw'},
                 os.getcwd(): {'bind': '/app', 'mode': 'ro'}
             }
-            
+
             # Spin up the container with hard boundaries
             container = self.client.containers.run(
                 self.image,
@@ -183,7 +187,7 @@ if __name__ == '__main__':
                 detach=True,
                 remove=False
             )
-            
+
             # Wait for it to finish asynchronously
             # We poll the container state since docker-py .wait() is blocking
             poll_interval = 0.1
@@ -191,14 +195,14 @@ if __name__ == '__main__':
                 container.reload()
                 if container.status == "exited":
                     break
-                
+
                 if time.monotonic() - start_time > budget_seconds:
                     container.kill()
                     error_msg = f"TimeoutError: Exceeded {budget_seconds} seconds"
                     break
-                    
+
                 await asyncio.sleep(poll_interval)
-                
+
             # If not timed out, check results
             if not error_msg:
                 # Get max memory used if possible
@@ -209,9 +213,9 @@ if __name__ == '__main__':
                     max_mem = None
             else:
                 max_mem = None
-                
+
         except Exception as e:
-            error_msg = f"ContainerError: {str(e)}"
+            error_msg = f"ContainerError: {e!s}"
             max_mem = None
         finally:
             if container:
@@ -220,9 +224,9 @@ if __name__ == '__main__':
                     container.remove(force=True)
                 except Exception:
                     pass
-                    
+
         execution_time = time.monotonic() - start_time
-        
+
         # Load the result from the mount
         result_payload = None
         if not error_msg:
@@ -235,17 +239,17 @@ if __name__ == '__main__':
                     else:
                         error_msg = res["error"]
                 except Exception as e:
-                    error_msg = f"Failed to unpickle result: {str(e)}"
+                    error_msg = f"Failed to unpickle result: {e!s}"
             else:
                 error_msg = "No result file found. Container may have crashed."
-                
+
         # Cleanup temp dir (ignoring errors if files are locked)
         import shutil
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception:
             pass
-            
+
         return ReplayResult(
             payload=result_payload,
             error=error_msg,

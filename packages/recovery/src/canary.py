@@ -21,8 +21,7 @@ Canary design:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -62,8 +61,8 @@ class CanaryVerificationResult:
     mean_latency_delta: float
     safety_violations_post: int
 
-    failure_reasons: List[str] = field(default_factory=list)
-    verified_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    failure_reasons: list[str] = field(default_factory=list)
+    verified_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def summary(self) -> str:
         icon = "✓" if self.overall_pass else "✗"
@@ -78,8 +77,8 @@ class CanaryVerificationResult:
 
 def run_canary_verification(
     proposal_id: str,
-    episodes: List[CanaryEpisode],
-    thresholds: Optional[CanaryThresholds] = None,
+    episodes: list[CanaryEpisode],
+    thresholds: CanaryThresholds | None = None,
 ) -> CanaryVerificationResult:
     """
     Run canary verification on a list of episodes.

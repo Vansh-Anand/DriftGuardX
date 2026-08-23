@@ -3,8 +3,9 @@ DriftGuard-X v2 — Causal Contribution Vector
 PRIVATE — All Rights Reserved.
 """
 import math
-from typing import List, Tuple
+
 from pydantic import BaseModel
+
 
 class ContributionVector(BaseModel):
     """
@@ -19,7 +20,7 @@ class ContributionVector(BaseModel):
     risk_penalty: float
     invalid_rate: float
     trials_n: int
-    
+
     @property
     def aggregate_score(self) -> float:
         """
@@ -30,15 +31,15 @@ class ContributionVector(BaseModel):
         # If invalid rate is too high (> 0.5), we heavily penalize
         if self.invalid_rate > 0.5:
             return 0.0
-            
+
         base_gain = max(0.0, self.reliability_improvement_mean)
         cost_impact = max(0.0, self.cost_delta_usd * 10.0)
         latency_impact = max(0.0, self.latency_delta_ms * 0.0001)
-        
+
         return max(0.0, base_gain - cost_impact - latency_impact - self.risk_penalty)
 
 def calculate_contribution_vector(
-    reliability_improvements: List[float],
+    reliability_improvements: list[float],
     cost_delta_usd: float,
     latency_delta_ms: float,
     risk_penalty: float,
@@ -60,16 +61,16 @@ def calculate_contribution_vector(
             invalid_rate=invalid_count / max(1, total_trials),
             trials_n=total_trials
         )
-        
+
     n = len(reliability_improvements)
     mean = sum(reliability_improvements) / n
     variance = sum((x - mean) ** 2 for x in reliability_improvements) / n if n > 1 else 0.0
-    
+
     # Simple approx for CI: mean +/- 1.96 * std_err
     std_err = math.sqrt(variance) / math.sqrt(n) if n > 1 else 0.0
     lower = mean - (1.96 * std_err)
     upper = mean + (1.96 * std_err)
-    
+
     return ContributionVector(
         reliability_improvement_mean=mean,
         reliability_improvement_variance=variance,

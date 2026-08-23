@@ -1,11 +1,10 @@
-import os
 import logging
-from typing import Dict, Any
+import os
 
 try:
-    from ragas import evaluate
-    from ragas.metrics import answer_correctness, faithfulness, context_precision
     from datasets import Dataset
+    from ragas import evaluate
+    from ragas.metrics import answer_correctness, context_precision, faithfulness
     HAS_RAGAS = True
 except ImportError:
     HAS_RAGAS = False
@@ -18,7 +17,7 @@ class RagasEvaluator:
         if not self.enabled:
             logger.warning("Ragas evaluation is disabled. Missing 'ragas' package or 'LLM_API_KEY'.")
 
-    def evaluate_episode(self, query: str, expected_answer: str, generated_answer: str, retrieved_contexts: list[str]) -> Dict[str, float]:
+    def evaluate_episode(self, query: str, expected_answer: str, generated_answer: str, retrieved_contexts: list[str]) -> dict[str, float]:
         if not self.enabled:
             # Fallback to deterministic string distance if ragas is unavailable
             return {
@@ -27,7 +26,7 @@ class RagasEvaluator:
                 "context_precision": 0.0, # Cannot compute deterministically
                 "used_llm": 0.0
             }
-            
+
         data = {
             "question": [query],
             "answer": [generated_answer],
@@ -35,7 +34,7 @@ class RagasEvaluator:
             "ground_truth": [expected_answer]
         }
         dataset = Dataset.from_dict(data)
-        
+
         try:
             result = evaluate(
                 dataset,

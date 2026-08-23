@@ -1,5 +1,5 @@
-import json
 from packages.ingestion.src.storage import MinioStorage
+
 
 class ManifestStore:
     def __init__(self, bucket_name: str = "manifests"):

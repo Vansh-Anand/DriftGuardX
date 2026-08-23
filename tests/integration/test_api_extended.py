@@ -4,7 +4,8 @@ Covers span ingestion, list runs, trace retrieval, replay GET, and list paginati
 """
 from __future__ import annotations
 
-import uuid
+from datetime import UTC
+
 import pytest
 from httpx import AsyncClient
 
@@ -24,8 +25,8 @@ async def test_span_ingest_endpoint(client: AsyncClient) -> None:
     tenant_id = run_resp.json()["tenant_id"]
     pipeline_id = run_resp.json()["pipeline_id"]
 
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).isoformat()
+    from datetime import datetime
+    now = datetime.now(UTC).isoformat()
 
     resp = await client.post(
         "/v1/ingest/spans",

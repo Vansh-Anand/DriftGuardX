@@ -7,10 +7,6 @@ Create Date: 2026-08-22 14:29:05.270571
 """
 from __future__ import annotations
 
-from alembic import op
-import sqlalchemy as sa
-
-
 # revision identifiers, used by Alembic.
 revision: str = '407792c02e8c'
 down_revision: str | None = '579b59822548'

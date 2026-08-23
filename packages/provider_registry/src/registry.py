@@ -6,7 +6,8 @@ Registry for resolving LLM models to provider credentials, handling failovers,
 and tracking capacity/costs. Keep secrets out of code and database logs.
 """
 import os
-from typing import Dict, Any, Optional
+from typing import Any
+
 
 class ProviderStatus:
     HEALTHY = "healthy"
@@ -31,14 +32,14 @@ _REGISTRY = {
 
 
 class ProviderRegistry:
-    
+
     @staticmethod
-    def get_model_config(model_name: str) -> Optional[ModelConfig]:
+    def get_model_config(model_name: str) -> ModelConfig | None:
         """Look up configuration and pricing for a model."""
         return _REGISTRY.get(model_name)
-    
+
     @staticmethod
-    def get_api_key(provider: str) -> Optional[str]:
+    def get_api_key(provider: str) -> str | None:
         """
         Securely retrieve API keys from environment/vault.
         Never log or return this in an API response.
@@ -50,7 +51,7 @@ class ProviderRegistry:
         return None
 
     @staticmethod
-    def list_providers() -> Dict[str, Any]:
+    def list_providers() -> dict[str, Any]:
         """List provider capabilities and health (no secrets)."""
         return {
             name: {

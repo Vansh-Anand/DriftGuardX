@@ -12,18 +12,15 @@ list of events and a CalibrationDataset.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict
+from datetime import UTC, datetime
 
 from packages.evaluation.src.calibration import (
+    MAX_UNDERCOVERAGE_GAP,
+    MIN_CAL_EPISODES,
     CalibrationDataset,
     CoverageReport,
     measure_coverage,
-    NOMINAL_LEVELS,
-    MAX_UNDERCOVERAGE_GAP,
-    MIN_CAL_EPISODES,
 )
-
 
 # ─── Events ───────────────────────────────────────────────────────────────────
 
@@ -42,7 +39,7 @@ class DowngradeEvent:
     original_status: str
     new_status: str
     reason: str
-    downgraded_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    downgraded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ─── Monitor ──────────────────────────────────────────────────────────────────
@@ -65,7 +62,7 @@ class CoverageMonitor:
         self._check_interval = check_interval_events
         self._event_count = 0
         self._last_coverage_report: CoverageReport | None = None
-        self._downgrade_log: List[DowngradeEvent] = []
+        self._downgrade_log: list[DowngradeEvent] = []
 
     def _calibration_expired(self) -> bool:
         """True if the newest calibration episode is older than max_calibration_age_days."""
@@ -73,7 +70,7 @@ class CoverageMonitor:
         if not episodes:
             return True
         latest = max(ep.recorded_at for ep in episodes)
-        age = (datetime.now(timezone.utc) - latest).total_seconds() / 86400
+        age = (datetime.now(UTC) - latest).total_seconds() / 86400
         return age > self._max_age_days
 
     def _coverage_drifted(self) -> bool:
@@ -85,13 +82,13 @@ class CoverageMonitor:
                 return True
         return False
 
-    def process_event(self, event: DiagnosisEvent) -> List[DowngradeEvent]:
+    def process_event(self, event: DiagnosisEvent) -> list[DowngradeEvent]:
         """
         Process one incoming diagnosis event.
         Returns a (possibly empty) list of DowngradeEvents.
         """
         self._event_count += 1
-        downgrades: List[DowngradeEvent] = []
+        downgrades: list[DowngradeEvent] = []
 
         # Re-measure coverage periodically
         if self._event_count % self._check_interval == 0:
@@ -122,7 +119,7 @@ class CoverageMonitor:
 
         return downgrades
 
-    def downgrade_log(self) -> List[DowngradeEvent]:
+    def downgrade_log(self) -> list[DowngradeEvent]:
         return list(self._downgrade_log)
 
     def latest_coverage_report(self) -> CoverageReport | None:

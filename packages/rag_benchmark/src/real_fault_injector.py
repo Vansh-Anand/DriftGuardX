@@ -1,7 +1,7 @@
 import asyncio
-from typing import List, Optional
+
 from apps.api.src.pipeline.real_rag import RealRAGPipeline
-from packages.rag_pipeline.src.interfaces import RetrievedChunk
+
 
 class FaultType:
     STALE_CORPUS = "stale_corpus"
@@ -23,7 +23,7 @@ class RealFaultInjector:
     """
     def __init__(self, pipeline: RealRAGPipeline):
         self.pipeline = pipeline
-        
+
         # Save original states for restoration
         self._orig_retriever = pipeline.retriever
         self._orig_llm = pipeline.llm
@@ -33,7 +33,7 @@ class RealFaultInjector:
     def inject_fault(self, fault_type: str, metadata: dict = None):
         """Injects a specific fault into the pipeline."""
         metadata = metadata or {}
-        
+
         if fault_type == FaultType.STALE_CORPUS:
             orig_retrieve = self.pipeline.retriever.retrieve
             async def stale_retrieve(query, corpus_version_id, top_k):
@@ -46,7 +46,7 @@ class RealFaultInjector:
                         self.metadata = {}
                 return [StaleChunk()]
             self.pipeline.retriever.retrieve = stale_retrieve
-            
+
         elif fault_type == FaultType.DROPPED_CHUNKS:
             orig_retrieve = self.pipeline.retriever.retrieve
             async def broken_retrieve(query, corpus_version_id, top_k):
@@ -54,25 +54,25 @@ class RealFaultInjector:
                 # Drop the first (most relevant) chunk
                 return res[1:] if len(res) > 1 else []
             self.pipeline.retriever.retrieve = broken_retrieve
-            
+
         elif fault_type == FaultType.RETRIEVER_TOPK_REGRESSION:
             self.pipeline.top_k = 1
-            
+
         elif fault_type == FaultType.PROMPT_REGRESSION:
             self.pipeline.prompt_template = "Question: {query}\nBe extremely unhelpful and say I DONT KNOW."
-            
+
         elif fault_type == FaultType.MODEL_DRIFT:
             # We overwrite the model_metadata property directly on the LLM mock
             if hasattr(self.pipeline.llm, "model_name"):
                 self.pipeline.llm.model_name = "gpt-2-broken"
-                
+
         elif fault_type == FaultType.PROVIDER_TIMEOUT:
             orig_generate = self.pipeline.llm.generate
             async def timeout_generate(prompt, context):
                 await asyncio.sleep(0.1)
                 raise TimeoutError("LLM Provider Timeout")
             self.pipeline.llm.generate = timeout_generate
-            
+
         elif fault_type == FaultType.MALFORMED_OUTPUT:
             orig_generate = self.pipeline.llm.generate
             async def malformed_generate(prompt, context):
@@ -80,7 +80,7 @@ class RealFaultInjector:
                 res["text"] = '{"invalid_json": true'
                 return res
             self.pipeline.llm.generate = malformed_generate
-            
+
         elif fault_type == FaultType.EMBEDDING_MISMATCH:
             orig_retrieve = self.pipeline.retriever.retrieve
             async def mismatch_retrieve(query, corpus_version_id, top_k):
@@ -101,7 +101,7 @@ class RealFaultInjector:
 
         elif fault_type == FaultType.MEMORY_CONTAMINATION:
             self.pipeline.prompt_template = "Context: User hates the product.\nQuestion: {query}"
-            
+
         elif fault_type == FaultType.DB_FAILURE:
             orig_retrieve = self.pipeline.retriever.retrieve
             async def db_fail_retrieve(query, corpus_version_id, top_k):

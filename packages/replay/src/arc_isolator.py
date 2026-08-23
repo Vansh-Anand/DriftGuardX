@@ -3,29 +3,28 @@ DriftGuard-X v2 — Asynchronous Redundant Copying (ARC) Isolator
 Dynamically routes destructive tool calls to a quarantined data sink.
 """
 import os
-import sys
-import subprocess
 import socket
+import subprocess
 import threading
-from typing import Any, Dict, List
-from functools import wraps
+from typing import Any
+
 
 class HardwareDataSink:
     """
     Simulates an isolated hardware partition for quarantined execution payloads.
     """
     def __init__(self):
-        self._quarantine: List[Dict[str, Any]] = []
+        self._quarantine: list[dict[str, Any]] = []
         self._lock = threading.Lock()
 
-    def commit(self, action_type: str, payload: Dict[str, Any]):
+    def commit(self, action_type: str, payload: dict[str, Any]):
         with self._lock:
             self._quarantine.append({
                 "type": action_type,
                 "payload": payload
             })
 
-    def get_all(self) -> List[Dict[str, Any]]:
+    def get_all(self) -> list[dict[str, Any]]:
         with self._lock:
             return list(self._quarantine)
 
@@ -53,13 +52,13 @@ class MockSocket:
     def recv(self, bufsize):
         # Synthetic loopback data
         return b"HTTP/1.1 200 OK\r\n\r\n{\"mock\": \"arc_isolated_response\"}"
-        
+
     def close(self):
         pass
-        
+
     def __enter__(self):
         return self
-        
+
     def __exit__(self, *args):
         self.close()
 
@@ -93,7 +92,7 @@ class ARCIsolator:
         os.system = mock_system
         subprocess.run = mock_run
         socket.socket = mock_socket_init
-        
+
         self.is_active = True
 
     def disable(self):

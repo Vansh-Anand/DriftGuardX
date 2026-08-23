@@ -1,8 +1,8 @@
 import sys
-import uuid
-from typing import Optional
+
 from packages.evaluation.src.human_eval_manager import HumanEvalManager
 from packages.evaluation.src.human_eval_schema import HumanAnnotation, ReviewerSession
+
 
 def check_consent() -> bool:
     print("="*60)
@@ -13,7 +13,7 @@ def check_consent() -> bool:
     print("By proceeding, you agree to submit anonymized evaluation data.")
     print("Your identity is completely pseudonymized.")
     print("="*60)
-    
+
     # In a real environment, this might block until a remote flag is set.
     # For now, we enforce an explicit Y input.
     ans = input("Do you consent to participate? (y/N): ")
@@ -23,12 +23,12 @@ def main():
     if not check_consent():
         print("Consent denied. Exiting.")
         sys.exit(0)
-        
+
     session = ReviewerSession()
     print(f"\nSession started. Your pseudonym ID is: {session.pseudonym_id}\n")
-    
+
     manager = HumanEvalManager()
-    
+
     # Mock data generation for testing if empty
     if not manager.items:
         print("No evaluation items found. Generating mock items...")
@@ -40,16 +40,16 @@ def main():
                 "proposed_recovery_action": "Rollback prompt to v1",
                 "fault_type": "PROMPT_REGRESSION"
             })
-            
+
     pending = manager.get_pending_items()
     print(f"Found {len(pending)} items awaiting review.\n")
-    
+
     for item in pending:
         # Check if this reviewer has already reviewed this item
         already_reviewed = any(ann.reviewer_id == session.pseudonym_id for ann in item.annotations)
         if already_reviewed:
             continue
-            
+
         print("-" * 50)
         print(f"Item ID: {item.item_id}")
         print(f"Query: {item.blinded_trace_context['query']}")
@@ -57,21 +57,21 @@ def main():
         print(f"Predicted Root Cause: {item.blinded_trace_context['predicted_root_cause']}")
         print(f"Proposed Recovery: {item.blinded_trace_context['proposed_recovery_action']}")
         print("-" * 50)
-        
+
         def ask_bool(prompt: str) -> bool:
             while True:
                 ans = input(prompt + " (y/n): ").strip().lower()
                 if ans in ['y', 'n']:
                     return ans == 'y'
-                    
+
         ans_corr = ask_bool("1. Is the generated answer correct?")
         ev_suff = ask_bool("2. Is the retrieved evidence sufficient?")
         hallu = ask_bool("3. Is the answer hallucinated?")
         rc_corr = ask_bool("4. Is the predicted root cause correct?")
         rec_safe = ask_bool("5. Is the proposed recovery safe?")
-        
+
         comments = input("6. Any comments? (optional): ").strip()
-        
+
         ann = HumanAnnotation(
             reviewer_id=session.pseudonym_id,
             answer_correct=ans_corr,
@@ -81,10 +81,10 @@ def main():
             proposed_recovery_safe=rec_safe,
             comments=comments if comments else None
         )
-        
+
         manager.submit_annotation(item.item_id, ann)
         print("Annotation saved.\n")
-        
+
     print("No more pending items for your session. Thank you!")
     out = manager.export_anonymized_results()
     print(f"Results exported to: {out}")

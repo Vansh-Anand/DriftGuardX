@@ -9,7 +9,6 @@ PRIVATE — All Rights Reserved.
 from __future__ import annotations
 
 import os
-import uuid
 from typing import Any
 
 import structlog
@@ -48,7 +47,6 @@ class WorkerSettings:
 
 
 if __name__ == "__main__":
-    import asyncio
     log.info("worker.starting", redis_url=REDIS_URL)
     # arq.run_worker(WorkerSettings) — requires live Redis
     # For Prompt 01 dev mode, print a warning and exit

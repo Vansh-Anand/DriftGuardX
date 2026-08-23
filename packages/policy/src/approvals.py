@@ -19,10 +19,8 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
-
 
 # ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,10 +44,10 @@ class ApprovalRequest:
     two_person_control: bool = True
     request_id: str = field(default_factory=lambda: str(uuid4()))
     status: ApprovalStatus = ApprovalStatus.PENDING
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    expires_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=24))
-    delegated_approvers: List[str] = field(default_factory=list)  # allowed approver IDs
-    approvals: List["ApprovalDecision"] = field(default_factory=list)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    expires_at: datetime = field(default_factory=lambda: datetime.now(UTC) + timedelta(hours=24))
+    delegated_approvers: list[str] = field(default_factory=list)  # allowed approver IDs
+    approvals: list[ApprovalDecision] = field(default_factory=list)
     context: dict = field(default_factory=dict)
 
 
@@ -60,10 +58,10 @@ class ApprovalDecision:
     actor_id: str
     decision: ApprovalStatus   # APPROVED | DENIED
     comment: str = ""
-    decided_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    decided_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     decision_id: str = field(default_factory=lambda: str(uuid4()))
     is_break_glass: bool = False
-    break_glass_justification: Optional[str] = None
+    break_glass_justification: str | None = None
 
 
 # ─── Exceptions ───────────────────────────────────────────────────────────────
@@ -105,8 +103,8 @@ class ApprovalService:
     """
 
     def __init__(self):
-        self._requests: Dict[str, ApprovalRequest] = {}
-        self._audit_log: List[dict] = []
+        self._requests: dict[str, ApprovalRequest] = {}
+        self._audit_log: list[dict] = []
 
     # ── Create ────────────────────────────────────────────────────────────────
 
@@ -208,9 +206,9 @@ class ApprovalService:
 
     # ── Expire ────────────────────────────────────────────────────────────────
 
-    def expire_stale(self) -> List[str]:
+    def expire_stale(self) -> list[str]:
         """Mark all pending requests past their expiry as EXPIRED. Returns affected IDs."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired_ids = []
         for req in self._requests.values():
             if req.status == ApprovalStatus.PENDING and req.expires_at < now:
@@ -221,14 +219,14 @@ class ApprovalService:
 
     # ── Query ─────────────────────────────────────────────────────────────────
 
-    def get_request(self, request_id: str) -> Optional[ApprovalRequest]:
+    def get_request(self, request_id: str) -> ApprovalRequest | None:
         return self._requests.get(request_id)
 
-    def pending_for_tenant(self, tenant_id: str) -> List[ApprovalRequest]:
+    def pending_for_tenant(self, tenant_id: str) -> list[ApprovalRequest]:
         return [r for r in self._requests.values()
                 if r.tenant_id == tenant_id and r.status == ApprovalStatus.PENDING]
 
-    def audit_log(self) -> List[dict]:
+    def audit_log(self) -> list[dict]:
         return list(self._audit_log)
 
     # ── Internals ─────────────────────────────────────────────────────────────
@@ -237,7 +235,7 @@ class ApprovalService:
         req = self._requests.get(request_id)
         if req is None:
             raise ValueError(f"Request {request_id!r} not found.")
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if req.status == ApprovalStatus.PENDING and req.expires_at < now:
             req.status = ApprovalStatus.EXPIRED
             self._audit(request_id, "EXPIRED", "system", "TTL exceeded on access")
@@ -273,6 +271,6 @@ class ApprovalService:
             "event": event,
             "actor_id": actor_id,
             "detail": detail,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "requires_post_hoc_review": requires_post_hoc_review,
         })

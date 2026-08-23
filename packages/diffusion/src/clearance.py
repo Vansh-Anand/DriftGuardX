@@ -2,8 +2,10 @@
 DriftGuard-X v2 - GAT Trajectory Clearance
 """
 import uuid
+
 from packages.diffusion.src.contracts import GraphDiffusionResult
 from packages.replay.src.vti_coordinator import vti_coordinator
+
 
 class GATClearanceOracle:
     """
@@ -31,7 +33,7 @@ class GATClearanceOracle:
                 max_drift_prob = output.root_probability
             if output.symptom_probability > max_drift_prob:
                 max_drift_prob = output.symptom_probability
-                
+
         # 2. Decision logic
         if max_drift_prob < self.drift_threshold:
             # Trajectory is mathematically cleared. Emit a signature.

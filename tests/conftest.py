@@ -3,14 +3,10 @@ DriftGuard-X v2 — Shared test fixtures and configuration.
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
-from typing import Any
 
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine

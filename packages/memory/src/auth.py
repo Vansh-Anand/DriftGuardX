@@ -1,19 +1,22 @@
-from typing import List, Optional, Set
-from pydantic import BaseModel, Field
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
+
+from pydantic import BaseModel, Field
+
+from packages.memory.src.capabilities import AuthorizationCapability
+
 
 class AccessContext(BaseModel):
     requester_id: str
     tenant_id: str
-    authenticated_roles: List[str] = Field(default_factory=list)
-    capability_ids: List[str] = Field(default_factory=list)
-    issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    authenticated_roles: list[str] = Field(default_factory=list)
+    capabilities: list[AuthorizationCapability] = Field(default_factory=list)
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
-    integrity_hash: Optional[str] = None
-    
+    integrity_hash: str | None = None
+
     def is_valid(self) -> bool:
-        return datetime.now(timezone.utc) <= self.expires_at
+        return datetime.now(UTC) <= self.expires_at
 
 class AuditEvent(BaseModel):
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -21,8 +24,8 @@ class AuditEvent(BaseModel):
     tenant: str
     partition: str
     action: str
-    capability_id: Optional[str]
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    capability_id: str | None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     policy_version: str
     result: str
-    event_hash: Optional[str] = None
+    event_hash: str | None = None

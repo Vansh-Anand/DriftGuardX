@@ -9,11 +9,11 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import asdict
-from typing import List, Optional
+
 import aiosqlite
 
-from packages.ledger.src.schema import RecoveryCertificate
 from packages.ledger.src.crypto import verify_signature
+from packages.ledger.src.schema import RecoveryCertificate
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class LedgerChain:
 
     def __init__(self, db_path: str = "ledger.sqlite"):
         self.db_path = db_path
-        self._head_hash: Optional[str] = None
+        self._head_hash: str | None = None
         self._size: int = 0
 
     async def initialize(self):
@@ -58,7 +58,7 @@ class LedgerChain:
                 self._head_hash = row[0]
             else:
                 self._head_hash = "GENESIS"
-        
+
         async with db.execute("SELECT COUNT(*) FROM ledger") as cursor:
             row = await cursor.fetchone()
             self._size = row[0] if row else 0
@@ -70,7 +70,7 @@ class LedgerChain:
         """
         if not cert.signature or not cert.signer_pub_key:
             raise CertificateValidationError("Certificate must be signed before appending.")
-        
+
         if cert.previous_cert_hash != self._head_hash:
             raise CertificateValidationError(
                 f"Chain fork detected: Certificate previous_hash ({cert.previous_cert_hash}) "
@@ -110,7 +110,7 @@ class LedgerChain:
             except aiosqlite.IntegrityError as e:
                 raise CertificateValidationError(f"Integrity constraint violation (duplicate ID or Hash?): {e}")
 
-    async def get_all_certificates(self) -> List[RecoveryCertificate]:
+    async def get_all_certificates(self) -> list[RecoveryCertificate]:
         """Fetch all certificates in order."""
         async with aiosqlite.connect(self.db_path) as db:
             async with db.execute("SELECT payload FROM ledger ORDER BY id ASC") as cursor:
@@ -132,7 +132,7 @@ class LedgerChain:
             if cert.previous_cert_hash != expected_prev:
                 logger.error(f"Linkage broken at cert {cert.cert_id}: expected {expected_prev}, got {cert.previous_cert_hash}")
                 return False
-            
+
             # 2. Check Signatures
             if not cert.signature or not cert.signer_pub_key:
                 logger.error(f"Missing signature on cert {cert.cert_id}")

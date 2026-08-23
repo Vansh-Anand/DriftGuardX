@@ -1,23 +1,23 @@
+import os
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
-import json
-from typing import List, Dict
+
 
 def generate_drift_performance_plot(output_dir: str = "reports"):
     os.makedirs(output_dir, exist_ok=True)
     sns.set_theme(style="whitegrid")
-    
+
     # Mock data for demonstration
     x = ["retrieval-only", "rag", "tool-use"]
     y = [0.8, 0.6, 0.75]
-    
+
     plt.figure(figsize=(8, 5))
     ax = sns.barplot(x=x, y=y, hue=x, legend=False, palette="viridis")
     ax.set_title("Drift Performance by Regime")
     ax.set_ylabel("Success Rate")
     ax.set_ylim(0, 1.0)
-    
+
     out_path = os.path.join(output_dir, "drift_performance.png")
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -26,16 +26,16 @@ def generate_drift_performance_plot(output_dir: str = "reports"):
 def generate_bcrb_frontier_plot(output_dir: str = "reports"):
     os.makedirs(output_dir, exist_ok=True)
     sns.set_theme(style="whitegrid")
-    
+
     x_cost = [0.1, 0.5, 1.0, 5.0, 10.0]
     y_reliability = [0.1, 0.4, 0.6, 0.8, 0.85]
-    
+
     plt.figure(figsize=(8, 5))
     sns.lineplot(x=x_cost, y=y_reliability, marker="o", color="blue")
     plt.title("BCRB Efficiency Frontier")
     plt.xlabel("Replay Budget (USD)")
     plt.ylabel("Expected Reliability Gain")
-    
+
     out_path = os.path.join(output_dir, "bcrb_frontier.png")
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()

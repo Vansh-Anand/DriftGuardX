@@ -5,9 +5,9 @@ All inter-module data schemas. Strict Pydantic v2 models.
 """
 from packages.contracts.src.models import (
     AgentPipeline,
+    ComponentType,
     ComponentVersion,
     ComponentVersionState,
-    ComponentType,
     Diagnosis,
     DiagnosisClaim,
     DiagnosisClaimStatus,
@@ -19,10 +19,10 @@ from packages.contracts.src.models import (
     ReplayEpisode,
     ReplayStatus,
     RequestRun,
-    RunStatus,
     RollbackCapsule,
-    SpanRecord,
+    RunStatus,
     SpanKind,
+    SpanRecord,
     Tenant,
     TraceArtifact,
 )

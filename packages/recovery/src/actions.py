@@ -18,10 +18,9 @@ import enum
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
-
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -82,7 +81,7 @@ class ActionDefinition:
     description: str
 
 
-ACTION_REGISTRY: Dict[RecoveryActionType, ActionDefinition] = {
+ACTION_REGISTRY: dict[RecoveryActionType, ActionDefinition] = {
     RecoveryActionType.INCREASE_TOP_K: ActionDefinition(
         action_type=RecoveryActionType.INCREASE_TOP_K,
         risk_tier="low",
@@ -185,21 +184,21 @@ class RecoveryProposal:
     run_id: str
     diagnosis_id: str
     requester_id: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
     execution_mode: ExecutionMode = ExecutionMode.DRY_RUN
 
     # Pre-execution guards
     idempotency_key: str = field(default_factory=lambda: str(uuid4()))
-    expected_version_id: Optional[str] = None   # optimistic lock
-    certificate_id: Optional[str] = None         # cert must be CERTIFIED or UNCERTIFIED+reviewed
+    expected_version_id: str | None = None   # optimistic lock
+    certificate_id: str | None = None         # cert must be CERTIFIED or UNCERTIFIED+reviewed
 
     # Set by system
     proposal_id: str = field(default_factory=lambda: str(uuid4()))
     status: RecoveryStatus = RecoveryStatus.PROPOSED
-    policy_decision: Optional[str] = None        # "allow" | "deny" | "needs_approval"
-    approval_request_id: Optional[str] = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    policy_decision: str | None = None        # "allow" | "deny" | "needs_approval"
+    approval_request_id: str | None = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def param_hash(self) -> str:
         """Deterministic content hash of params for idempotency checking."""

@@ -4,9 +4,7 @@ DriftGuard-X v2 — API Smoke Tests (6 tests)
 from __future__ import annotations
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
-
 
 pytestmark = pytest.mark.asyncio
 

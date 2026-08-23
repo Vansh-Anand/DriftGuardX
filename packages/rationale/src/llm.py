@@ -9,9 +9,8 @@ import json
 import logging
 import os
 import time
-from typing import Optional
 
-from packages.rationale.src.models import RationaleInputContract, RationaleStyle, RationaleOutput
+from packages.rationale.src.models import RationaleInputContract, RationaleOutput, RationaleStyle
 from packages.rationale.src.templates import generate_template_rationale
 from packages.rationale.src.validator import validate_factual_consistency
 
@@ -57,7 +56,7 @@ def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[st
     In production, this would call OpenAI/Anthropic via their respective clients.
     """
     start_time = time.time()
-    
+
     if os.getenv("DGX_USE_REAL_LLM") == "1" and os.getenv("OPENAI_API_KEY"):
         import openai
         client = openai.Client()
@@ -78,13 +77,13 @@ def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[st
             f"Switching {data['original_version_tag']} to {data['replay_version_tag']} "
             f"caused metric shifts. (Mock generated text)"
         )
-        
+
     latency = (time.time() - start_time) * 1000
     return content, latency
 
 
 def generate_rationale(
-    contract: RationaleInputContract, 
+    contract: RationaleInputContract,
     style: RationaleStyle = RationaleStyle.OPERATOR_SUMMARY,
     use_llm: bool = True
 ) -> RationaleOutput:
@@ -93,21 +92,21 @@ def generate_rationale(
     """
     if not use_llm:
         return generate_template_rationale(contract, style)
-        
+
     try:
         # 1. Redact inputs
         scrubbed = redact_input(contract)
-        
+
         # 2. Build prompts
         sys_prompt = build_system_prompt(style)
-        
+
         # 3. Call LLM
         model_version = "mock-1.0" if not os.getenv("DGX_USE_REAL_LLM") else "gpt-4o"
         content, latency = invoke_llm(sys_prompt, json.dumps(scrubbed), model=model_version)
-        
+
         # 4. Validate output
         is_valid, reason = validate_factual_consistency(contract, content)
-        
+
         if not is_valid:
             logger.warning(f"LLM rationale failed validation: {reason}. Falling back to template.")
             fallback = generate_template_rationale(contract, style)
@@ -116,7 +115,7 @@ def generate_rationale(
             fallback.prompt_version = "v1"
             fallback.model_version = model_version
             return fallback
-            
+
         # 5. Return success
         return RationaleOutput(
             input_contract_id=contract.id,
@@ -130,7 +129,7 @@ def generate_rationale(
             latency_ms=latency,
             cost_usd=0.001  # Mock cost
         )
-        
+
     except Exception as e:
         logger.error(f"LLM adapter crashed: {e}. Falling back to template.")
         return generate_template_rationale(contract, style)

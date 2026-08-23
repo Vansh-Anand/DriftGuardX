@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import abc
 import base64
+
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.exceptions import InvalidSignature
 
 
 class SignerProtocol(abc.ABC):
@@ -83,6 +84,7 @@ class KMSProviderSigner(SignerProtocol):
 
 
 from functools import lru_cache
+
 
 @lru_cache(maxsize=1024)
 def verify_signature(public_key_b64: str, payload: bytes, signature_b64: str) -> bool:

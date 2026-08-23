@@ -1,8 +1,9 @@
-import os
 import asyncio
+import os
 from datetime import datetime, timedelta
+
 from apps.api.src.database import AsyncSessionLocal
-from sqlalchemy import text
+
 
 async def purge_old_traces(retention_days: int = 30):
     """
@@ -11,11 +12,11 @@ async def purge_old_traces(retention_days: int = 30):
     Only the raw verbose telemetry traces (if stored locally) are purged to comply with privacy policies.
     """
     print(f"[*] Starting Data Retention Job. Purging raw traces older than {retention_days} days.")
-    
+
     # Example SQL for a hypothetical raw_traces table.
     # We do NOT delete from 'ledger_claims' or 'signatures'.
     cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
-    
+
     async with AsyncSessionLocal() as session:
         try:
             # We mock the actual deletion query for the prototype as the raw_traces table might not be fully fleshed out yet.

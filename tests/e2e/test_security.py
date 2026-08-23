@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.security
 def test_prompt_injection_rationale():
     """Validates that rationale generators strip/escape prompt injections."""
@@ -51,7 +52,7 @@ def test_deserialization_safety():
     payload = '{"safe": "data"}'
     parsed = json.loads(payload)
     assert parsed["safe"] == "data"
-    
+
 @pytest.mark.security
 def test_replay_capsule_tampering():
     """Validates that tampering with a replay capsule fails cryptographic verification."""

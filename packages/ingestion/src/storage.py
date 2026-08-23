@@ -1,9 +1,10 @@
-import os
-import json
 import hashlib
-from typing import Dict, Any
+import json
+import os
+from typing import Any
+
 from minio import Minio
-from minio.error import S3Error
+
 
 class MinioStorage:
     def __init__(self, endpoint: str = "127.0.0.1:9000", access_key: str = "minioadmin", secret_key: str = "minioadmin", bucket_name: str = "driftguard-corpus"):
@@ -25,22 +26,22 @@ class MinioStorage:
             print(f"Error ensuring bucket exists (bypassing MinIO): {e}")
             self.bypassed = True
 
-    def upload_document(self, object_name: str, document_dict: Dict[str, Any]) -> str:
+    def upload_document(self, object_name: str, document_dict: dict[str, Any]) -> str:
         """Uploads a JSON document to MinIO and returns the object path."""
         import tempfile
-        
+
         # Calculate Hash
         content = json.dumps(document_dict, sort_keys=True)
         doc_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
-        
+
         if self.bypassed:
             return doc_hash
-            
+
         # Temp save
         with tempfile.NamedTemporaryFile('w', delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
-            
+
         try:
             self.client.fput_object(
                 self.bucket_name,
@@ -48,15 +49,15 @@ class MinioStorage:
                 tmp_path,
                 content_type="application/json"
             )
-        except Exception as e:
+        except Exception:
             self.bypassed = True
             pass # Bypass if not running
         finally:
             os.remove(tmp_path)
-            
+
         return doc_hash
 
-    def upload_manifest(self, version_tag: str, manifest: Dict[str, Any]) -> str:
+    def upload_manifest(self, version_tag: str, manifest: dict[str, Any]) -> str:
         """Uploads the Corpus Manifest JSON"""
         object_name = f"manifests/{version_tag}.json"
         return self.upload_document(object_name, manifest)

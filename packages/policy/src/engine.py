@@ -17,13 +17,9 @@ Default-deny contract:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from packages.policy.src.hierarchy import EffectivePolicy, RuleVerdict
-from packages.policy.src.resolver import InheritanceResolver, PolicyRegistry
-from packages.policy.src.tiers import get_tier, get_approval_requirements
 from packages.policy.src.approvals import (
     ApprovalRequest,
     ApprovalService,
@@ -31,8 +27,15 @@ from packages.policy.src.approvals import (
 )
 
 # Re-export the existing gate for backward compatibility
-from packages.policy.src.gate import PolicyGate, PolicyAction, PolicyRisk, PolicyResult  # noqa: F401
-
+from packages.policy.src.gate import (  # noqa: F401
+    PolicyAction,
+    PolicyGate,
+    PolicyResult,
+    PolicyRisk,
+)
+from packages.policy.src.hierarchy import EffectivePolicy, RuleVerdict
+from packages.policy.src.resolver import InheritanceResolver, PolicyRegistry
+from packages.policy.src.tiers import get_approval_requirements
 
 # ─── Engine Decision ──────────────────────────────────────────────────────────
 
@@ -55,9 +58,9 @@ class EngineDecision:
     rationale: str = ""
     requires_approval: bool = False
     two_person_control: bool = False
-    approval_request_id: Optional[str] = None
-    effective_policy: Optional[EffectivePolicy] = None
-    decided_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    approval_request_id: str | None = None
+    effective_policy: EffectivePolicy | None = None
+    decided_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ─── Policy Engine ────────────────────────────────────────────────────────────
@@ -97,7 +100,7 @@ class PolicyEngine:
         node_id: str,
         requester_id: str,
         requester_role: str = "operator",
-        existing_approval_id: Optional[str] = None,
+        existing_approval_id: str | None = None,
     ) -> EngineDecision:
         """
         Full policy evaluation pipeline:

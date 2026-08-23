@@ -10,17 +10,16 @@ from __future__ import annotations
 
 import enum
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
 # ─── Utilities ────────────────────────────────────────────────────────────────
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _new_uuid() -> UUID:
@@ -148,12 +147,12 @@ class ComponentVersion(DGXBaseModel):
     state: ComponentVersionState = ComponentVersionState.STABLE
     config_hash: str = Field(min_length=1, max_length=64)  # SHA-256 of config
     description: str = ""
-    
+
     # Versioned State Registry additions
     parent_version_id: UUID | None = None
     rollback_pointer: UUID | None = None
     compatibility_constraints: dict[str, Any] = Field(default_factory=dict)
-    
+
     created_at: datetime = Field(default_factory=_utcnow)
     deployed_at: datetime | None = None
 
@@ -178,7 +177,7 @@ class AgentPipeline(DGXBaseModel):
     created_at: datetime = Field(default_factory=_utcnow)
 
     @model_validator(mode="after")
-    def validate_component_types_unique(self) -> "AgentPipeline":
+    def validate_component_types_unique(self) -> AgentPipeline:
         seen: set[str] = set()
         for cv in self.component_versions:
             key = str(cv.component_type)
@@ -247,13 +246,13 @@ class SpanRecord(DGXBaseModel):
 
     # Redaction
     redaction: RedactionMetadata | None = None
-    
+
     # Semantic Attributes Schema
     # dgx.retrieval.top_k, dgx.model.sampling_config, etc. are stored in `attributes`
     privacy_mode: PrivacyMode = PrivacyMode.DEVELOPMENT_FULL
 
     @model_validator(mode="after")
-    def validate_end_after_start(self) -> "SpanRecord":
+    def validate_end_after_start(self) -> SpanRecord:
         if self.end_time and self.end_time < self.start_time:
             raise ValueError("end_time must be >= start_time")
         return self
@@ -331,7 +330,7 @@ class TraceArtifact(DGXBaseModel):
     tenant_sampling_rate: float | None = None
 
     @model_validator(mode="after")
-    def compute_span_count(self) -> "TraceArtifact":
+    def compute_span_count(self) -> TraceArtifact:
         self.total_span_count = len(self.spans)
         return self
 
@@ -481,19 +480,19 @@ class ReplayStateManifest(DGXBaseModel):
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     @model_validator(mode="after")
-    def validate_hash_and_versions(self) -> "ReplayStateManifest":
+    def validate_hash_and_versions(self) -> ReplayStateManifest:
         forbidden_tag = "latest"
         version_fields = [
-            self.model_identifier, 
-            self.retriever_version, 
-            self.embedding_model_version, 
+            self.model_identifier,
+            self.retriever_version,
+            self.embedding_model_version,
             self.vector_index_snapshot_id
         ]
-        
+
         for field in version_fields:
             if field and forbidden_tag in field.lower():
                 raise ValueError(f"The 'latest' tag is forbidden in ReplayStateManifest. Found in field value: {field}")
-                
+
         if not self.manifest_hash:
             self.manifest_hash = self.compute_hash()
         return self
@@ -758,6 +757,7 @@ class RAEBEvaluation(DGXBaseModel):
     information_gain_estimate: float = 0.0
     risk_score: float = 0.0
     rejection_reason: str | None = None
+    ig_estimator_metadata: dict | None = None
     evaluated_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -797,7 +797,7 @@ class ExecutionBudget(DGXBaseModel):
     max_memory_mb: float | None = None
     max_storage_mb: float | None = None
     max_queue_delay_s: float | None = None
-    
+
     # Measured usage state
     used_wall_clock_s: float = 0.0
     used_steps: int = 0
@@ -809,7 +809,7 @@ class ExecutionBudget(DGXBaseModel):
     used_memory_mb: float = 0.0
     used_storage_mb: float = 0.0
     used_queue_delay_s: float = 0.0
-    
+
     def check_exhaustion(self) -> ExhaustionReason | None:
         """Returns ExhaustionReason if any budget is exceeded."""
         if self.wall_clock_time_s is not None and self.used_wall_clock_s >= self.wall_clock_time_s:
@@ -871,10 +871,10 @@ def serialize_for_signing(rec: RecoveryEligibilityCertificate) -> bytes:
     import json
     # Exclude the signature itself
     data = rec.model_dump(exclude={"signature_b64"}, mode="json")
-    
+
     # Sort keys for deterministic JSON
     serialized_json = json.dumps(data, sort_keys=True, separators=(",", ":"))
-    
+
     # Domain separation prefix
     payload = f"DriftGuard-X-REC-v1\n{serialized_json}"
     return payload.encode("utf-8")

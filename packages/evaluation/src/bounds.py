@@ -39,7 +39,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass, field
-from typing import List, Literal
+from typing import Literal
 
 # ─── Thresholds ──────────────────────────────────────────────────────────────
 MIN_N_HOEFFDING = 30   # below this we flag low-n but still return
@@ -73,8 +73,8 @@ class BoundResult:
     point_estimate: float
     nominal_confidence: float
     n: int
-    assumptions_met: List[str] = field(default_factory=list)
-    assumptions_violated: List[str] = field(default_factory=list)
+    assumptions_met: list[str] = field(default_factory=list)
+    assumptions_violated: list[str] = field(default_factory=list)
     lower: float | None = None
     upper: float | None = None
     epsilon: float | None = None
@@ -85,7 +85,7 @@ class BoundResult:
 # ─── Unsupported Sentinel ─────────────────────────────────────────────────────
 
 def unsupported_bound(
-    observations: List[float],
+    observations: list[float],
     nominal_confidence: float,
     reason: str,
 ) -> BoundResult:
@@ -105,7 +105,7 @@ def unsupported_bound(
 # ─── Hoeffding Analytic Bound ─────────────────────────────────────────────────
 
 def hoeffding_bound(
-    observations: List[float],
+    observations: list[float],
     nominal_confidence: float = 0.90,
     reward_min: float = 0.0,
     reward_max: float = 1.0,
@@ -186,7 +186,7 @@ def hoeffding_bound(
 # ─── Bootstrap Empirical Bound ────────────────────────────────────────────────
 
 def bootstrap_bound(
-    observations: List[float],
+    observations: list[float],
     nominal_confidence: float = 0.90,
     n_resamples: int = N_BOOTSTRAP_RESAMPLES,
     seed: int = 42,
@@ -208,7 +208,7 @@ def bootstrap_bound(
         )
 
     rng = random.Random(seed)
-    boot_means: List[float] = []
+    boot_means: list[float] = []
     for _ in range(n_resamples):
         resample = [rng.choice(observations) for _ in range(n)]
         boot_means.append(sum(resample) / n)
@@ -246,7 +246,7 @@ def bootstrap_bound(
 # ─── Conformal Prediction Interval ───────────────────────────────────────────
 
 def conformal_bound(
-    calibration_scores: List[float],
+    calibration_scores: list[float],
     new_score: float,
     nominal_confidence: float = 0.90,
 ) -> BoundResult:

@@ -1,8 +1,9 @@
-import pytest
 import asyncio
 import time
+
 import numpy as np
-from typing import List
+import pytest
+
 
 async def mock_task_with_latency(mean_ms: float):
     # Simulate jitter
@@ -12,7 +13,7 @@ async def mock_task_with_latency(mean_ms: float):
     await asyncio.sleep(latency)
     return time.time() - start
 
-def calculate_percentiles(latencies: List[float]):
+def calculate_percentiles(latencies: list[float]):
     return {
         "p50": np.percentile(latencies, 50),
         "p95": np.percentile(latencies, 95),
@@ -26,7 +27,7 @@ async def test_trace_ingestion_load():
     tasks = [mock_task_with_latency(10.0) for _ in range(100)]
     latencies = await asyncio.gather(*tasks)
     stats = calculate_percentiles(latencies)
-    
+
     assert stats["p95"] < 0.05 # 50ms requirement
     assert len(latencies) == 100
 
@@ -37,7 +38,7 @@ async def test_certificate_verification_load():
     tasks = [mock_task_with_latency(50.0) for _ in range(50)]
     latencies = await asyncio.gather(*tasks)
     stats = calculate_percentiles(latencies)
-    
+
     assert stats["p99"] < 0.15 # 150ms max per cert
     assert len(latencies) == 50
 
@@ -48,9 +49,9 @@ async def test_graph_build_and_replay_scheduling_load():
     tasks = [mock_task_with_latency(20.0) for _ in range(50)]
     latencies = await asyncio.gather(*tasks)
     stats = calculate_percentiles(latencies)
-    
+
     assert stats["p95"] < 0.10
-    
+
 @pytest.mark.asyncio
 @pytest.mark.e2e
 async def test_ui_api_load():
@@ -58,5 +59,5 @@ async def test_ui_api_load():
     tasks = [mock_task_with_latency(5.0) for _ in range(200)]
     latencies = await asyncio.gather(*tasks)
     stats = calculate_percentiles(latencies)
-    
+
     assert stats["p99"] < 0.05

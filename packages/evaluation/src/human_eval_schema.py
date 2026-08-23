@@ -1,20 +1,22 @@
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 
 class HumanAnnotation(BaseModel):
     reviewer_id: uuid.UUID
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
+
     # Labels
     answer_correct: bool
     evidence_sufficient: bool
     hallucinated: bool
     predicted_root_cause_correct: bool
     proposed_recovery_safe: bool
-    
-    comments: Optional[str] = None
+
+    comments: str | None = None
 
 class ReviewerSession(BaseModel):
     pseudonym_id: uuid.UUID = Field(default_factory=uuid.uuid4)
@@ -25,19 +27,19 @@ class ReviewerSession(BaseModel):
 class EvaluationItem(BaseModel):
     item_id: str
     # Blinded trace details, no scheduler or baseline names
-    blinded_trace_context: Dict[str, Any] 
-    
-    annotations: List[HumanAnnotation] = Field(default_factory=list)
-    
+    blinded_trace_context: dict[str, Any]
+
+    annotations: list[HumanAnnotation] = Field(default_factory=list)
+
     @property
     def needs_adjudication(self) -> bool:
         """Returns True if there are exactly 2 reviews and they disagree on any boolean flag."""
         if len(self.annotations) != 2:
             return False
-            
+
         a1 = self.annotations[0]
         a2 = self.annotations[1]
-        
+
         return (
             a1.answer_correct != a2.answer_correct or
             a1.evidence_sufficient != a2.evidence_sufficient or

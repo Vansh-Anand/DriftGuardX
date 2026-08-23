@@ -1,17 +1,18 @@
 import hashlib
 import json
-from typing import Dict, Any, Optional
+from typing import Any
+
 
 class CryptographicEscrow:
     """
     Simulates a secure container holding staged actions.
     The payload is hashed for integrity.
     """
-    def __init__(self, trace_id: str, action_type: str, payload: Dict[str, Any]):
+    def __init__(self, trace_id: str, action_type: str, payload: dict[str, Any]):
         self.trace_id = trace_id
         self.action_type = action_type
         self.payload = payload
-        
+
         # Serialize and hash the payload deterministically
         serialized = json.dumps(payload, sort_keys=True).encode("utf-8")
         self.payload_hash = hashlib.sha256(serialized).hexdigest()
@@ -24,11 +25,11 @@ class VTICoordinator:
     """
     def __init__(self):
         # In-memory storage for escrows mapping trace_id -> List[CryptographicEscrow]
-        self._escrows: Dict[str, list[CryptographicEscrow]] = {}
+        self._escrows: dict[str, list[CryptographicEscrow]] = {}
         # In-memory mock for committed actions (live environment simulation)
         self.committed_actions: list[CryptographicEscrow] = []
 
-    def stage_action(self, trace_id: str, action_type: str, payload: Dict[str, Any]) -> CryptographicEscrow:
+    def stage_action(self, trace_id: str, action_type: str, payload: dict[str, Any]) -> CryptographicEscrow:
         """
         Phase 1: Stage the action in a cryptographic escrow.
         """
@@ -44,16 +45,16 @@ class VTICoordinator:
         """
         if not clearance_signature or not clearance_signature.startswith("GAT-CLEAR-"):
             raise ValueError(f"Invalid clearance signature for trace {trace_id}")
-            
+
         escrows = self._escrows.get(trace_id, [])
         if not escrows:
             return False # Nothing to commit
-            
+
         for escrow in escrows:
             if escrow.status == "STAGED":
                 escrow.status = "COMMITTED"
                 self.committed_actions.append(escrow)
-                
+
         # Clear from staged pool
         del self._escrows[trace_id]
         return True
@@ -65,10 +66,10 @@ class VTICoordinator:
         escrows = self._escrows.get(trace_id, [])
         if not escrows:
             return False
-            
+
         for escrow in escrows:
             escrow.status = "ROLLED_BACK"
-            
+
         del self._escrows[trace_id]
         return True
 

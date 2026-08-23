@@ -1,7 +1,6 @@
-from typing import Dict, Any
 
 class DatasetCardGenerator:
-    def __init__(self, name: str, source: str, license: str, splits: Dict[str, int]):
+    def __init__(self, name: str, source: str, license: str, splits: dict[str, int]):
         self.name = name
         self.source = source
         self.license = license

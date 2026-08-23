@@ -2,15 +2,16 @@ import argparse
 import asyncio
 import json
 import logging
-import uuid
 import sys
+import uuid
 from pathlib import Path
 
 from sqlalchemy.future import select
+
 from apps.api.src.database import AsyncSessionLocal
-from packages.ingestion.src.storage import MinioStorage
-from packages.ingestion.src.orchestrator import IngestionOrchestrator
 from apps.api.src.models_ingestion import CorpusVersionORM
+from packages.ingestion.src.orchestrator import IngestionOrchestrator
+from packages.ingestion.src.storage import MinioStorage
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -20,12 +21,12 @@ REGISTRY_FILE = ROOT_DIR / "data" / "dataset_registry.json"
 
 async def run_ingestion(dataset: str, split: str):
     logger.info(f"Starting ingestion for dataset {dataset} (split: {split})")
-    
+
     if not REGISTRY_FILE.exists():
         logger.error("Dataset registry not found. Run manage_datasets first.")
         sys.exit(1)
 
-    with open(REGISTRY_FILE, "r") as f:
+    with open(REGISTRY_FILE) as f:
         registry = json.load(f)
 
     if dataset not in registry:
@@ -33,7 +34,7 @@ async def run_ingestion(dataset: str, split: str):
         sys.exit(1)
 
     version_tag = f"{split}_{registry[dataset]['sha256'][:8]}"
-    
+
     async with AsyncSessionLocal() as session:
         # Check if already ingested
         stmt = select(CorpusVersionORM).where(
@@ -53,7 +54,7 @@ async def run_ingestion(dataset: str, split: str):
 
     documents = []
     try:
-        with open(corpus_path, 'r', encoding='utf-8') as f:
+        with open(corpus_path, encoding='utf-8') as f:
             for line in f:
                 if line.strip():
                     doc = json.loads(line)
@@ -64,20 +65,20 @@ async def run_ingestion(dataset: str, split: str):
     except Exception as e:
         logger.error(f"Failed to read source file: {e}")
         sys.exit(1)
-        
+
     if not documents:
         logger.error("No documents found in source file.")
         sys.exit(1)
-        
+
     logger.info(f"Loaded {len(documents)} documents.")
 
     # Using a deterministic tenant ID for benchmarks
     tenant_id = uuid.uuid5(uuid.NAMESPACE_DNS, "benchmark.driftguardx.local")
     storage = MinioStorage()
-    
+
     async with AsyncSessionLocal() as session:
         orchestrator = IngestionOrchestrator(session, storage, tenant_id)
-        
+
         try:
             manifest_hash = await orchestrator.ingest_corpus(
                 source_name=dataset,

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,8 +25,8 @@ class LedgerEntry:
     description: str
     status: DiagnosisClaimStatus
     evidence: list[str] = field(default_factory=list)
-    added_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    added_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     notes: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -79,7 +79,7 @@ class ClaimsLedger:
         if entry is None:
             raise KeyError(f"Claim '{claim_id}' not found")
         entry.status = status
-        entry.updated_at = datetime.now(timezone.utc).isoformat()
+        entry.updated_at = datetime.now(UTC).isoformat()
         if notes:
             entry.notes = notes
 

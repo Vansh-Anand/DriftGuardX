@@ -2,16 +2,15 @@ import hashlib
 import json
 import logging
 import uuid
-from typing import Dict, Any, List
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from packages.ingestion.src.storage import MinioStorage
-from packages.ingestion.src.scanner import PIISecretScanner
+from apps.api.src.models_ingestion import ChunkORM, CorpusVersionORM, DocumentORM, IndexVersionORM
 from packages.ingestion.src.chunker import BaseChunker
 from packages.ingestion.src.embedder import LocalEmbedder
-from apps.api.src.models_ingestion import CorpusVersionORM, IndexVersionORM, DocumentORM, ChunkORM
+from packages.ingestion.src.scanner import PIISecretScanner
+from packages.ingestion.src.storage import MinioStorage
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class IngestionOrchestrator:
         self.embedder = LocalEmbedder()
         self.tenant_id = tenant_id
 
-    async def ingest_corpus(self, source_name: str, version_tag: str, documents: List[Dict[str, Any]], license_info: str) -> str:
+    async def ingest_corpus(self, source_name: str, version_tag: str, documents: list[dict[str, Any]], license_info: str) -> str:
         """
         Orchestrates full ingestion of a document corpus.
         Returns the corpus manifest_hash.
@@ -104,7 +103,7 @@ class IngestionOrchestrator:
             chunks = self.chunker.chunk_text(text)
             embeddings = self.embedder.embed_texts(chunks)
 
-            for i, (chunk_text, emb) in enumerate(zip(chunks, embeddings)):
+            for i, (chunk_text, emb) in enumerate(zip(chunks, embeddings, strict=False)):
                 chunk_orm = ChunkORM(
                     tenant_id=self.tenant_id,
                     document_id=doc_orm.id,

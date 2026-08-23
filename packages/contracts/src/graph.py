@@ -8,8 +8,8 @@ import enum
 import hashlib
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-from uuid import UUID, uuid4
+from typing import Any
+from uuid import UUID
 
 from pydantic import Field, model_validator
 
@@ -51,16 +51,16 @@ class GraphNode(DGXBaseModel):
     id: str = Field(min_length=1)  # Format: {type}:{version_id} or {type}:{span_id}
     type: NodeType
     label: str
-    
+
     # Core attributes
     is_versioned: bool = False
-    version_id: Optional[UUID] = None
-    span_id: Optional[str] = None
-    
+    version_id: UUID | None = None
+    span_id: str | None = None
+
     # Baseline Features
-    features: Dict[str, Any] = Field(default_factory=dict)
+    features: dict[str, Any] = Field(default_factory=dict)
     # Examples: local_quality, latency_ms, cost_usd, error_code, version_age_days
-    
+
     created_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -70,14 +70,14 @@ class GraphEdge(DGXBaseModel):
     target: str
     type: EdgeType
     label: str = ""
-    properties: Dict[str, Any] = Field(default_factory=dict)
+    properties: dict[str, Any] = Field(default_factory=dict)
 
 
 class CausalGraph(DGXBaseModel):
     tenant_id: UUID
     run_id: UUID
-    nodes: List[GraphNode]
-    edges: List[GraphEdge]
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
     builder_version: str = "v1"
     trace_digest: str  # Hash of the original trace
     graph_hash: str = "" # hash(trace_digest, builder_version, normalized nodes/edges)
@@ -92,14 +92,14 @@ class CausalGraph(DGXBaseModel):
         edges_normalized = sorted(
             [f"{e.source}->{e.target}:{e.type.value if hasattr(e.type, 'value') else e.type}" for e in self.edges]
         )
-        
+
         payload = {
             "trace_digest": self.trace_digest,
             "builder_version": self.builder_version,
             "nodes": nodes_normalized,
             "edges": edges_normalized
         }
-        
+
         serialized = json.dumps(payload, sort_keys=True).encode("utf-8")
         self.graph_hash = hashlib.sha256(serialized).hexdigest()
         return self

@@ -1,10 +1,10 @@
 """DriftGuard-X evaluation package."""
 from packages.evaluation.src.reliability import (
-    ReliabilityConfig,
     DEFAULT_CONFIG,
-    compute_reliability_vector,
+    ReliabilityConfig,
     aggregate_reliability_score,
     compute_reliability_delta,
+    compute_reliability_vector,
 )
 
 __all__ = [

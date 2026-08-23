@@ -2,10 +2,8 @@
 DriftGuard-X v2 — Replay Security Tests
 Verifies replay engine bounds, timeouts, and resource limits.
 """
-import uuid
-import pytest
-from datetime import datetime, timezone
 import concurrent.futures
+import uuid
 
 from packages.contracts.src.models import (
     ComponentType,
@@ -13,9 +11,10 @@ from packages.contracts.src.models import (
     Intervention,
     InterventionType,
     RequestRun,
-    TraceArtifact
+    TraceArtifact,
 )
-from packages.replay.src.engine import ReplayEngine, VersionRegistry, ComponentExecutor
+from packages.replay.src.engine import ComponentExecutor, ReplayEngine, VersionRegistry
+
 
 class HangingExecutor(ComponentExecutor):
     def execute(self, inputs, *, version, seed=42):
@@ -38,17 +37,17 @@ def test_replay_engine_timeout_enforcement():
         config_hash="dummy",
         is_active=True
     ))
-    
+
     # Patch the engine temporarily
     import packages.replay.src.engine as engine_module
     original_map = engine_module._EXECUTOR_MAP.copy()
     engine_module._EXECUTOR_MAP[(ComponentType.RETRIEVER, "v_hang")] = HangingExecutor()
-    
+
     engine = ReplayEngine(registry)
-    
+
     tenant_uuid = uuid.uuid4()
     pipeline_uuid = uuid.uuid4()
-    
+
     dummy_run = RequestRun(
         id=uuid.uuid4(),
         tenant_id=tenant_uuid,
@@ -74,28 +73,30 @@ def test_replay_engine_timeout_enforcement():
         to_version_tag="v_hang",
         rationale="test"
     )
-    
+
     # We patch concurrent.futures to simulate a timeout without actually waiting 30s
     class FakeFuture:
         def result(self, timeout=None):
             raise concurrent.futures.TimeoutError()
-            
+
     class FakeExecutor:
         def __enter__(self): return self
         def __exit__(self, *args): pass
         def submit(self, *args, **kwargs):
             return FakeFuture()
-            
+
     original_executor = concurrent.futures.ThreadPoolExecutor
     concurrent.futures.ThreadPoolExecutor = lambda *args, **kwargs: FakeExecutor()
-    
+
     try:
         from packages.contracts.src.models import ReplayStateManifest
         manifest = ReplayStateManifest(
             run_id=dummy_run.id,
             tenant_id=dummy_run.tenant_id,
+            original_query_hash="mock-query", corpus_version_id="mock-corpus",
             model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
-            retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+            retriever_version="v1", retriever_settings={"mock": True}, retrieved_chunk_ids=["chunk1"],
+            embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
             tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
             random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
         )
@@ -109,12 +110,12 @@ def test_replay_engine_timeout_enforcement():
             seed=42,
             manifest=manifest
         )
-        
+
         # Verify the engine caught the timeout and injected an error span
         retriever_span = next(s for s in trace.spans if s.component_type == ComponentType.RETRIEVER)
         assert retriever_span.error_type == "TimeoutError"
         assert "timeout limit" in retriever_span.error_message
-        
+
     finally:
         engine_module._EXECUTOR_MAP = original_map
         concurrent.futures.ThreadPoolExecutor = original_executor
@@ -128,16 +129,16 @@ def test_replay_engine_memory_bound():
         config_hash="dummy",
         is_active=True
     ))
-    
+
     import packages.replay.src.engine as engine_module
     original_map = engine_module._EXECUTOR_MAP.copy()
     engine_module._EXECUTOR_MAP[(ComponentType.RETRIEVER, "v_mem")] = MassiveMemoryExecutor()
-    
+
     engine = ReplayEngine(registry)
-    
+
     tenant_uuid = uuid.uuid4()
     pipeline_uuid = uuid.uuid4()
-    
+
     dummy_run = RequestRun(
         id=uuid.uuid4(),
         tenant_id=tenant_uuid,
@@ -163,14 +164,16 @@ def test_replay_engine_memory_bound():
         to_version_tag="v_mem",
         rationale="test"
     )
-    
+
     try:
         from packages.contracts.src.models import ReplayStateManifest
         manifest = ReplayStateManifest(
             run_id=dummy_run.id,
             tenant_id=dummy_run.tenant_id,
+            original_query_hash="mock-query", corpus_version_id="mock-corpus",
             model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
-            retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
+            retriever_version="v1", retriever_settings={"mock": True}, retrieved_chunk_ids=["chunk1"],
+            embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
             tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
             random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
         )
@@ -184,10 +187,10 @@ def test_replay_engine_memory_bound():
             seed=42,
             manifest=manifest
         )
-        
+
         retriever_span = next(s for s in trace.spans if s.component_type == ComponentType.RETRIEVER)
         assert retriever_span.error_type == "MemoryError"
         assert "resource bounds" in retriever_span.error_message
-        
+
     finally:
         engine_module._EXECUTOR_MAP = original_map

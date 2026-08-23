@@ -12,20 +12,17 @@ import hashlib
 import json
 import os
 import secrets
-import struct
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
 from packages.contracts.src.models import (
     ComponentType,
+    PrivacyMode,
     RedactionMetadata,
     SpanKind,
     SpanRecord,
-    PrivacyMode,
 )
-
 
 # ─── Redaction ────────────────────────────────────────────────────────────────
 
@@ -79,16 +76,13 @@ def redact_dict(data: dict[str, Any], *, force: bool = False, allowlist: list[st
             result: dict[str, Any] = {}
             for k, v in obj.items():
                 field_path = f"{path}.{k}" if path else k
-                
+
                 # Check allowlist
                 if allowlist and any(field_path == allowed or field_path.startswith(f"{allowed}.") for allowed in allowlist):
                     result[k] = _redact(v, field_path)
                     continue
-                    
-                if k.lower() in _SENSITIVE_FIELD_NAMES:
-                    result[k] = _REDACTED_PLACEHOLDER
-                    redacted_fields.append(field_path)
-                elif privacy_mode == PrivacyMode.METADATA_ONLY:
+
+                if k.lower() in _SENSITIVE_FIELD_NAMES or privacy_mode == PrivacyMode.METADATA_ONLY:
                     result[k] = _REDACTED_PLACEHOLDER
                     redacted_fields.append(field_path)
                 else:
@@ -177,7 +171,7 @@ class SpanBuilder:
         self._name = name
         self._kind = kind
         self._parent_span_id = parent_span_id
-        self._start_time = datetime.now(timezone.utc)
+        self._start_time = datetime.now(UTC)
         self._end_time: datetime | None = None
         self._component_type: ComponentType | None = None
         self._component_version_id: UUID | None = None
@@ -206,7 +200,7 @@ class SpanBuilder:
         component_type: ComponentType,
         version_id: UUID,
         version_tag: str,
-    ) -> "SpanBuilder":
+    ) -> SpanBuilder:
         self._component_type = component_type
         self._component_version_id = version_id
         self._component_version_tag = version_tag
@@ -214,50 +208,50 @@ class SpanBuilder:
             self._name = f"{component_type.value}/{version_tag}"
         return self
 
-    def set_input(self, payload: Any) -> "SpanBuilder":
+    def set_input(self, payload: Any) -> SpanBuilder:
         """Hash the input; do not store raw payload."""
         self._input_hash = hash_payload(payload)
         return self
 
-    def set_output(self, payload: Any) -> "SpanBuilder":
+    def set_output(self, payload: Any) -> SpanBuilder:
         """Hash the output; do not store raw payload."""
         self._output_hash = hash_payload(payload)
         return self
 
-    def set_tokens(self, input_tokens: int, output_tokens: int) -> "SpanBuilder":
+    def set_tokens(self, input_tokens: int, output_tokens: int) -> SpanBuilder:
         self._token_count_input = input_tokens
         self._token_count_output = output_tokens
         return self
 
-    def set_cost(self, cost_usd: float) -> "SpanBuilder":
+    def set_cost(self, cost_usd: float) -> SpanBuilder:
         self._cost_usd = cost_usd
         return self
 
-    def set_policy(self, result: str, rule_id: str | None = None) -> "SpanBuilder":
+    def set_policy(self, result: str, rule_id: str | None = None) -> SpanBuilder:
         self._policy_result = result
         self._policy_rule_id = rule_id
         return self
 
-    def set_error(self, error_type: str, message: str) -> "SpanBuilder":
+    def set_error(self, error_type: str, message: str) -> SpanBuilder:
         self._error_type = error_type
         self._error_message = message
         self._status_code = "ERROR"
         self._status_message = message
         return self
 
-    def set_attribute(self, key: str, value: Any) -> "SpanBuilder":
+    def set_attribute(self, key: str, value: Any) -> SpanBuilder:
         self._attributes[key] = value
         return self
 
-    def finish(self, allowlist: list[str] | None = None, privacy_mode: PrivacyMode = PrivacyMode.DEVELOPMENT_FULL, data_residency_label: str | None = None) -> "SpanBuilder":
+    def finish(self, allowlist: list[str] | None = None, privacy_mode: PrivacyMode = PrivacyMode.DEVELOPMENT_FULL, data_residency_label: str | None = None) -> SpanBuilder:
         """Mark the span as finished and compute latency."""
-        self._end_time = datetime.now(timezone.utc)
+        self._end_time = datetime.now(UTC)
         self._latency_ms = (
             (self._end_time - self._start_time).total_seconds() * 1000
         )
         if self._status_code == "UNSET":
             self._status_code = "OK"
-            
+
         # Ensure RedactionMetadata is updated if needed
         if allowlist or data_residency_label or privacy_mode != PrivacyMode.DEVELOPMENT_FULL:
             if not self._redaction:
@@ -268,7 +262,7 @@ class SpanBuilder:
                 self._redaction.data_residency_label = data_residency_label
             if privacy_mode:
                 self._redaction.privacy_mode = privacy_mode
-                
+
         return self
 
     def build(self) -> SpanRecord:

@@ -15,9 +15,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List, Tuple, Dict
-
+from datetime import UTC, datetime
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 NOMINAL_LEVELS = [0.80, 0.90, 0.95, 0.99]
@@ -43,7 +41,7 @@ class CalibrationEpisode:
     ground_truth: float
     fault_type: str = "unknown"
     component_layer: str = "unknown"
-    recorded_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    recorded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -60,10 +58,10 @@ class CoverageReport:
     schema_version: str
     n_episodes: int
     is_valid: bool                          # False if n < MIN_CAL_EPISODES
-    coverage_by_level: Dict[float, float]   # nominal -> observed
-    alerts: List[UndercoverageAlert]
-    subgroup_coverage: Dict[str, Dict[float, float]]  # group -> nominal -> observed
-    generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    coverage_by_level: dict[float, float]   # nominal -> observed
+    alerts: list[UndercoverageAlert]
+    subgroup_coverage: dict[str, dict[float, float]]  # group -> nominal -> observed
+    generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ─── Calibration Dataset ──────────────────────────────────────────────────────
@@ -77,12 +75,12 @@ class CalibrationDataset:
 
     def __init__(self, version: str = CALIBRATION_SCHEMA_VERSION):
         self.version = version
-        self._episodes: List[CalibrationEpisode] = []
+        self._episodes: list[CalibrationEpisode] = []
 
     def add(self, episode: CalibrationEpisode) -> None:
         self._episodes.append(episode)
 
-    def episodes(self) -> List[CalibrationEpisode]:
+    def episodes(self) -> list[CalibrationEpisode]:
         return list(self._episodes)
 
     def __len__(self) -> int:
@@ -92,7 +90,7 @@ class CalibrationDataset:
 # ─── Coverage Calculator ──────────────────────────────────────────────────────
 
 def _coverage_for_level(
-    episodes: List[CalibrationEpisode],
+    episodes: list[CalibrationEpisode],
     nominal: float,
 ) -> float:
     """
@@ -115,8 +113,8 @@ def measure_coverage(dataset: CalibrationDataset) -> CoverageReport:
     n = len(episodes)
     is_valid = n >= MIN_CAL_EPISODES
 
-    coverage_by_level: Dict[float, float] = {}
-    alerts: List[UndercoverageAlert] = []
+    coverage_by_level: dict[float, float] = {}
+    alerts: list[UndercoverageAlert] = []
 
     for level in NOMINAL_LEVELS:
         obs = _coverage_for_level(episodes, level)
@@ -135,7 +133,7 @@ def measure_coverage(dataset: CalibrationDataset) -> CoverageReport:
             ))
 
     # Subgroup analysis by fault_type
-    subgroup_coverage: Dict[str, Dict[float, float]] = {}
+    subgroup_coverage: dict[str, dict[float, float]] = {}
     fault_types = {ep.fault_type for ep in episodes}
     for ft in fault_types:
         sub = [ep for ep in episodes if ep.fault_type == ft]
@@ -164,10 +162,10 @@ def measure_coverage(dataset: CalibrationDataset) -> CoverageReport:
 # ─── Conformal Calibration Baseline ──────────────────────────────────────────
 
 def conformal_coverage_check(
-    calibration_scores: List[float],
-    test_scores: List[float],
+    calibration_scores: list[float],
+    test_scores: list[float],
     nominal_confidence: float = 0.90,
-) -> Tuple[float, bool]:
+) -> tuple[float, bool]:
     """
     Marginal coverage check for a conformal predictor.
 

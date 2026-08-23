@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from packages.policy.src.gate import PolicyAction, PolicyGate, PolicyRequest, evaluate_policy
+from packages.policy.src.gate import PolicyAction, PolicyGate, PolicyRequest
 
 
 @pytest.mark.unit

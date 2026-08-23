@@ -1,7 +1,6 @@
+
 import pytest
-import asyncio
-import time
-import os
+
 from packages.replay.src.executor import ContainerReplayExecutor
 
 # Simple functions to test the executor
@@ -26,7 +25,7 @@ def network_access():
         urllib.request.urlopen("http://1.1.1.1", timeout=2)
         return "network_success"
     except Exception as e:
-        raise RuntimeError(f"Network failed: {str(e)}")
+        raise RuntimeError(f"Network failed: {e!s}")
 
 def oversized_payload():
     # Attempt to write a large file to /tmp (which is limited to 64MB)
@@ -35,7 +34,7 @@ def oversized_payload():
             f.write(b"0" * (70 * 1024 * 1024))
         return "write_success"
     except Exception as e:
-        raise RuntimeError(f"Write failed: {str(e)}")
+        raise RuntimeError(f"Write failed: {e!s}")
 
 def failed_execution():
     raise ValueError("Intentional crash")
@@ -106,13 +105,13 @@ async def test_cleanup(executor):
     # Ensure containers are cleaned up
     import docker
     client = docker.from_env()
-    
+
     # Count containers with our image before
     initial_count = len(client.containers.list(all=True, filters={"ancestor": executor.image}))
-    
+
     # Run a quick job
     await executor.execute(quick_success, budget_seconds=5.0)
-    
+
     # Count containers after
     final_count = len(client.containers.list(all=True, filters={"ancestor": executor.image}))
     assert final_count == initial_count

@@ -8,16 +8,16 @@ from __future__ import annotations
 import os
 from collections.abc import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
-
-from apps.api.src.models import Base
-import apps.api.src.models_ingestion  # noqa: F401
-import apps.api.src.models_manifest  # noqa: F401
-
-from sqlalchemy.ext.compiler import compiles
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.pool import NullPool
+
+import apps.api.src.models_ingestion
+import apps.api.src.models_manifest  # noqa: F401
+from apps.api.src.models import Base
+
 
 @compiles(Vector, "sqlite")
 def compile_vector_sqlite(type_, compiler, **kw):

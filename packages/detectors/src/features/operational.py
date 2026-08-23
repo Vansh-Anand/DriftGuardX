@@ -13,15 +13,15 @@ class OperationalDriftDetector(DriftDetector):
         return "operational_drift_detector"
 
     def evaluate(
-        self, 
-        trace_or_span: Any, 
+        self,
+        trace_or_span: Any,
         thresholds: dict[str, Any] | None = None,
         **kwargs: Any
     ) -> list[DetectorOutput]:
         from packages.detectors.src.baselines import check_threshold
         thresholds = thresholds or {}
         outputs = []
-        
+
         def _check(feature: str, val: float, default_t: float, default_op: str) -> bool:
             t = thresholds.get(feature)
             if t:
@@ -39,7 +39,7 @@ class OperationalDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.MEDIUM if is_anom else SymptomLikelihood.NONE,
             evidence={"latency_ms": latency}
         ))
-        
+
         token_use = kwargs.get("token_use", 0)
         token_threshold = kwargs.get("token_use_threshold", 4096)
         is_anom = _check("token_use", float(token_use), token_threshold, ">")
@@ -51,7 +51,7 @@ class OperationalDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.LOW if is_anom else SymptomLikelihood.NONE,
             evidence={"token_use": token_use}
         ))
-        
+
         provider_errors = kwargs.get("provider_error_rate", 0.0)
         is_anom = _check("provider_errors", provider_errors, 0.05, ">")
         outputs.append(DetectorOutput(
@@ -62,7 +62,7 @@ class OperationalDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.HIGH if is_anom else SymptomLikelihood.NONE,
             evidence={"provider_error_rate": provider_errors}
         ))
-        
+
         retries = kwargs.get("retry_count", 0)
         is_anom = _check("retries", float(retries), 2.0, ">")
         outputs.append(DetectorOutput(
@@ -73,7 +73,7 @@ class OperationalDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.LOW if is_anom else SymptomLikelihood.NONE,
             evidence={"retry_count": retries}
         ))
-        
+
         queue_lag = kwargs.get("queue_lag_ms", 0.0)
         is_anom = _check("queue_lag", queue_lag, 1000.0, ">")
         outputs.append(DetectorOutput(

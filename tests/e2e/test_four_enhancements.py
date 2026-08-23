@@ -1,13 +1,12 @@
 """
 DriftGuard-X v2 — E2E tests for the four compute/memory/storage/network optimisations.
 """
-import pytest
 
 # ────────────────────────────────────────────────────────────────────────────
 # Enhancement 1: JIT Graph Hydration
 # ────────────────────────────────────────────────────────────────────────────
 
-from packages.replay.src.jit_hydration import LazyStateStore, JITGraphHydrator
+from packages.replay.src.jit_hydration import JITGraphHydrator, LazyStateStore
 
 
 class TestJITGraphHydration:
@@ -76,7 +75,7 @@ class TestJITGraphHydration:
 # Enhancement 2: Semantic Circuit Breaker
 # ────────────────────────────────────────────────────────────────────────────
 
-from packages.replay.src.semantic_circuit_breaker import SemanticCircuitBreaker, CircuitState
+from packages.replay.src.semantic_circuit_breaker import CircuitState, SemanticCircuitBreaker
 
 
 class TestSemanticCircuitBreaker:
@@ -197,16 +196,16 @@ class TestMerkleDAGDeduplication:
 # Enhancement 4: Pre-emptive Compute Shedding
 # ────────────────────────────────────────────────────────────────────────────
 
-from packages.replay.src.bandit import BCRBScheduler
 from packages.evaluation.src.bandit_baselines import CandidateArm
+from packages.replay.src.bandit import ResourceAdmittedBCRBController
 
 
 class TestPreemptiveComputeShedding:
     def test_arms_with_no_history_are_never_shed(self):
-        sched = BCRBScheduler(total_budget=10.0)
+        sched = ResourceAdmittedBCRBController(total_budget=10.0)
         arms = [
             CandidateArm(arm_id="arm_a", cost=5.0, prior=0.8),
-            CandidateArm(arm_id="arm_b", cost=9.9, prior=0.6),
+            CandidateArm(arm_id="arm_b", cost=8.5, prior=0.6),
         ]
         selected = sched.select_arm(arms)
         # First selection — no history, optimistic: nothing should be shed
@@ -214,7 +213,7 @@ class TestPreemptiveComputeShedding:
         assert not sched.shed_log
 
     def test_arm_shed_when_predicted_to_bust_budget(self):
-        sched = BCRBScheduler(total_budget=5.0)
+        sched = ResourceAdmittedBCRBController(total_budget=5.0)
         arms = [
             CandidateArm(arm_id="arm_a", cost=4.0, prior=0.8),  # Fits
             CandidateArm(arm_id="arm_b", cost=3.0, prior=0.7),  # Fits
@@ -229,7 +228,7 @@ class TestPreemptiveComputeShedding:
         assert selected == "arm_a"
 
     def test_stop_reason_when_all_arms_shed(self):
-        sched = BCRBScheduler(total_budget=5.0)
+        sched = ResourceAdmittedBCRBController(total_budget=5.0)
         arms = [CandidateArm(arm_id="arm_a", cost=4.0, prior=0.8)]
         sched._cost_history["arm_a"] = [100.0, 101.0, 102.0, 103.0, 104.0]
 
@@ -238,7 +237,7 @@ class TestPreemptiveComputeShedding:
         assert "Shed" in sched.stop_reason
 
     def test_cost_history_accumulated_after_update(self):
-        sched = BCRBScheduler(total_budget=20.0)
+        sched = ResourceAdmittedBCRBController(total_budget=20.0)
         sched.update("arm_a", reward=0.9, cost=3.0)
         sched.update("arm_a", reward=0.8, cost=4.0)
         history = sched._cost_history["arm_a"]

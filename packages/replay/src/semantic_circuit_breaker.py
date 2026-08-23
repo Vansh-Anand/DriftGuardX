@@ -15,7 +15,7 @@ from __future__ import annotations
 import ast
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class CircuitState(Enum):
@@ -24,7 +24,7 @@ class CircuitState(Enum):
 
 
 # Patterns that signal state-mutating intent in code / SQL / HTTP verbs
-_MUTATING_KEYWORDS: List[str] = [
+_MUTATING_KEYWORDS: list[str] = [
     # SQL
     "UPDATE", "DELETE", "INSERT", "DROP", "TRUNCATE", "ALTER",
     # HTTP verbs (common string literals agents emit)
@@ -47,7 +47,7 @@ class SemanticCircuitBreaker:
     are serialized or sent over the network.
     """
 
-    def __init__(self, mock_payload: Optional[Dict[str, Any]] = None):
+    def __init__(self, mock_payload: dict[str, Any] | None = None):
         """
         Args:
             mock_payload: Synthetic response fed back through the loopback
@@ -59,16 +59,16 @@ class SemanticCircuitBreaker:
             "body": {"mock": "semantic_circuit_breaker_loopback"},
             "headers": {"X-DriftGuardX-Intercepted": "true"},
         }
-        self.trip_log: List[Dict[str, Any]] = []
+        self.trip_log: list[dict[str, Any]] = []
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _detect_via_keywords(self, code_or_description: str) -> Optional[str]:
+    def _detect_via_keywords(self, code_or_description: str) -> str | None:
         """Return the first mutating keyword found, or None."""
         m = _MUTATING_PATTERN.search(code_or_description)
         return m.group(0).upper() if m else None
 
-    def _detect_via_ast(self, source: str) -> Optional[str]:
+    def _detect_via_ast(self, source: str) -> str | None:
         """
         Walk the Python AST looking for function calls or attribute accesses
         whose names imply state mutation (e.g., requests.post, db.delete).
@@ -122,7 +122,7 @@ class SemanticCircuitBreaker:
 
     def execute_with_breaker(
         self, code_or_description: str, live_callable, *args, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Main execution gateway.  If mutating intent is found, bypass the live
         callable entirely and return the synthetic loopback payload.

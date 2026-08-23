@@ -4,16 +4,16 @@ DriftGuard-X v2 — Trace Parentage Tests (4 tests)
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from packages.contracts.src.models import SpanRecord, TraceArtifact
-from packages.trace_sdk.src.tracer import TraceContext, new_trace_id, new_span_id
+from packages.trace_sdk.src.tracer import TraceContext
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @pytest.mark.unit

@@ -6,18 +6,18 @@ These run against SQLite in-memory (no Postgres required).
 """
 from __future__ import annotations
 
-import asyncio
 import os
 
 import pytest
-import pytest_asyncio
-from sqlalchemy import inspect, text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncConnection
+from sqlalchemy import inspect
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import StaticPool
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
-from apps.api.src.models import Base, TenantORM, RequestRunORM, TraceArtifactORM
+from datetime import UTC
+
+from apps.api.src.models import Base, TenantORM
 
 
 @pytest.mark.asyncio
@@ -58,8 +58,9 @@ async def test_tables_created_match_orm_models() -> None:
 async def test_tenant_insert_and_select() -> None:
     """Tenant ORM CRUD round-trip."""
     import uuid
-    from datetime import datetime, timezone
-    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+    from datetime import datetime
+
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
@@ -77,8 +78,8 @@ async def test_tenant_insert_and_select() -> None:
             name="Test Tenant",
             slug="test-tenant",
             is_active=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         session.add(tenant)
         await session.commit()

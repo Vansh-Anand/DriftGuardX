@@ -2,12 +2,11 @@
 DriftGuard-X v2 — Diffusion Models Software and Mathematical Contract
 PRIVATE — All Rights Reserved.
 """
-from typing import Any, Dict, List, Optional
-from uuid import UUID
-from pydantic import Field, BaseModel
+from pydantic import Field
 
-from packages.contracts.src.models import DGXBaseModel
 from packages.contracts.src.graph import EdgeType, NodeType
+from packages.contracts.src.models import DGXBaseModel
+
 
 class NodeState(DGXBaseModel):
     """
@@ -38,15 +37,15 @@ class DiffusionInput(DGXBaseModel):
     """
     Normalized graph features input for the diffusion models.
     """
-    nodes: List[NodeState]
-    edges: List[EdgeFeatures]
+    nodes: list[NodeState]
+    edges: list[EdgeFeatures]
 
 class NodeExplanation(DGXBaseModel):
     """
     Node-level interpretability metadata.
     """
-    top_influential_edges: List[str] = Field(default_factory=list)  # IDs of incoming edges with high attention
-    top_contributing_neighbors: List[str] = Field(default_factory=list)
+    top_influential_edges: list[str] = Field(default_factory=list)  # IDs of incoming edges with high attention
+    top_contributing_neighbors: list[str] = Field(default_factory=list)
     propagation_depth: int = 0
     delta_from_local: float = 0.0
 
@@ -62,8 +61,8 @@ class DiffusionOutput(DGXBaseModel):
 
 class GraphDiffusionResult(DGXBaseModel):
     model_version: str
-    node_outputs: Dict[str, DiffusionOutput]
-    
+    node_outputs: dict[str, DiffusionOutput]
+
     # Mathematical hyperparams used
     num_steps: int
     aggregation_method: str

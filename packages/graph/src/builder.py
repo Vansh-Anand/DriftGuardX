@@ -2,10 +2,7 @@
 DriftGuard-X v2 — Causal Graph Builder
 PRIVATE — All Rights Reserved.
 """
-import json
-from collections import defaultdict
-from typing import Dict, List, Optional, Set
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from packages.contracts.src.graph import CausalGraph, EdgeType, GraphEdge, GraphNode, NodeType
 from packages.contracts.src.models import SpanRecord, TraceArtifact
@@ -18,7 +15,7 @@ class GraphBuilder:
     """
     Constructs a deterministic causal reliability graph from a normalized trace.
     """
-    
+
     def __init__(self, version_registry: VersionRegistry):
         self.registry = version_registry
 
@@ -27,26 +24,26 @@ class GraphBuilder:
         Map a trace to a Causal Graph.
         Every span becomes an execution event node, and connects to version nodes.
         """
-        nodes: Dict[str, GraphNode] = {}
-        edges: List[GraphEdge] = []
-        
+        nodes: dict[str, GraphNode] = {}
+        edges: list[GraphEdge] = []
+
         # We will parse the trace spans and construct the DAG
-        spans: List[SpanRecord] = trace.spans
-        
+        spans: list[SpanRecord] = trace.spans
+
         # 1. First Pass: Create nodes for all spans (Execution Event Nodes)
         for span in spans:
             node_type = self._map_component_to_node_type(span.component_type)
-            
+
             node_id = f"event:{span.span_id}"
             version_id = str(span.component_version_id) if span.component_version_id else None
-            
+
             # Fetch version features if available
             features = {}
             if version_id:
                 version_record = await self.registry.get_version(trace.tenant_id, UUID(version_id))
                 if version_record:
                     features["state"] = version_record.state.value
-                    
+
             if span.latency_ms is not None:
                 features["latency_ms"] = span.latency_ms
 
@@ -75,7 +72,7 @@ class GraphBuilder:
                         features=features
                     )
                     nodes[comp_node_id] = comp_node
-                
+
                 # Connect execution event -> version node
                 edges.append(GraphEdge(
                     id=f"{node_id}->{comp_node_id}",
@@ -100,7 +97,7 @@ class GraphBuilder:
                     type=EdgeType.CONTROL_FLOW,
                     label="calls"
                 ))
-            
+
             # If there's an evidence citation or memory influence in attributes, extract it
             attrs = span.attributes or {}
             if "dgx.memory.referenced" in attrs:
@@ -119,11 +116,11 @@ class GraphBuilder:
                         type=NodeType.MEMORY,
                         label="Memory Store",
                     )
-                    
+
             if "dgx.agent.message_to" in attrs:
                 target_agent_id = attrs["dgx.agent.message_to"]
                 target_node_id = f"agent:{target_agent_id}"
-                
+
                 edges.append(GraphEdge(
                     id=f"{node_id}->{target_node_id}",
                     source=node_id,
@@ -138,7 +135,7 @@ class GraphBuilder:
                         type=NodeType.AGENT,
                         label=f"Agent ({target_agent_id})",
                     )
-        
+
         # Build the final graph object
         graph = CausalGraph(
             tenant_id=trace.tenant_id,
@@ -150,10 +147,10 @@ class GraphBuilder:
         )
         return graph
 
-    def _map_component_to_node_type(self, component_type: Optional[str]) -> NodeType:
+    def _map_component_to_node_type(self, component_type: str | None) -> NodeType:
         if not component_type:
             return NodeType.OPERATIONAL_RESOURCE
-            
+
         mapping = {
             "retriever": NodeType.RETRIEVER,
             "generator": NodeType.MODEL,

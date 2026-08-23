@@ -2,26 +2,24 @@
 DriftGuard-X v2 — Fault Injection Laboratory
 PRIVATE — All Rights Reserved.
 """
-from typing import Any, Callable, Dict, List, Optional
-from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class FaultRecipe(BaseModel):
     id: str
     name: str
     description: str
-    preconditions: List[str]
+    preconditions: list[str]
     affected_component_type: str
     primary_root_cause: str
-    expected_symptoms: List[str]
-    safe_alternatives: List[str]
+    expected_symptoms: list[str]
+    safe_alternatives: list[str]
     risk_tier: str  # e.g., low, medium, high
     cleanup_action: str
 
 
-def get_all_fault_recipes() -> List[FaultRecipe]:
+def get_all_fault_recipes() -> list[FaultRecipe]:
     return [
         FaultRecipe(
             id="fault_01",
@@ -247,12 +245,12 @@ class FaultInjector:
     Applies fault conditions to deterministic providers for testing replays.
     """
     def __init__(self):
-        self.active_faults: Dict[str, FaultRecipe] = {}
-        
+        self.active_faults: dict[str, FaultRecipe] = {}
+
     def inject(self, recipe_id: str):
         recipes = {r.id: r for r in get_all_fault_recipes()}
         if recipe_id in recipes:
             self.active_faults[recipe_id] = recipes[recipe_id]
-            
+
     def clear(self):
         self.active_faults.clear()

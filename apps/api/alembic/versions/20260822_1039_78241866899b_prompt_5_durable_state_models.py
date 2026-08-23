@@ -7,9 +7,8 @@ Create Date: 2026-08-22 10:39:31.807150
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '78241866899b'
@@ -112,7 +111,7 @@ def upgrade() -> None:
         tables = [
             "jobs", "approval_requests", "recovery_states", "ledger_entries"
         ]
-        
+
         for table in tables:
             op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
             op.execute(f"""

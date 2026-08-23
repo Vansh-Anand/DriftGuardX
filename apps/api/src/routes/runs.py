@@ -9,25 +9,23 @@ POST /v1/runs/{id}/replays — create deterministic replay
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from apps.api.src.dependencies import get_current_tenant, PaginationParams, get_idempotency_key
+
 from apps.api.src.database import get_db
+from apps.api.src.dependencies import PaginationParams, get_current_tenant, get_idempotency_key
 from apps.api.src.models import (
-    AgentPipelineORM,
     InterventionORM,
     ReplayEpisodeORM,
     ReplayStateManifestORM,
     RequestRunORM,
     SpanRecordORM,
-    TenantORM,
     TraceArtifactORM,
 )
 from apps.api.src.pipeline.mock_rag import (
-    DEMO_TENANT_ID,
     PIPELINE_WITH_EXPERIMENTAL_RETRIEVER,
     PIPELINE_WITH_STABLE_RETRIEVER,
     RETRIEVER_V1,
@@ -283,7 +281,7 @@ async def get_run_trace(
             parent_span_id=s.get("parent_span_id"),
             name=s.get("name", ""),
             kind=s.get("kind", "INTERNAL"),
-            start_time=datetime.fromisoformat(s["start_time"]) if s.get("start_time") else datetime.now(timezone.utc),
+            start_time=datetime.fromisoformat(s["start_time"]) if s.get("start_time") else datetime.now(UTC),
             end_time=datetime.fromisoformat(s["end_time"]) if s.get("end_time") else None,
             status_code=s.get("status_code", "UNSET"),
             component_type=s.get("component_type"),
@@ -357,7 +355,7 @@ async def create_replay(
         raise HTTPException(status_code=404, detail=f"Trace for run {run_id} not found")
 
     # Rebuild trace contract from stored JSON
-    from packages.contracts.src.models import SpanRecord, TraceArtifact, SpanKind
+    from packages.contracts.src.models import SpanKind, SpanRecord, TraceArtifact
 
     spans_data: list[dict] = original_trace_orm.spans_json if isinstance(original_trace_orm.spans_json, list) else []
     span_contracts = []
@@ -465,11 +463,15 @@ async def create_replay(
     manifest_contract = ReplayStateManifest(
         run_id=run_id,
         tenant_id=original_run_orm.tenant_id,
+        original_query_hash="mock-query-hash",
+        corpus_version_id="mock-corpus",
         model_provider="mock-provider",
         model_identifier="mock-model",
         model_config_hash="mock-config-hash",
         prompt_template_hash="mock-prompt-hash",
         retriever_version=to_version.version_tag,
+        retriever_settings={"mock": True},
+        retrieved_chunk_ids=["chunk1"],
         embedding_model_version="mock-embed",
         vector_index_snapshot_id="mock-index",
         tool_schemas_hash="mock-schema-hash",
@@ -485,11 +487,15 @@ async def create_replay(
         id=manifest_contract.id,
         run_id=manifest_contract.run_id,
         tenant_id=manifest_contract.tenant_id,
+        original_query_hash=manifest_contract.original_query_hash,
+        corpus_version_id=manifest_contract.corpus_version_id,
         model_provider=manifest_contract.model_provider,
         model_identifier=manifest_contract.model_identifier,
         model_config_hash=manifest_contract.model_config_hash,
         prompt_template_hash=manifest_contract.prompt_template_hash,
         retriever_version=manifest_contract.retriever_version,
+        retriever_settings=manifest_contract.retriever_settings,
+        retrieved_chunk_ids=manifest_contract.retrieved_chunk_ids,
         embedding_model_version=manifest_contract.embedding_model_version,
         vector_index_snapshot_id=manifest_contract.vector_index_snapshot_id,
         tool_schemas_hash=manifest_contract.tool_schemas_hash,

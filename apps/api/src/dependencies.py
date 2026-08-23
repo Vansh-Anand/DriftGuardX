@@ -5,16 +5,16 @@ PRIVATE — All Rights Reserved.
 Provides dependency injection for Tenant Isolation, RBAC, and Pagination.
 """
 import uuid
-from typing import Optional
 
-from fastapi import Depends, HTTPException, Query, Header, status, Request
+from fastapi import Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from packages.contracts.src.auth import User, Tenant, Role
-from apps.api.src.auth.auth import MOCK_USER, MOCK_TENANT, oauth2_scheme, verify_token
-from apps.api.src.database import get_db
-from apps.api.src.models import UserORM, TenantMembershipORM, TenantORM
+
+from apps.api.src.auth.auth import MOCK_TENANT, MOCK_USER, oauth2_scheme, verify_token
 from apps.api.src.config import settings
+from apps.api.src.database import get_db
+from apps.api.src.models import TenantMembershipORM, TenantORM, UserORM
+from packages.contracts.src.auth import Role, Tenant, User
 
 
 async def get_current_user(
@@ -24,47 +24,47 @@ async def get_current_user(
     """Verifies the JWT and returns the User object."""
     if settings.auth_mode == "mock" and token == "mock-admin-token":
         return MOCK_USER
-        
+
     try:
         payload = verify_token(token)
         sub = payload.get("sub")
         if not sub:
             raise HTTPException(status_code=401, detail="Token missing subject claim")
-            
+
         # Try to find user in DB
         result = await db.execute(select(UserORM).where(UserORM.auth_subject == sub))
         user_orm = result.scalar_one_or_none()
-        
+
         email = payload.get("email", f"{sub}@oidc.unknown")
-        
+
         # JIT Provisioning (or just map for prototype)
         if not user_orm:
             user_orm = UserORM(auth_subject=sub, email=email)
             db.add(user_orm)
             await db.commit()
             await db.refresh(user_orm)
-            
+
         # For prototype simplicity, if we JIT'd the user, we assume they need some roles.
         # In a real app we sync roles from token claims or IdP webhooks.
         roles = [Role(r) for r in payload.get("roles", [])]
         if not roles:
             roles = [Role.VIEWER]
-            
+
         return User(id=user_orm.id, tenant_id=uuid.UUID(int=0), email=email, roles=roles) # tenant_id is placeholder here, resolved next
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid authentication credentials: {str(e)}",
+            detail=f"Invalid authentication credentials: {e!s}",
         )
 
 
 async def get_current_tenant(
     request: Request,
     user: User = Depends(get_current_user),
-    x_tenant_id: Optional[str] = Header(None, description="Explicit Tenant ID"),
+    x_tenant_id: str | None = Header(None, description="Explicit Tenant ID"),
     db: AsyncSession = Depends(get_db)
 ) -> Tenant:
     """Extracts and verifies the tenant for the current user. Crucial for RLS / Isolation."""
@@ -73,13 +73,13 @@ async def get_current_tenant(
         return MOCK_TENANT
 
     if not x_tenant_id:
-        # In a real app we might default to their only tenant, but for security 
+        # In a real app we might default to their only tenant, but for security
         # it's best to require the client to specify.
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="X-Tenant-ID header is required"
         )
-        
+
     try:
         tenant_uuid = uuid.UUID(x_tenant_id)
     except ValueError:
@@ -87,7 +87,7 @@ async def get_current_tenant(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid X-Tenant-ID format"
         )
-        
+
     # Check membership
     result = await db.execute(
         select(TenantMembershipORM, TenantORM)
@@ -103,19 +103,19 @@ async def get_current_tenant(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this tenant or tenant does not exist"
         )
-        
+
     membership, tenant_orm = row
-    
+
     # Optional: set postgres runtime config for RLS
     # This requires an async context manager or engine-level hook, but we can do a local set:
-    await db.execute(f"SET LOCAL app.current_tenant_id = '{str(tenant_uuid)}'")
-    
+    await db.execute(f"SET LOCAL app.current_tenant_id = '{tenant_uuid!s}'")
+
     # Merge roles (user roles + tenant specific roles)
     tenant_roles = [Role(r) for r in membership.roles_json]
     merged_roles = list(set(user.roles + tenant_roles))
     user.roles = merged_roles
     user.tenant_id = tenant_uuid
-    
+
     return Tenant(id=tenant_orm.id, name=tenant_orm.name)
 
 
@@ -144,6 +144,6 @@ class PaginationParams:
 
 
 def get_idempotency_key(
-    x_idempotency_key: Optional[str] = Header(None, description="Idempotency key for safe retries")
-) -> Optional[str]:
+    x_idempotency_key: str | None = Header(None, description="Idempotency key for safe retries")
+) -> str | None:
     return x_idempotency_key

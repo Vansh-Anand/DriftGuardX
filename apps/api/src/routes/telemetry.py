@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import get_db
@@ -17,11 +17,11 @@ router = APIRouter(prefix="/v1/telemetry", tags=["telemetry"])
 @router.get("/quality/{tenant_id}")
 async def get_telemetry_quality(tenant_id: UUID, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     """Retrieve telemetry quality statistics for a given tenant."""
-    
+
     # 1. Total Spans
     total_spans_stmt = select(func.count(SpanRecordORM.id)).where(SpanRecordORM.tenant_id == tenant_id)
     total_spans = await db.scalar(total_spans_stmt) or 0
-    
+
     # 2. Total Traces
     total_traces_stmt = select(func.count(TraceArtifactORM.id)).where(TraceArtifactORM.tenant_id == tenant_id)
     total_traces = await db.scalar(total_traces_stmt) or 0
@@ -32,7 +32,7 @@ async def get_telemetry_quality(tenant_id: UUID, db: AsyncSession = Depends(get_
         SpanRecordORM.component_version_tag.is_(None)
     )
     missing_tags = await db.scalar(missing_tags_stmt) or 0
-    
+
     # 4. Total errors recorded
     errors_stmt = select(func.count(SpanRecordORM.id)).where(
         SpanRecordORM.tenant_id == tenant_id,
@@ -59,7 +59,7 @@ async def search_traces(tenant_id: UUID, limit: int = 50, db: AsyncSession = Dep
     stmt = select(TraceArtifactORM).where(TraceArtifactORM.tenant_id == tenant_id).order_by(TraceArtifactORM.created_at.desc()).limit(limit)
     result = await db.execute(stmt)
     traces = result.scalars().all()
-    
+
     return {
         "results": [
             {

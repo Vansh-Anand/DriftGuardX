@@ -3,9 +3,8 @@ DriftGuard-X v2 — Trace Completeness Scoring
 
 Validates parent-child relationships, expected span presence, and monotonic timestamps.
 """
-from typing import List
 
-from packages.contracts.src.models import TraceArtifact, SpanRecord
+from packages.contracts.src.models import TraceArtifact
 
 
 def calculate_trace_completeness(trace: TraceArtifact) -> float:
@@ -18,7 +17,7 @@ def calculate_trace_completeness(trace: TraceArtifact) -> float:
 
     score = 1.0
     penalties = 0.0
-    
+
     # Check 1: Root span exists
     root_span = trace.get_root_span()
     if not root_span:
@@ -30,7 +29,7 @@ def calculate_trace_completeness(trace: TraceArtifact) -> float:
     for s in trace.spans:
         if s.parent_span_id and s.parent_span_id not in span_ids:
             orphans += 1
-            
+
     if orphans > 0:
         penalties += min(0.3, orphans * 0.1)
 
@@ -39,11 +38,11 @@ def calculate_trace_completeness(trace: TraceArtifact) -> float:
     for s in trace.spans:
         if s.end_time and s.start_time and s.end_time < s.start_time:
             time_inversions += 1
-            
+
         if s.parent_span_id and s.parent_span_id in span_ids:
             # Note: A real implementation would lookup the parent and ensure child start >= parent start
             pass
-            
+
     if time_inversions > 0:
         penalties += min(0.2, time_inversions * 0.1)
 

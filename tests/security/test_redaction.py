@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from packages.trace_sdk.src.tracer import redact_dict, hash_payload
+from packages.trace_sdk.src.tracer import hash_payload, redact_dict
 
 
 @pytest.mark.security

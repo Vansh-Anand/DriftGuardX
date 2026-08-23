@@ -9,10 +9,10 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.src.models import SpanRecordORM, TraceArtifactORM
+from apps.api.src.models import SpanRecordORM
 from apps.api.src.schemas import SpanIngestItem
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class IngestionService:
                     # Idempotent skip or update (we choose skip to prevent tampering)
                     skipped += 1
                     continue
-                
+
                 span_orm = SpanRecordORM(
                     trace_id=item.trace_id,
                     span_id=item.span_id,
@@ -59,28 +59,28 @@ class IngestionService:
                     end_time=item.end_time,
                     status_code="UNSET",
                     attributes_json=item.attributes,
-                    
+
                     # Store these fields if they exist in attributes
                     component_type=item.attributes.get("dgx.component.type"),
                     component_version_tag=item.attributes.get("dgx.component.version_tag"),
                     input_hash=item.attributes.get("dgx.payload.input_hash"),
                     output_hash=item.attributes.get("dgx.payload.output_hash"),
                 )
-                
+
                 # Check for component_version_id
                 cv_id = item.attributes.get("dgx.component.version_id")
                 if cv_id:
                     span_orm.component_version_id = UUID(cv_id)
-                    
+
                 self.db.add(span_orm)
                 ingested += 1
 
-                # We could run completeness checks asynchronously here, 
+                # We could run completeness checks asynchronously here,
                 # but typically that's done via a cron or end-of-run trigger.
 
             except Exception as e:
                 skipped += 1
-                error_msg = f"span {item.span_id}: {type(e).__name__} - {str(e)}"
+                error_msg = f"span {item.span_id}: {type(e).__name__} - {e!s}"
                 logger.error(f"Failed to ingest span: {error_msg}")
                 # Future: Send to Dead-Letter Queue
                 errors.append(error_msg)

@@ -15,15 +15,15 @@ Usage:
 """
 import argparse
 import base64
+import hashlib
 import json
 import sys
-import hashlib
-from typing import Any, Dict
+from typing import Any
 
 # Standalone imports for crypto to avoid pulling in app dependencies
 try:
-    from cryptography.hazmat.primitives.asymmetric import ed25519
     from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric import ed25519
 except ImportError:
     print("Error: 'cryptography' package is required. Install via `pip install cryptography`.")
     sys.exit(1)
@@ -32,14 +32,14 @@ except ImportError:
 DOMAIN_SEPARATOR = "DriftGuardX-Recovery-Cert-V1"
 
 
-def get_canonical_bytes(cert_dict: Dict[str, Any]) -> bytes:
+def get_canonical_bytes(cert_dict: dict[str, Any]) -> bytes:
     """Reconstruct the exact canonical bytes used for signing."""
     # Remove authentication fields
     d = cert_dict.copy()
     d.pop("signature", None)
     d.pop("signer_key_id", None)
     d.pop("signer_pub_key", None)
-    
+
     payload = {
         "domain": DOMAIN_SEPARATOR,
         "version": "1.0",
@@ -70,7 +70,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        with open(args.bundle, 'r') as f:
+        with open(args.bundle) as f:
             bundle = json.load(f)
     except Exception as e:
         print(f"Error loading bundle: {e}")
@@ -88,31 +88,31 @@ def main():
         sys.exit(0)
 
     expected_prev = "GENESIS"
-    
+
     for i, cert in enumerate(certs):
         cert_id = cert.get("cert_id", f"UNKNOWN-{i}")
-        
+
         # 1. Check Linkage
         prev_hash = cert.get("previous_cert_hash")
         if prev_hash != expected_prev:
             print(f"FAIL [{cert_id}]: Chain broken. Expected prev {expected_prev}, got {prev_hash}")
             sys.exit(1)
-            
+
         # 2. Check Cryptographic Integrity
         canonical_bytes = get_canonical_bytes(cert)
         actual_hash = compute_hash(canonical_bytes)
-        
+
         signature = cert.get("signature")
         pub_key = cert.get("signer_pub_key")
-        
+
         if not signature or not pub_key:
             print(f"FAIL [{cert_id}]: Missing signature or public key.")
             sys.exit(1)
-            
+
         if not verify_signature(pub_key, canonical_bytes, signature):
             print(f"FAIL [{cert_id}]: Cryptographic signature invalid.")
             sys.exit(1)
-            
+
         expected_prev = actual_hash
         print(f"PASS [{cert_id}]: Hash {actual_hash[:8]}... Linkage & Signature OK.")
 

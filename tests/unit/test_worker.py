@@ -7,7 +7,6 @@ Uses deterministic mock execution.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 
@@ -16,7 +15,7 @@ from apps.api.src.pipeline.mock_rag import (
     PIPELINE_WITH_STABLE_RETRIEVER,
     MockRAGPipeline,
 )
-from packages.contracts.src.models import RunStatus, ComponentType
+from packages.contracts.src.models import RunStatus
 
 
 @pytest.mark.unit

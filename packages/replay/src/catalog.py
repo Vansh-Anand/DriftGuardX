@@ -2,10 +2,10 @@
 DriftGuard-X v2 — Intervention Catalog
 PRIVATE — All Rights Reserved.
 """
-from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from packages.contracts.src.models import ComponentType, InterventionType
+
 
 class InterventionSchema(BaseModel):
     intervention_type: InterventionType
@@ -13,17 +13,17 @@ class InterventionSchema(BaseModel):
     estimated_cost_usd: float
     risk_tier: str  # low, medium, high, critical
     rollback_strategy: str
-    required_approvals: List[str] = Field(default_factory=list)
-    compatibility_constraints: List[str] = Field(default_factory=list)
+    required_approvals: list[str] = Field(default_factory=list)
+    compatibility_constraints: list[str] = Field(default_factory=list)
 
 
 class InterventionCatalog:
     """
     Catalog of available interventions per component type.
     """
-    
+
     @staticmethod
-    def get_catalog() -> Dict[ComponentType, List[InterventionSchema]]:
+    def get_catalog() -> dict[ComponentType, list[InterventionSchema]]:
         return {
             ComponentType.RETRIEVER: [
                 InterventionSchema(

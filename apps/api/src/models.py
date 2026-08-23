@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
@@ -22,7 +22,6 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
 from sqlalchemy.types import Uuid
 
 # Use JSONB on Postgres, JSON on SQLite
@@ -36,7 +35,7 @@ else:
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Base(DeclarativeBase):
@@ -55,7 +54,7 @@ class TenantORM(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
-    pipelines: Mapped[list["AgentPipelineORM"]] = relationship("AgentPipelineORM", back_populates="tenant")
+    pipelines: Mapped[list[AgentPipelineORM]] = relationship("AgentPipelineORM", back_populates="tenant")
 
     __table_args__ = (
         Index("ix_tenants_slug", "slug"),
@@ -73,7 +72,7 @@ class UserORM(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
-    memberships: Mapped[list["TenantMembershipORM"]] = relationship("TenantMembershipORM", back_populates="user")
+    memberships: Mapped[list[TenantMembershipORM]] = relationship("TenantMembershipORM", back_populates="user")
 
 
 class TenantMembershipORM(Base):
@@ -85,8 +84,8 @@ class TenantMembershipORM(Base):
     roles_json: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    user: Mapped["UserORM"] = relationship("UserORM", back_populates="memberships")
-    tenant: Mapped["TenantORM"] = relationship("TenantORM")
+    user: Mapped[UserORM] = relationship("UserORM", back_populates="memberships")
+    tenant: Mapped[TenantORM] = relationship("TenantORM")
 
     __table_args__ = (
         UniqueConstraint("user_id", "tenant_id", name="uq_tenant_membership"),
@@ -167,8 +166,8 @@ class AgentPipelineORM(Base):
     component_version_ids: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    tenant: Mapped["TenantORM"] = relationship("TenantORM", back_populates="pipelines")
-    runs: Mapped[list["RequestRunORM"]] = relationship("RequestRunORM", back_populates="pipeline")
+    tenant: Mapped[TenantORM] = relationship("TenantORM", back_populates="pipelines")
+    runs: Mapped[list[RequestRunORM]] = relationship("RequestRunORM", back_populates="pipeline")
 
     __table_args__ = (
         Index("ix_agent_pipelines_tenant_id", "tenant_id"),
@@ -210,12 +209,12 @@ class RequestRunORM(Base):
 
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    pipeline: Mapped["AgentPipelineORM"] = relationship("AgentPipelineORM", back_populates="runs")
-    trace: Mapped["TraceArtifactORM | None"] = relationship(
+    pipeline: Mapped[AgentPipelineORM] = relationship("AgentPipelineORM", back_populates="runs")
+    trace: Mapped[TraceArtifactORM | None] = relationship(
         "TraceArtifactORM", back_populates="run", uselist=False,
         foreign_keys="TraceArtifactORM.run_id",
     )
-    replay_episodes: Mapped[list["ReplayEpisodeORM"]] = relationship(
+    replay_episodes: Mapped[list[ReplayEpisodeORM]] = relationship(
         "ReplayEpisodeORM", back_populates="original_run",
         foreign_keys="ReplayEpisodeORM.original_run_id",
     )
@@ -242,7 +241,7 @@ class TraceArtifactORM(Base):
     total_span_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    run: Mapped["RequestRunORM"] = relationship(
+    run: Mapped[RequestRunORM] = relationship(
         "RequestRunORM", back_populates="trace", foreign_keys=[run_id]
     )
 
@@ -362,11 +361,11 @@ class ReplayEpisodeORM(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    original_run: Mapped["RequestRunORM"] = relationship(
+    original_run: Mapped[RequestRunORM] = relationship(
         "RequestRunORM", back_populates="replay_episodes",
         foreign_keys=[original_run_id],
     )
-    manifest: Mapped["ReplayStateManifestORM | None"] = relationship(
+    manifest: Mapped[ReplayStateManifestORM | None] = relationship(
         "ReplayStateManifestORM",
         foreign_keys=[manifest_id],
     )
@@ -386,11 +385,15 @@ class ReplayStateManifestORM(Base):
     run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
+    original_query_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    corpus_version_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     model_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     model_identifier: Mapped[str | None] = mapped_column(String(128), nullable=True)
     model_config_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     prompt_template_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     retriever_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    retriever_settings: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    retrieved_chunk_ids: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
     embedding_model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     vector_index_snapshot_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     tool_schemas_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -493,7 +496,7 @@ class ApprovalRequestORM(Base):
     delegated_approvers: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
     context_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
 
-    decisions: Mapped[list["ApprovalDecisionORM"]] = relationship("ApprovalDecisionORM", back_populates="request")
+    decisions: Mapped[list[ApprovalDecisionORM]] = relationship("ApprovalDecisionORM", back_populates="request")
 
     __table_args__ = (
         Index("ix_approval_requests_tenant_id", "tenant_id"),
@@ -513,7 +516,7 @@ class ApprovalDecisionORM(Base):
     is_break_glass: Mapped[bool] = mapped_column(Boolean, default=False)
     break_glass_justification: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    request: Mapped["ApprovalRequestORM"] = relationship("ApprovalRequestORM", back_populates="decisions")
+    request: Mapped[ApprovalRequestORM] = relationship("ApprovalRequestORM", back_populates="decisions")
 
 
 class RecoveryStateORM(Base):
@@ -564,25 +567,25 @@ class RecoveryCertificateORM(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
-    
+
     # Core cryptographic binding
     original_trace_root_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     intervention_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    
+
     # Metadata and decisions
     measured_resource_budget_and_usage: Mapped[dict] = mapped_column(_JSON_TYPE, nullable=False)
     replay_outcome: Mapped[str] = mapped_column(String(32), nullable=False)
     reliability_delta: Mapped[float] = mapped_column(Float, nullable=False)
-    
+
     policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
     policy_decision: Mapped[str] = mapped_column(String(32), nullable=False)
     approval_decision_set: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
-    
+
     canary_result_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     recovery_capsule_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     executor_image_digest: Mapped[str] = mapped_column(String(128), nullable=False)
-    
+
     # Attestation
     signer_identity: Mapped[str] = mapped_column(String(128), nullable=False)
     signature_b64: Mapped[str] = mapped_column(Text, nullable=False)

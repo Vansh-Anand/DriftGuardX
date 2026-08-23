@@ -7,8 +7,8 @@ import asyncio
 from uuid import uuid4
 
 from packages.contracts.src.models import ComponentType
-from packages.trace_sdk.src.tracer import TraceContext, PrivacyMode
 from packages.trace_sdk.src.adapters.agent import AgentInstrumentor
+from packages.trace_sdk.src.tracer import PrivacyMode, TraceContext
 
 tenant_id = uuid4()
 pipeline_id = uuid4()
@@ -18,7 +18,7 @@ async def run_simulated_agent():
     run_id = uuid4()
     ctx = TraceContext(tenant_id=tenant_id, pipeline_id=pipeline_id, run_id=run_id)
     instrumentor = AgentInstrumentor(ctx)
-    
+
     # 1. Retrieval Span
     builder = instrumentor.start_span("retrieve_docs", ComponentType.RETRIEVER, str(uuid4()), "v1")
     builder.set_input({"query": "What is the capital of France?"})
@@ -28,7 +28,7 @@ async def run_simulated_agent():
     # Simulate data residency
     builder.finish(data_residency_label="EU-WEST-1", privacy_mode=PrivacyMode.REDACTED_CONTENT)
     instrumentor.record(builder)
-    
+
     # 2. Tool Call Span (Simulated with PII)
     builder = instrumentor.start_span("fetch_user_data", ComponentType.TOOL_CALL, str(uuid4()), "v1")
     builder.set_input({"user_id": 123})
@@ -37,7 +37,7 @@ async def run_simulated_agent():
     builder.set_output({"email": "test.user@example.com", "phone": "555-123-4567"})
     builder.finish(privacy_mode=PrivacyMode.REDACTED_CONTENT)
     instrumentor.record(builder)
-    
+
     # 3. Generator Span
     builder = instrumentor.start_span("generate_response", ComponentType.GENERATOR, str(uuid4()), "v2-exp")
     builder.set_input([

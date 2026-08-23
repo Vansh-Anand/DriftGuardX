@@ -3,11 +3,10 @@ DriftGuard-X v2 — LangGraph Adapter
 
 Callback handler to automatically instrument LangGraph node and edge transitions.
 """
-from typing import Any, Dict, List, Optional
-from uuid import UUID
+from typing import Any
 
 from packages.contracts.src.models import ComponentType, SpanKind
-from packages.trace_sdk.src.tracer import TraceContext, SpanBuilder
+from packages.trace_sdk.src.tracer import SpanBuilder, TraceContext
 
 
 class LangGraphTracer:
@@ -18,7 +17,7 @@ class LangGraphTracer:
     def __init__(self, trace_ctx: TraceContext, component_versions: dict[str, dict]):
         self.trace_ctx = trace_ctx
         self.component_versions = component_versions
-        self.active_spans: Dict[str, SpanBuilder] = {}
+        self.active_spans: dict[str, SpanBuilder] = {}
 
     def on_node_start(self, node_name: str, input_state: Any, **kwargs: Any) -> None:
         """Triggered when a LangGraph node starts processing."""
@@ -29,13 +28,13 @@ class LangGraphTracer:
             comp_type = ComponentType(comp_type_str)
         except ValueError:
             comp_type = ComponentType.GENERATOR
-            
+
         version_info = self.component_versions.get(node_name, {"id": None, "tag": "v1"})
-        
+
         builder = self.trace_ctx.start_span(node_name, kind=SpanKind.INTERNAL)
         if version_info.get("id"):
             builder.set_component(comp_type, version_info["id"], version_info["tag"])
-            
+
         builder.set_input(input_state)
         self.active_spans[node_name] = builder
 

@@ -1,5 +1,6 @@
+
 from pydantic import BaseModel
-from typing import Optional, List
+
 
 class ExperimentConfig(BaseModel):
     experiment_name: str
@@ -9,7 +10,7 @@ class ExperimentConfig(BaseModel):
     deterministic_seed: int = 42
     budget_cap_usd: float = 10.0
     concurrency_limit: int = 4
-    
+
 class DetectorConfig(ExperimentConfig):
     mode: str = "detector-only"
 

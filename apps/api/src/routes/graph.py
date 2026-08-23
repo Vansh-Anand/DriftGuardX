@@ -2,7 +2,6 @@
 DriftGuard-X v2 — Graph API Routes
 PRIVATE — All Rights Reserved.
 """
-import json
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -25,10 +24,10 @@ async def get_graph_snapshot(tenant_id: UUID, run_id: UUID, db: AsyncSession = D
     )
     result = await db.execute(stmt)
     snapshot = result.scalar_one_or_none()
-    
+
     if not snapshot:
         raise HTTPException(status_code=404, detail="Graph not found")
-        
+
     return CausalGraph(
         tenant_id=UUID(snapshot.tenant_id),
         run_id=UUID(snapshot.run_id),
@@ -50,10 +49,10 @@ async def get_descendants(tenant_id: UUID, node_id: str, depth: int = 5, db: Asy
     stmt = select(GraphEdgeORM).where(
         GraphEdgeORM.source_id == node_id
     ).limit(100)
-    
+
     result = await db.execute(stmt)
     edges = result.scalars().all()
-    
+
     return {
         "node_id": node_id,
         "descendants": [

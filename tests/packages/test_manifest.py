@@ -1,7 +1,7 @@
-import pytest
 import uuid
-import json
+
 from packages.contracts.src.models import ReplayStateManifest
+
 
 def get_base_manifest():
     return ReplayStateManifest(
@@ -39,26 +39,26 @@ def test_manifest_missing_dependency():
 def test_manifest_hash_changes_on_prompt_change():
     m1 = get_base_manifest()
     m1.prompt_template_hash = "hash_1"
-    
+
     m2 = get_base_manifest()
     m2.prompt_template_hash = "hash_2"
-    
+
     assert m1.compute_hash() != m2.compute_hash()
 
 def test_manifest_hash_changes_on_index_change():
     m1 = get_base_manifest()
     m1.vector_index_snapshot_id = "v1"
-    
+
     m2 = get_base_manifest()
     m2.vector_index_snapshot_id = "v2"
-    
+
     assert m1.compute_hash() != m2.compute_hash()
 
 def test_manifest_hash_changes_on_retriever_settings_change():
     m1 = get_base_manifest()
     m1.retriever_settings = {"top_k": 5}
-    
+
     m2 = get_base_manifest()
     m2.retriever_settings = {"top_k": 10}
-    
+
     assert m1.compute_hash() != m2.compute_hash()

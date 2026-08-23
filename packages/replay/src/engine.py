@@ -13,22 +13,18 @@ PRIVATE — All Rights Reserved.
 """
 from __future__ import annotations
 
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
-    ComponentVersionState,
     Intervention,
-    InterventionType,
     ReplayEpisode,
     ReplayStateManifest,
     ReplayStatus,
     RequestRun,
-    RunStatus,
     SpanRecord,
     TraceArtifact,
 )
@@ -38,7 +34,6 @@ from packages.evaluation.src.reliability import (
     compute_reliability_vector,
 )
 from packages.trace_sdk.src.tracer import TraceContext, hash_payload
-
 
 # ─── Version Registry ─────────────────────────────────────────────────────────
 
@@ -153,9 +148,22 @@ class MockMemoryReadV1(ComponentExecutor):
         partition_id = inputs.get("partition_id", "default_partition")
         requester_role = inputs.get("requester_role", "agent")
         tenant_id = inputs.get("tenant_id", "default_tenant")
-        from packages.memory.src.store import global_provenance_store
-        
-        entries = global_provenance_store.read(partition_id, tenant_id=tenant_id, requester_role=requester_role)
+        from datetime import datetime, timedelta
+
+        from packages.memory.src.auth import AccessContext
+        from packages.memory.src.store import QuarantineViolationError, global_provenance_store
+
+        context = AccessContext(
+            tenant_id=str(tenant_id),
+            requester_id=str(requester_role),
+            expires_at=datetime.now(UTC) + timedelta(minutes=5)
+        )
+        try:
+            entries = global_provenance_store.read(partition_id, context=context)
+        except QuarantineViolationError:
+            raise
+        except Exception:
+            entries = []
         return {"memory_entries": entries, "memory_read_version": version.version_tag}
 
 
@@ -282,7 +290,7 @@ class ReplayEngine:
             current_inputs["tenant_id"] = str(tenant_id)
         if "partition_id" not in current_inputs:
             current_inputs["partition_id"] = f"{tenant_id}_{replay_id}"
-            
+
         all_spans: list[SpanRecord] = []
         root_span_id: str | None = None
 
@@ -311,19 +319,19 @@ class ReplayEngine:
             executor = get_executor(component_type, cv.version_tag)
 
             # Time and execute with strict timeout enforcement
-            start = datetime.now(timezone.utc)
+            start = datetime.now(UTC)
             try:
                 import concurrent.futures
-                
+
                 # Execute with a strict 30-second bounded timeout to prevent Replay DoS
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tp:
                     future = tp.submit(executor.execute, current_inputs, version=cv, seed=seed)
                     output = future.result(timeout=30.0)
-                    
+
                 # Enforce payload size limit (e.g., 5MB roughly 5_000_000 chars of string repr)
                 if len(str(output)) > 5_000_000:
                     raise MemoryError("Component output exceeded resource bounds")
-                    
+
                 error_type = None
                 error_msg = None
             except concurrent.futures.TimeoutError:
@@ -335,7 +343,7 @@ class ReplayEngine:
                 error_type = type(e).__name__
                 error_msg = str(e)
             finally:
-                end = datetime.now(timezone.utc)
+                end = datetime.now(UTC)
 
             # Build span
             builder = ctx.start_span(
@@ -374,7 +382,7 @@ class ReplayEngine:
             current_inputs = {**current_inputs, **output}
 
         # Finish root span
-        root_builder._end_time = datetime.now(timezone.utc)
+        root_builder._end_time = datetime.now(UTC)
         root_builder._latency_ms = (
             (root_builder._end_time - root_builder._start_time).total_seconds() * 1000
         )
@@ -420,7 +428,7 @@ class ReplayEngine:
             original_request_hash=original_run.request_hash,
             replay_response_hash=hash_payload(current_inputs.get("final_response", "")),
             seed=seed,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
             is_synthetic=original_run.is_synthetic,
             status=ReplayStatus.COMPLETED,
             manifest_id=manifest.id,

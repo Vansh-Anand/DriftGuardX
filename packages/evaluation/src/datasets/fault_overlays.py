@@ -1,6 +1,7 @@
 import random
-from typing import List, Dict, Any
+
 from packages.contracts.src.models import ReplayEpisode
+
 
 class FaultOverlay:
     """
@@ -11,7 +12,7 @@ class FaultOverlay:
         self.drift_severity = drift_severity
         random.seed(self.seed)
 
-    def apply_overlay(self, episodes: List[ReplayEpisode]) -> List[ReplayEpisode]:
+    def apply_overlay(self, episodes: list[ReplayEpisode]) -> list[ReplayEpisode]:
         # Perturbs the original benchmark data (e.g. dropping metrics or adding noise)
         drifted = []
         for ep in episodes:

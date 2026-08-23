@@ -13,9 +13,8 @@ PRIVATE — All Rights Reserved.
 from __future__ import annotations
 
 import hashlib
-import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from packages.contracts.src.models import (
@@ -44,8 +43,7 @@ from packages.replay.src.engine import (
     MockRetrieverV2Experimental,
     MockToolCallV1,
 )
-from packages.trace_sdk.src.tracer import TraceContext, hash_payload, new_span_id
-
+from packages.trace_sdk.src.tracer import TraceContext, hash_payload
 
 # ─── Registered Component Versions ────────────────────────────────────────────
 
@@ -248,7 +246,7 @@ class MockRAGPipeline:
         }
         request_hash = hash_payload(request_inputs)
 
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
         all_spans: list[SpanRecord] = []
 
         # Root span
@@ -277,7 +275,7 @@ class MockRAGPipeline:
             builder.set_component(component_type, cv.id, cv.version_tag)
             builder.set_input(current_inputs)
 
-            start = datetime.now(timezone.utc)
+            start = datetime.now(UTC)
             try:
                 output = executor.execute(current_inputs, version=cv, seed=seed)
                 builder._status_code = "OK"
@@ -288,7 +286,7 @@ class MockRAGPipeline:
                 error_message = str(e)
                 builder.set_error(error_type, error_message)
 
-            builder._end_time = datetime.now(timezone.utc)
+            builder._end_time = datetime.now(UTC)
             builder._latency_ms = (builder._end_time - start).total_seconds() * 1000
             builder._start_time = start
 
@@ -311,7 +309,7 @@ class MockRAGPipeline:
             current_inputs = {**current_inputs, **output}
 
         # Finish root span
-        root_builder._end_time = datetime.now(timezone.utc)
+        root_builder._end_time = datetime.now(UTC)
         root_builder._latency_ms = (
             (root_builder._end_time - root_builder._start_time).total_seconds() * 1000
         )
@@ -319,7 +317,7 @@ class MockRAGPipeline:
         root_span = root_builder.build()
         all_spans.insert(0, root_span)
 
-        completed_at = datetime.now(timezone.utc)
+        completed_at = datetime.now(UTC)
         total_latency = (completed_at - started_at).total_seconds() * 1000
 
         # Build trace

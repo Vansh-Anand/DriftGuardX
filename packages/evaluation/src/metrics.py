@@ -2,8 +2,8 @@
 DriftGuard-X v2 — Reliability Metrics
 PRIVATE — All Rights Reserved.
 """
-from typing import Optional
 from pydantic import BaseModel, Field
+
 
 class ReliabilityVector(BaseModel):
     """
@@ -16,16 +16,17 @@ class ReliabilityVector(BaseModel):
     tool_validity: float = Field(default=0.0, ge=0.0, le=1.0)
     memory_safety: float = Field(default=0.0, ge=0.0, le=1.0)
     policy_compliance: float = Field(default=1.0, ge=0.0, le=1.0)  # 1.0 = compliant
-    
+
     latency_ms: float = Field(default=0.0, ge=0.0)
     cost_usd: float = Field(default=0.0, ge=0.0)
     operational_errors: int = Field(default=0, ge=0)
-    
+
     # Store evaluator settings for transparency
     evaluator_versions: dict[str, str] = Field(default_factory=dict)
     confidence_labels: dict[str, str] = Field(default_factory=dict)
 
 import numpy as np
+
 
 class DeterministicMetricsEngine:
     @staticmethod
@@ -65,21 +66,21 @@ class DeterministicMetricsEngine:
         # Binary comparison if single prediction
         if not predictions or not ground_truths:
             return {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
-        
+
         # Exact match for top-1
         top_1_acc = 1.0 if predictions[0] == ground_truths[0] else 0.0
-        
+
         # Set based precision/recall for all
         pred_set = set(predictions)
         gt_set = set(ground_truths)
         tp = len(pred_set.intersection(gt_set))
         fp = len(pred_set - gt_set)
         fn = len(gt_set - pred_set)
-        
+
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-        
+
         return {
             "accuracy": top_1_acc,
             "precision": precision,
@@ -93,7 +94,7 @@ class DeterministicMetricsEngine:
         import scipy.stats as stats
         if not metrics or len(metrics) < 2:
             return 0.0, 0.0
-            
+
         a = 1.0 * np.array(metrics)
         m, se = np.mean(a), stats.sem(a)
         h = se * stats.t.ppf((1 + confidence) / 2., len(a)-1)

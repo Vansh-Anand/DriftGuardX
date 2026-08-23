@@ -13,15 +13,15 @@ class RetrievalDriftDetector(DriftDetector):
         return "retrieval_drift_detector"
 
     def evaluate(
-        self, 
-        trace_or_span: Any, 
+        self,
+        trace_or_span: Any,
         thresholds: dict[str, Any] | None = None,
         **kwargs: Any
     ) -> list[DetectorOutput]:
         from packages.detectors.src.baselines import check_threshold
         thresholds = thresholds or {}
         outputs = []
-        
+
         def _check(feature: str, val: float, default_t: float, default_op: str) -> bool:
             t = thresholds.get(feature)
             if t:
@@ -40,7 +40,7 @@ class RetrievalDriftDetector(DriftDetector):
                 evidence={"overlap": overlap_score}
             )
         )
-        
+
         ks_p_value = kwargs.get("score_distribution_ks_p_value", 1.0)
         is_anom = _check("score_distribution_shift", ks_p_value, 0.05, "<")
         outputs.append(
@@ -53,7 +53,7 @@ class RetrievalDriftDetector(DriftDetector):
                 evidence={"ks_p_value": ks_p_value}
             )
         )
-        
+
         doc_age_days = kwargs.get("avg_doc_age_days", 10.0)
         is_anom = _check("document_freshness", doc_age_days, 180, ">")
         outputs.append(
@@ -66,7 +66,7 @@ class RetrievalDriftDetector(DriftDetector):
                 evidence={"avg_doc_age_days": doc_age_days}
             )
         )
-        
+
         stale_evidence = kwargs.get("stale_evidence_ratio", 0.0)
         is_anom = _check("stale_evidence_exposure", stale_evidence, 0.2, ">")
         outputs.append(
@@ -79,7 +79,7 @@ class RetrievalDriftDetector(DriftDetector):
                 evidence={"stale_evidence_ratio": stale_evidence}
             )
         )
-        
+
         citation_support = kwargs.get("citation_support_ratio", 1.0)
         is_anom = _check("citation_support", citation_support, 0.8, "<")
         outputs.append(

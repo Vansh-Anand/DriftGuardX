@@ -5,12 +5,13 @@ PRIVATE — All Rights Reserved.
 Defines schemas for Identity, Tenant, and RBAC models.
 """
 import enum
-from typing import List
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import Field
+
 from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow
-from datetime import datetime
+
 
 class Role(str, enum.Enum):
     ADMIN = "admin"
@@ -29,7 +30,7 @@ class User(DGXBaseModel):
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     email: str
-    roles: List[Role]
+    roles: list[Role]
     created_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -37,7 +38,7 @@ class APIKey(DGXBaseModel):
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     key_hash: str
-    scopes: List[str]
+    scopes: list[str]
     created_at: datetime = Field(default_factory=_utcnow)
 
 

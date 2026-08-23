@@ -4,17 +4,17 @@ PRIVATE — All Rights Reserved.
 
 Provides OIDC JWKS token validation for production and mock tokens for local testing.
 """
-import urllib.request
 import json
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+import urllib.request
+from typing import Any
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+
 from apps.api.src.config import settings
-from packages.contracts.src.auth import User, Role, Tenant
+from packages.contracts.src.auth import Role, Tenant, User
 
 # ─── Mock Identity ─────────────────────────────────────────────────────────────
 MOCK_USER_ID = UUID("00000000-0000-0000-0000-000000000000")
@@ -28,7 +28,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # JWKS Cache
 _JWKS_CLIENT = None
 
-def get_jwks() -> Dict[str, Any]:
+def get_jwks() -> dict[str, Any]:
     global _JWKS_CLIENT
     if not _JWKS_CLIENT and settings.oidc_jwks_uri:
         with urllib.request.urlopen(settings.oidc_jwks_uri) as response:
@@ -42,7 +42,7 @@ def verify_token(token: str) -> dict:
         # Accept the mock token literally
         if token == "mock-admin-token":
             return {"sub": str(MOCK_USER_ID), "email": MOCK_USER.email, "roles": ["ADMIN"]}
-        
+
         # Or decode assuming mock secret if provided
         try:
             payload = jwt.decode(token, "mock_secret_key_for_development", algorithms=["HS256"])
@@ -53,12 +53,12 @@ def verify_token(token: str) -> dict:
                 detail="Could not validate mock credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-            
+
     # OIDC Mode
     try:
         jwks = get_jwks()
         unverified_header = jwt.get_unverified_header(token)
-        
+
         rsa_key = {}
         for key in jwks.get("keys", []):
             if key["kid"] == unverified_header["kid"]:
@@ -70,7 +70,7 @@ def verify_token(token: str) -> dict:
                     "e": key["e"]
                 }
                 break
-                
+
         if rsa_key:
             payload = jwt.decode(
                 token,
@@ -80,20 +80,20 @@ def verify_token(token: str) -> dict:
                 issuer=settings.oidc_issuer
             )
             return payload
-            
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unable to find appropriate key",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
+
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not validate credentials: {str(e)}",
+            detail=f"Could not validate credentials: {e!s}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",

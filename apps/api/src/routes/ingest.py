@@ -5,14 +5,10 @@ POST /v1/ingest/spans — OpenTelemetry-compatible span ingestion
 """
 from __future__ import annotations
 
-import uuid
-from datetime import timezone
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import get_db
-from apps.api.src.models import SpanRecordORM
 from apps.api.src.schemas import SpanIngestRequest, SpanIngestResponse
 from apps.api.src.services.ingestion import IngestionService
 

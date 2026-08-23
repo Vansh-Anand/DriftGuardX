@@ -1,3 +1,5 @@
+import uuid
+
 """
 DriftGuard-X v2 — Recovery E2E and Failure Injection Tests
 PRIVATE — All Rights Reserved.
@@ -16,31 +18,62 @@ Covers all acceptance gates:
   [SM] Illegal state transition raises InvalidTransitionError.
   [CAPSULE] Capsule integrity checked before use.
 """
-from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from datetime import datetime, timezone, timedelta
 
+from packages.contracts.src.models import RecoveryEligibilityCertificate
 from packages.recovery.src.actions import (
-    RecoveryActionType, RecoveryProposal, ExecutionMode,
-)
-from packages.recovery.src.capsule import (
-    CapsuleRegistry, RollbackCapsule, CompatibilityConstraint, CapsuleStatus,
-)
-from packages.recovery.src.executor import (
-    LocalDevExecutor, IdempotencyConflictError, StaleVersionError,
-    ActionNotAllowedError, ParamValidationError,
-)
-from packages.recovery.src.state_machine import (
-    RecoveryStateMachine, RecoveryStatus, InvalidTransitionError,
+    ExecutionMode,
+    RecoveryActionType,
+    RecoveryProposal,
 )
 from packages.recovery.src.canary import (
-    CanaryEpisode, CanaryThresholds, run_canary_verification,
+    CanaryEpisode,
+    run_canary_verification,
+)
+from packages.recovery.src.capsule import (
+    CapsuleRegistry,
+    CapsuleStatus,
+    RollbackCapsule,
 )
 from packages.recovery.src.engine import RecoveryEngine
+from packages.recovery.src.executor import (
+    IdempotencyConflictError,
+    LocalDevExecutor,
+    ParamValidationError,
+    StaleVersionError,
+)
+from packages.recovery.src.state_machine import (
+    InvalidTransitionError,
+    RecoveryStateMachine,
+    RecoveryStatus,
+)
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+def _mock_cert():
+    return RecoveryEligibilityCertificate(
+        original_trace_root_hash="mock_hash",
+        manifest_hash="mock_hash",
+        intervention_hash="mock_hash",
+        measured_resource_budget_and_usage={},
+        replay_outcome="mock_outcome",
+        reliability_delta=0.0,
+        policy_version="v1",
+        policy_decision="allow",
+        approval_decision_set=[],
+        canary_result_hash="mock_hash",
+        recovery_capsule_hash="mock_hash",
+        executor_image_digest="mock_digest",
+        timestamp=datetime.now(UTC),
+        signer_identity="mock_signer",
+        signature_b64="sig"
+    )
+
+import packages.recovery.src.engine as engine_module
+
+engine_module.verify_signature = lambda *args: True
 
 def _make_executor() -> tuple[LocalDevExecutor, CapsuleRegistry]:
     reg = CapsuleRegistry()
@@ -58,9 +91,9 @@ def _rollback_proposal(
 ) -> RecoveryProposal:
     return RecoveryProposal(
         action_type=action_type,
-        tenant_id="tenant_acme",
+        tenant_id=uuid.uuid4(),
         node_id="pipeline_rag_v2",
-        run_id="run_001",
+        run_id=uuid.uuid4(),
         diagnosis_id="diag_001",
         requester_id="user_alice",
         params=params or {"component_id": "retriever_v2", "new_top_k": 20},
@@ -100,7 +133,7 @@ def test_golden_rollback_full_flow():
     engine = RecoveryEngine(ex, reg)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION)
-    record = engine.run(proposal, _passing_canary())
+    record = engine.run(proposal, _passing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
 
     assert record.machine.current_status == RecoveryStatus.COMMITTED
     assert record.execution_result is not None
@@ -149,7 +182,7 @@ def test_canary_failure_triggers_compensated():
     engine = RecoveryEngine(ex, reg, auto_compensate_on_verify_failure=True)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION)
-    record = engine.run(proposal, _failing_canary())
+    record = engine.run(proposal, _failing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
 
     assert record.machine.current_status == RecoveryStatus.COMPENSATED
     assert record.canary_result.overall_pass is False
@@ -165,7 +198,7 @@ def test_compensation_failure_leads_to_failed_and_escalation():
     engine = RecoveryEngine(ex, reg, auto_compensate_on_verify_failure=True)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION, idem_key="idem_no_cap")
-    record = engine.run(proposal, _failing_canary())
+    record = engine.run(proposal, _failing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
     # After canary failure, capsule lookup returns None only if capsule wasn't stored.
     # We simulate this by voiding the capsule.
     if record.capsule:
@@ -195,11 +228,11 @@ def test_expired_capsule_blocks_rollback():
     expired_cap = RollbackCapsule(
         proposal_id="prop_expired",
         action_type=RecoveryActionType.INCREASE_TOP_K.value,
-        tenant_id="tenant_acme",
+        tenant_id=uuid.uuid4(),
         component_id="retriever_v2",
         previous_state={"component_id": "retriever_v2", "top_k": 10},
         target_state={"new_top_k": 20},
-        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),  # already expired
+        expires_at=datetime.now(UTC) - timedelta(hours=1),  # already expired
     )
     reg.store(expired_cap)
 
@@ -233,9 +266,9 @@ def test_high_tier_action_blocked_by_policy_deny():
 
     proposal = RecoveryProposal(
         action_type=RecoveryActionType.ROLLBACK_COMPONENT,
-        tenant_id="tenant_acme",
+        tenant_id=uuid.uuid4(),
         node_id="pipeline_rag_v2",
-        run_id="run_002",
+        run_id=uuid.uuid4(),
         diagnosis_id="diag_002",
         requester_id="user_alice",
         params={
@@ -246,7 +279,7 @@ def test_high_tier_action_blocked_by_policy_deny():
         execution_mode=ExecutionMode.SIMULATION,
         policy_decision="deny",    # ← denied
     )
-    record = engine.run(proposal, _passing_canary())
+    record = engine.run(proposal, _passing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
     assert record.machine.current_status == RecoveryStatus.FAILED
     assert any("Policy DENY" in e for e in record.escalation_log)
 
@@ -278,7 +311,7 @@ def test_operator_cancellation_before_execution():
     proposal.policy_decision = "needs_approval"   # forces PENDING_APPROVAL
     proposal.approval_request_id = None
 
-    record = engine.run(proposal, [])   # stops at PENDING_APPROVAL
+    record = engine.run(proposal, [], certificate=_mock_cert(), signer_public_key_b64="mock")   # stops at PENDING_APPROVAL
     assert record.machine.current_status == RecoveryStatus.PENDING_APPROVAL
 
     engine.cancel(proposal.proposal_id, actor="operator_bob")

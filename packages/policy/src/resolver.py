@@ -19,8 +19,6 @@ Every call is deterministic: same inputs → same EffectivePolicy.
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-
 from packages.policy.src.hierarchy import (
     EffectivePolicy,
     PolicyLevel,
@@ -28,9 +26,7 @@ from packages.policy.src.hierarchy import (
     PolicyRule,
     RiskTier,
     RuleVerdict,
-    _action_matches,
 )
-
 
 # ─── Precedence ───────────────────────────────────────────────────────────────
 # Lower index = more restrictive = wins when tightening
@@ -72,16 +68,16 @@ class PolicyRegistry:
     """
 
     def __init__(self):
-        self._nodes: Dict[tuple[str, str], PolicyNode] = {}
+        self._nodes: dict[tuple[str, str], PolicyNode] = {}
 
     def register(self, node: PolicyNode) -> None:
         key = (node.tenant_id, node.node_id)
         self._nodes[key] = node
 
-    def get(self, tenant_id: str, node_id: str) -> Optional[PolicyNode]:
+    def get(self, tenant_id: str, node_id: str) -> PolicyNode | None:
         return self._nodes.get((tenant_id, node_id))
 
-    def all_for_tenant(self, tenant_id: str) -> List[PolicyNode]:
+    def all_for_tenant(self, tenant_id: str) -> list[PolicyNode]:
         return [n for (t, _), n in self._nodes.items() if t == tenant_id]
 
 
@@ -107,9 +103,9 @@ class InheritanceResolver:
     def __init__(self, registry: PolicyRegistry):
         self._registry = registry
 
-    def _ancestor_chain(self, tenant_id: str, leaf_node_id: str) -> List[PolicyNode]:
+    def _ancestor_chain(self, tenant_id: str, leaf_node_id: str) -> list[PolicyNode]:
         """Build ancestor chain from org to leaf (inclusive), org first."""
-        chain: List[PolicyNode] = []
+        chain: list[PolicyNode] = []
         node = self._registry.get(tenant_id, leaf_node_id)
         if node is None:
             return []
@@ -140,7 +136,7 @@ class InheritanceResolver:
             # No policy nodes found for this tenant/node → default deny
             return _default_deny(action, tenant_id, node_id)
 
-        matching_rules: List[PolicyRule] = []
+        matching_rules: list[PolicyRule] = []
         for node in chain:
             if not node.is_active:
                 continue
@@ -156,11 +152,11 @@ class InheritanceResolver:
         effective_tier = RiskTier.LOW
         effective_approvers = 0
         effective_two_person = False
-        effective_budget: Optional[float] = None
-        effective_roles: List[str] = []
+        effective_budget: float | None = None
+        effective_roles: list[str] = []
         winning_rule = matching_rules[0]
         conflict_detected = False
-        conflict_description: Optional[str] = None
+        conflict_description: str | None = None
 
         for i, rule in enumerate(matching_rules):
             # ── Verdict tightening ────────────────────────────────────────────

@@ -4,8 +4,7 @@ PRIVATE — All Rights Reserved.
 
 Provides a synchronous and asynchronous client for interacting with the DriftGuard-X API.
 """
-import os
-from typing import Dict, Any, Optional
+from typing import Any
 
 import httpx
 
@@ -22,19 +21,19 @@ class DriftGuardClient:
         }
         self.client = httpx.Client(base_url=self.base_url, headers=self.headers)
 
-    def list_runs(self, skip: int = 0, limit: int = 20) -> Dict[str, Any]:
+    def list_runs(self, skip: int = 0, limit: int = 20) -> dict[str, Any]:
         """List executed runs."""
         response = self.client.get("/runs", params={"skip": skip, "limit": limit})
         response.raise_for_status()
         return response.json()
 
-    def get_run(self, run_id: str) -> Dict[str, Any]:
+    def get_run(self, run_id: str) -> dict[str, Any]:
         """Get details for a specific run."""
         response = self.client.get(f"/runs/{run_id}")
         response.raise_for_status()
         return response.json()
 
-    def create_replay(self, run_id: str, idempotency_key: str) -> Dict[str, Any]:
+    def create_replay(self, run_id: str, idempotency_key: str) -> dict[str, Any]:
         """Create a deterministic replay to test a counterfactual."""
         headers = self.headers.copy()
         headers["x-idempotency-key"] = idempotency_key
@@ -42,7 +41,7 @@ class DriftGuardClient:
         response.raise_for_status()
         return response.json()
 
-    def cancel_job(self, job_id: str) -> Dict[str, Any]:
+    def cancel_job(self, job_id: str) -> dict[str, Any]:
         """Cancel a running background job."""
         response = self.client.post(f"/jobs/{job_id}/cancel")
         response.raise_for_status()
@@ -61,7 +60,7 @@ class AsyncDriftGuardClient:
         }
         self.client = httpx.AsyncClient(base_url=self.base_url, headers=self.headers)
 
-    async def list_runs(self, skip: int = 0, limit: int = 20) -> Dict[str, Any]:
+    async def list_runs(self, skip: int = 0, limit: int = 20) -> dict[str, Any]:
         """List executed runs."""
         response = await self.client.get("/runs", params={"skip": skip, "limit": limit})
         response.raise_for_status()

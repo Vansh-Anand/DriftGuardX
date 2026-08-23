@@ -3,16 +3,15 @@ DriftGuard-X v2 — Resource-Admitted Budget-Constrained Root-Cause Bandit (BCRB
 PRIVATE — All Rights Reserved.
 """
 import math
-from typing import List, Dict, Optional
-from packages.evaluation.src.bandit_baselines import CandidateArm, BaseScheduler
+
 from packages.contracts.src.models import (
-    ParetoReplaySet,
-    ParetoReplayCandidate,
     AdmissibilityScore,
-    RAEBEvaluation,
     ExecutionBudget,
-    ExhaustionReason
+    ParetoReplayCandidate,
+    ParetoReplaySet,
+    RAEBEvaluation,
 )
+from packages.evaluation.src.bandit_baselines import BaseScheduler, CandidateArm
 
 # Confidence multiplier for uncertainty margin (k * sigma)
 _UNCERTAINTY_K = 2.0  # ~95% confidence assuming Gaussian distribution
@@ -29,19 +28,19 @@ class ResourceAdmittedBCRBController(BaseScheduler):
     and a static rollback reserve.
     """
 
-    def __init__(self, total_budget: float, exploration_constant: float = 1.0, execution_budget: Optional[ExecutionBudget] = None, rollback_reserve_ratio: float = 0.1):
+    def __init__(self, total_budget: float, exploration_constant: float = 1.0, execution_budget: ExecutionBudget | None = None, rollback_reserve_ratio: float = 0.1):
         super().__init__(total_budget)
         self.c = exploration_constant
         self.execution_budget = execution_budget
         self.rollback_reserve = total_budget * rollback_reserve_ratio
-        
-        self.rewards: Dict[str, float] = {}
+
+        self.rewards: dict[str, float] = {}
         self.total_pulls = 0
         self.stop_reason = None
-        
+
         # Track actual cost history per arm for uncertainty margin calculation
-        self._cost_history: Dict[str, List[float]] = {}
-        self.shed_log: List[str] = []
+        self._cost_history: dict[str, list[float]] = {}
+        self.shed_log: list[str] = []
 
     # ── Measured Admission Control ────────────────────────────────────────────
 
@@ -61,16 +60,16 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
         n = len(valid_history)
         mean_cost = sum(valid_history) / n
-        
+
         if n < 2:
             return mean_cost, 0.0
-            
+
         variance = sum((x - mean_cost) ** 2 for x in valid_history) / (n - 1)
         std_dev = math.sqrt(variance)
-        
+
         # Uncertainty margin: k * sigma
         uncertainty_margin = _UNCERTAINTY_K * std_dev
-        
+
         return mean_cost, uncertainty_margin
 
     def _violates_admission_rule(self, arm: CandidateArm) -> bool:
@@ -84,14 +83,14 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
     # ── Arm Selection ─────────────────────────────────────────────────────────
 
-    def select_arm(self, arms: List[CandidateArm]) -> Optional[str]:
+    def select_arm(self, arms: list[CandidateArm]) -> str | None:
         # Multi-dimensional exhaustion check
         if self.execution_budget:
             exhaustion = self.execution_budget.check_exhaustion()
             if exhaustion:
                 self.stop_reason = exhaustion.value
                 return None
-                
+
         # Admission Control (reject before queue allocation)
         admitted = []
         for arm in arms:
@@ -101,7 +100,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
                 admitted.append(arm)
 
         if not admitted:
-            self.stop_reason = "Budget Exhausted or All Candidates Failed Admission"
+            self.stop_reason = "Shed: Budget Exhausted or All Candidates Failed Admission"
             return None
 
         best_arm = None
@@ -112,7 +111,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
         for arm in admitted:
             pulls = self.pulls.get(arm.arm_id, 0)
-            
+
             # Use empirical mean cost if available, otherwise prior
             mean_cost, _ = self._get_cost_statistics(arm)
             effective_cost = max(mean_cost, 0.0001)
@@ -133,42 +132,42 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
         return best_arm
 
-    def update(self, arm_id: str, reward: float, actual_cost: float):
+    def update(self, arm_id: str, reward: float, cost: float):
         """Update controller with empirical telemetry."""
         # Handle NaN reward or cost
         if math.isnan(reward):
             reward = 0.0
-        if math.isnan(actual_cost):
-            actual_cost = 0.0  # Fallback to prevent poisoning remaining_budget
-            
-        super().update(arm_id, reward, actual_cost)
-            
+        if math.isnan(cost):
+            cost = 0.0  # Fallback to prevent poisoning remaining_budget
+
+        super().update(arm_id, reward, cost)
+
         self.rewards[arm_id] = self.rewards.get(arm_id, 0.0) + reward
         self.total_pulls += 1
-        
-        if actual_cost > 0.0:  # Only add real costs to history
+
+        if cost > 0.0:  # Only add real costs to history
             if arm_id not in self._cost_history:
                 self._cost_history[arm_id] = []
-            self._cost_history[arm_id].append(actual_cost)
+            self._cost_history[arm_id].append(cost)
 
     def select_pareto_set(
-        self, 
-        arms: List[CandidateArm], 
-        raeb_evaluations: Dict[str, RAEBEvaluation]
+        self,
+        arms: list[CandidateArm],
+        raeb_evaluations: dict[str, RAEBEvaluation]
     ) -> ParetoReplaySet:
-        
+
         admitted = []
         for arm in arms:
             if self._violates_admission_rule(arm):
                 self.shed_log.append(arm.arm_id)
                 continue
-                
+
             eval_data = raeb_evaluations.get(arm.arm_id)
             if not eval_data or eval_data.admissibility == AdmissibilityScore.UNSUPPORTED:
                 continue
-                
+
             admitted.append(arm)
-            
+
         candidates = []
         for arm in admitted:
             eval_data = raeb_evaluations[arm.arm_id]
@@ -183,13 +182,13 @@ class ResourceAdmittedBCRBController(BaseScheduler):
                     is_pareto_optimal=False
                 )
             )
-            
+
         valid_candidates = []
         for c in candidates:
             if math.isnan(c.information_gain) or math.isnan(c.recovery_harm) or math.isnan(c.cost):
                 continue
             valid_candidates.append(c)
-            
+
         pareto_candidates = []
         for i, c1 in enumerate(valid_candidates):
             is_dominated = False
@@ -199,14 +198,14 @@ class ResourceAdmittedBCRBController(BaseScheduler):
                 info_geq = c2.information_gain >= c1.information_gain
                 harm_leq = c2.recovery_harm <= c1.recovery_harm
                 cost_leq = c2.cost <= c1.cost
-                
+
                 info_strict = c2.information_gain > c1.information_gain
                 harm_strict = c2.recovery_harm < c1.recovery_harm
                 cost_strict = c2.cost < c1.cost
-                
+
                 no_worse = info_geq and harm_leq and cost_leq
                 strictly_better = info_strict or harm_strict or cost_strict
-                
+
                 if no_worse and strictly_better:
                     is_dominated = True
                     break
@@ -214,10 +213,10 @@ class ResourceAdmittedBCRBController(BaseScheduler):
                     if c2.arm_id < c1.arm_id:
                         is_dominated = True
                         break
-                    
+
             if not is_dominated:
                 c1.is_pareto_optimal = True
                 pareto_candidates.append(c1)
-                
+
         pareto_candidates.sort(key=lambda x: x.arm_id)
         return ParetoReplaySet(candidates=pareto_candidates)

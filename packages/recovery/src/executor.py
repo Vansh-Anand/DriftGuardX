@@ -24,8 +24,8 @@ from __future__ import annotations
 import abc
 import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Set
+from datetime import UTC, datetime
+from typing import Any
 
 from packages.recovery.src.actions import (
     ACTION_REGISTRY,
@@ -34,11 +34,10 @@ from packages.recovery.src.actions import (
     RecoveryProposal,
 )
 from packages.recovery.src.capsule import (
-    CompatibilityConstraint,
     CapsuleRegistry,
+    CompatibilityConstraint,
     RollbackCapsule,
 )
-
 
 # ─── Result ───────────────────────────────────────────────────────────────────
 
@@ -47,11 +46,11 @@ class ExecutionResult:
     proposal_id: str
     success: bool
     outcome_description: str
-    capsule_id: Optional[str] = None
+    capsule_id: str | None = None
     execution_mode: ExecutionMode = ExecutionMode.DRY_RUN
-    side_effects: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
-    executed_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    side_effects: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+    executed_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ─── Errors ───────────────────────────────────────────────────────────────────
@@ -89,9 +88,9 @@ class RecoveryExecutor(abc.ABC):
 
     def __init__(self, capsule_registry: CapsuleRegistry):
         self._capsule_reg = capsule_registry
-        self._used_idempotency_keys: Set[str] = set()
+        self._used_idempotency_keys: set[str] = set()
         # Local fixture: mock component version state
-        self._live_versions: Dict[str, str] = {}
+        self._live_versions: dict[str, str] = {}
 
     def register_live_version(self, component_id: str, version_id: str) -> None:
         """Register a component's current version (used in tests and dev mode)."""
@@ -204,13 +203,13 @@ class LocalDevExecutor(RecoveryExecutor):
     def __init__(self, capsule_registry: CapsuleRegistry):
         super().__init__(capsule_registry)
         # In-memory fixture state for each action type
-        self._top_k_store: Dict[str, int] = {}
-        self._index_store: Dict[str, str] = {}
-        self._reranker_store: Dict[str, str] = {}
-        self._model_store: Dict[str, str] = {}
-        self._tools_disabled: Set[str] = set()
-        self._quarantined_ns: Set[str] = set()
-        self._prompt_versions: Dict[str, str] = {}
+        self._top_k_store: dict[str, int] = {}
+        self._index_store: dict[str, str] = {}
+        self._reranker_store: dict[str, str] = {}
+        self._model_store: dict[str, str] = {}
+        self._tools_disabled: set[str] = set()
+        self._quarantined_ns: set[str] = set()
+        self._prompt_versions: dict[str, str] = {}
 
     # ── Capsule preparation ───────────────────────────────────────────────────
 
@@ -244,7 +243,7 @@ class LocalDevExecutor(RecoveryExecutor):
             created_by=proposal.requester_id,
         )
 
-    def _snapshot_state(self, proposal: RecoveryProposal) -> Dict[str, Any]:
+    def _snapshot_state(self, proposal: RecoveryProposal) -> dict[str, Any]:
         """Capture current fixture state relevant to this action."""
         t = proposal.action_type
         params = proposal.params
@@ -273,7 +272,7 @@ class LocalDevExecutor(RecoveryExecutor):
             pid = params.get("partition_id", "")
             # Assume not quarantined initially if not tracked, store handles reality
             from packages.memory.src.store import global_provenance_store
-            is_quarantined = pid in global_provenance_store._active_quarantines
+            is_quarantined = global_provenance_store._is_quarantined(pid)
             return {"partition_id": pid, "quarantined": is_quarantined}
         if t == RecoveryActionType.REVERT_PROMPT_VERSION:
             pid = params.get("prompt_id", "")
@@ -365,8 +364,20 @@ class LocalDevExecutor(RecoveryExecutor):
 
             if t == RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION:
                 pid = params["partition_id"]
+                import uuid
+                from datetime import datetime, timedelta
+
+                from packages.memory.src.auth import AccessContext
+                from packages.memory.src.capabilities import (
+                    AuthorizationCapability,
+                    CapabilityVerifier,
+                )
                 from packages.memory.src.store import global_provenance_store
-                global_provenance_store.quarantine_partition(pid)
+                verifier = CapabilityVerifier(b"dgx_secret_key_prod")
+                cap = AuthorizationCapability(capability_id=uuid.uuid4().hex, tenant_id=proposal.tenant_id, action="QUARANTINE", resource=pid, expires_at=datetime.now(UTC)+timedelta(minutes=5))
+                cap = verifier.sign(cap)
+                ctx = AccessContext(requester_id="executor", tenant_id=proposal.tenant_id, expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
+                global_provenance_store.quarantine_partition(pid, context=ctx, reason=f"Quarantined by proposal {proposal.proposal_id}")
                 return ExecutionResult(
                     proposal_id=proposal.proposal_id, success=True,
                     outcome_description=f"Provenance partition {pid!r} quarantined globally.",
@@ -428,8 +439,20 @@ class LocalDevExecutor(RecoveryExecutor):
                     self._quarantined_ns.discard(prev["namespace_id"])
             elif t == RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION.value:
                 if not prev.get("quarantined", False):
+                    import uuid
+                    from datetime import datetime, timedelta
+
+                    from packages.memory.src.auth import AccessContext
+                    from packages.memory.src.capabilities import (
+                        AuthorizationCapability,
+                        CapabilityVerifier,
+                    )
                     from packages.memory.src.store import global_provenance_store
-                    global_provenance_store.unquarantine_partition(prev["partition_id"])
+                    verifier = CapabilityVerifier(b"dgx_secret_key_prod")
+                    cap = AuthorizationCapability(capability_id=uuid.uuid4().hex, tenant_id="system", action="UNQUARANTINE", resource=prev["partition_id"], expires_at=datetime.now(UTC)+timedelta(minutes=5))
+                    cap = verifier.sign(cap)
+                    ctx = AccessContext(requester_id="executor", tenant_id="system", expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
+                    global_provenance_store.unquarantine_partition(prev["partition_id"], context=ctx)
             elif t == RecoveryActionType.REVERT_PROMPT_VERSION.value:
                 self._prompt_versions[prev["prompt_id"]] = prev["version_tag"]
             elif t == RecoveryActionType.ROLLBACK_COMPONENT.value:

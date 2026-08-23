@@ -1,8 +1,9 @@
+
 import numpy as np
-from typing import List, Dict, Tuple
 from scipy import stats
 
-def compute_confidence_intervals(data: List[float], confidence: float = 0.95) -> Tuple[float, float]:
+
+def compute_confidence_intervals(data: list[float], confidence: float = 0.95) -> tuple[float, float]:
     if len(data) == 0:
         return 0.0, 0.0
     a = 1.0 * np.array(data)
@@ -13,7 +14,7 @@ def compute_confidence_intervals(data: List[float], confidence: float = 0.95) ->
     h = se * stats.t.ppf((1 + confidence) / 2., n-1)
     return m - h, m + h
 
-def failure_subset_analysis(raw_predictions: List[Dict]) -> Dict[str, int]:
+def failure_subset_analysis(raw_predictions: list[dict]) -> dict[str, int]:
     """Identifies intersections and breakdown of failures."""
     breakdown = {"retriever": 0, "generator": 0, "tool": 0}
     for pred in raw_predictions:
@@ -27,7 +28,7 @@ def failure_subset_analysis(raw_predictions: List[Dict]) -> Dict[str, int]:
                 breakdown["generator"] += 1
     return breakdown
 
-def paired_bootstrap_interval(data_a: List[float], data_b: List[float], n_bootstraps: int = 10000, alpha: float = 0.05) -> Tuple[float, float]:
+def paired_bootstrap_interval(data_a: list[float], data_b: list[float], n_bootstraps: int = 10000, alpha: float = 0.05) -> tuple[float, float]:
     """Computes a paired bootstrap confidence interval for the mean difference (A - B)."""
     assert len(data_a) == len(data_b), "Data must be paired"
     diffs = np.array(data_a) - np.array(data_b)
@@ -40,12 +41,12 @@ def paired_bootstrap_interval(data_a: List[float], data_b: List[float], n_bootst
     upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
     return float(lower), float(upper)
 
-def permutation_test(data_a: List[float], data_b: List[float], n_permutations: int = 10000) -> float:
+def permutation_test(data_a: list[float], data_b: list[float], n_permutations: int = 10000) -> float:
     """Performs a paired permutation test and returns the p-value."""
     assert len(data_a) == len(data_b), "Data must be paired"
     diffs = np.array(data_a) - np.array(data_b)
     observed_mean = np.abs(np.mean(diffs))
-    
+
     count = 0
     n = len(diffs)
     for _ in range(n_permutations):
@@ -53,10 +54,10 @@ def permutation_test(data_a: List[float], data_b: List[float], n_permutations: i
         perm_mean = np.abs(np.mean(diffs * signs))
         if perm_mean >= observed_mean:
             count += 1
-            
+
     return float(count / n_permutations)
 
-def cohens_d(data_a: List[float], data_b: List[float]) -> float:
+def cohens_d(data_a: list[float], data_b: list[float]) -> float:
     """Computes Cohen's d effect size for paired samples (using the standard deviation of differences)."""
     diffs = np.array(data_a) - np.array(data_b)
     mean_diff = np.mean(diffs)
@@ -65,7 +66,7 @@ def cohens_d(data_a: List[float], data_b: List[float]) -> float:
         return 0.0
     return float(mean_diff / std_diff)
 
-def bonferroni_correction(p_values: List[float]) -> List[float]:
+def bonferroni_correction(p_values: list[float]) -> list[float]:
     """Applies Bonferroni correction to a list of p-values."""
     m = len(p_values)
     return [min(1.0, p * m) for p in p_values]

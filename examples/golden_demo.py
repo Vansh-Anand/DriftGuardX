@@ -20,9 +20,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
 import os
-from datetime import datetime, timezone
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Add project root to path
@@ -49,17 +49,18 @@ async def run_golden_demo() -> dict:
     Returns a dict with all results for evidence.
     """
     results: dict = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "demo_mode": True,
         "steps": {},
     }
 
     from httpx import ASGITransport
-    from apps.api.src.main import app, _lifespan
+
+    from apps.api.src.main import _lifespan, app
 
     banner("DriftGuard-X v2 - Golden Demo (SYNTHETIC)")
     print("[WARNING] All data is SYNTHETIC. No production state will be mutated.")
-    print(f"   API: In-Memory (ASGITransport)")
+    print("   API: In-Memory (ASGITransport)")
 
     async with _lifespan(app):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url=API_BASE, timeout=30.0) as client:

@@ -1,9 +1,10 @@
-import pytest
-import asyncio
 import os
-import time
 import sys
+import time
+
 import cloudpickle
+import pytest
+
 from packages.replay.src.executor import ContainerReplayExecutor
 
 cloudpickle.register_pickle_by_value(sys.modules[__name__])
@@ -31,7 +32,6 @@ def safe_func():
     return "success"
 
 def hanging_func():
-    import time
     time.sleep(100)
     return "done"
 
@@ -41,7 +41,6 @@ def memory_bomb_func():
         bomb.append(" " * 10**6) # 1MB chunks until OOM
 
 def fork_bomb_func():
-    import os
     for _ in range(100):
         try:
             os.fork()

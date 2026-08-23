@@ -1,7 +1,8 @@
-from typing import List, Optional
 import uuid
+
 from packages.contracts.src.models import ComponentType, SpanKind
 from packages.rag_benchmark.src.rag_pipeline import RAGPipeline
+
 
 class FaultInjector:
     """
@@ -9,22 +10,22 @@ class FaultInjector:
     """
     def __init__(self, pipeline: RAGPipeline):
         self.pipeline = pipeline
-        
-    def inject_retrieval_fault(self, corrupted_corpus: List[str]):
+
+    def inject_retrieval_fault(self, corrupted_corpus: list[str]):
         """
         Simulates a corrupted index or retrieval failure by replacing the corpus.
         """
         self.pipeline.retriever.corpus = corrupted_corpus
         self.pipeline.retriever.embeddings = [self.pipeline.retriever._embed(t) for t in corrupted_corpus]
         self.pipeline.version_tag = "v2-corrupted-index"
-        
+
     def inject_prompt_fault(self, bad_prompt: str):
         """
         Simulates a bad prompt update that might induce hallucination.
         """
         self.pipeline.system_prompt = bad_prompt
         self.pipeline.version_tag = "v2-bad-prompt"
-        
+
     def inject_model_fault(self, new_model_name: str, high_temperature: float = 1.5):
         """
         Simulates model configuration drift or fallback to a weaker model.
@@ -32,7 +33,7 @@ class FaultInjector:
         self.pipeline.llm.model_name = new_model_name
         self.pipeline.temperature = high_temperature
         self.pipeline.version_tag = "v2-bad-model"
-        
+
     def inject_policy_fault(self):
         """
         Simulates a relaxed policy enforcer.
@@ -49,11 +50,11 @@ class FaultInjector:
                 builder.finish()
                 trace_ctx.record_span(builder.build())
             return True
-                
+
         self.pipeline.policy.check = loose_check
         self.pipeline.version_tag = "v2-loose-policy"
 
-    def reset(self, original_corpus: List[str]):
+    def reset(self, original_corpus: list[str]):
         """
         Resets the pipeline to normal state.
         """

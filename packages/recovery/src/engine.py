@@ -23,16 +23,24 @@ decision; the engine validates it before proceeding.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
-from packages.recovery.src.actions import ExecutionMode, RecoveryProposal, RecoveryStatus as ActionStatus
-from packages.recovery.src.capsule import CapsuleRegistry, RollbackCapsule
-from packages.recovery.src.canary import CanaryEpisode, CanaryThresholds, CanaryVerificationResult, run_canary_verification
-from packages.recovery.src.executor import ExecutionResult, LocalDevExecutor
-from packages.recovery.src.state_machine import RecoveryStateMachine, RecoveryStatus, InvalidTransitionError
 from packages.contracts.src.models import RecoveryEligibilityCertificate, serialize_for_signing
 from packages.ledger.src.crypto import verify_signature
+from packages.recovery.src.actions import ExecutionMode, RecoveryProposal
+from packages.recovery.src.canary import (
+    CanaryEpisode,
+    CanaryThresholds,
+    CanaryVerificationResult,
+    run_canary_verification,
+)
+from packages.recovery.src.capsule import CapsuleRegistry, RollbackCapsule
+from packages.recovery.src.executor import ExecutionResult, LocalDevExecutor
+from packages.recovery.src.state_machine import (
+    InvalidTransitionError,
+    RecoveryStateMachine,
+    RecoveryStatus,
+)
 
 
 @dataclass
@@ -40,11 +48,11 @@ class RecoveryRecord:
     """Full record of one recovery execution for audit and UI display."""
     proposal: RecoveryProposal
     machine: RecoveryStateMachine
-    execution_result: Optional[ExecutionResult] = None
-    canary_result: Optional[CanaryVerificationResult] = None
-    capsule: Optional[RollbackCapsule] = None
-    compensation_result: Optional[ExecutionResult] = None
-    escalation_log: List[str] = field(default_factory=list)
+    execution_result: ExecutionResult | None = None
+    canary_result: CanaryVerificationResult | None = None
+    capsule: RollbackCapsule | None = None
+    compensation_result: ExecutionResult | None = None
+    escalation_log: list[str] = field(default_factory=list)
 
 
 class RecoveryEngine:
@@ -71,10 +79,10 @@ class RecoveryEngine:
     def run(
         self,
         proposal: RecoveryProposal,
-        canary_episodes: List[CanaryEpisode],
-        canary_thresholds: Optional[CanaryThresholds] = None,
-        certificate: Optional[RecoveryEligibilityCertificate] = None,
-        signer_public_key_b64: Optional[str] = None,
+        canary_episodes: list[CanaryEpisode],
+        canary_thresholds: CanaryThresholds | None = None,
+        certificate: RecoveryEligibilityCertificate | None = None,
+        signer_public_key_b64: str | None = None,
     ) -> RecoveryRecord:
         """
         Run the complete prepare → execute → verify → commit/compensate cycle.
@@ -118,26 +126,26 @@ class RecoveryEngine:
                 machine.transition(RecoveryStatus.FAILED, reason="Missing Recovery Eligibility Certificate.")
                 record.escalation_log.append("SECURITY: No REC provided. Failing closed.")
                 return record
-                
+
             if not signer_public_key_b64:
                 machine.transition(RecoveryStatus.FAILED, reason="Missing Signer Public Key for REC verification.")
                 record.escalation_log.append("SECURITY: No public key provided to verify REC. Failing closed.")
                 return record
-                
+
             payload = serialize_for_signing(certificate)
             is_valid_sig = verify_signature(signer_public_key_b64, payload, certificate.signature_b64)
             if not is_valid_sig:
                 machine.transition(RecoveryStatus.FAILED, reason="REC signature verification failed.")
                 record.escalation_log.append("SECURITY: Invalid REC signature (Tampering detected). Failing closed.")
                 return record
-                
+
             # Verify live state matches the certificate
             capsule = self._capsule_reg.for_proposal(proposal.proposal_id)
             capsule_hash = capsule.config_snapshot.get("hash", "") if capsule else "" # Minimal mocked hash check
             # In a real implementation we would compute the actual capsule hash and compare.
-            
+
             # Simple expiry check (e.g., 1 hour)
-            age = datetime.now(timezone.utc) - certificate.timestamp
+            age = datetime.now(UTC) - certificate.timestamp
             if age.total_seconds() > 3600:
                 machine.transition(RecoveryStatus.FAILED, reason="REC is expired.")
                 record.escalation_log.append("SECURITY: Expired REC. Failing closed.")
@@ -213,7 +221,7 @@ class RecoveryEngine:
                 f"ESCALATION: Compensation failed — {comp_result.error}. Manual intervention required."
             )
 
-    def cancel(self, proposal_id: str, actor: str = "operator") -> Optional[RecoveryRecord]:
+    def cancel(self, proposal_id: str, actor: str = "operator") -> RecoveryRecord | None:
         record = self._records.get(proposal_id)
         if record:
             try:
@@ -222,5 +230,5 @@ class RecoveryEngine:
                 pass
         return record
 
-    def get_record(self, proposal_id: str) -> Optional[RecoveryRecord]:
+    def get_record(self, proposal_id: str) -> RecoveryRecord | None:
         return self._records.get(proposal_id)

@@ -1,0 +1,410 @@
+{
+  "baseline_exhaustive": [
+    {
+      "scenario": "retriever_regression",
+      "N": 5,
+      "mean_time_ms": 0.3456592559814453,
+      "median_time_ms": 0.028371810913085938,
+      "std_time_ms": 0.7023813242177195,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "prompt_regression",
+      "N": 5,
+      "mean_time_ms": 0.028276443481445312,
+      "median_time_ms": 0.0247955322265625,
+      "std_time_ms": 0.01009358507291766,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "memory_poisoning",
+      "N": 5,
+      "mean_time_ms": 0.023365020751953125,
+      "median_time_ms": 0.022649765014648438,
+      "std_time_ms": 0.0021786292651292164,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_output_corruption",
+      "N": 5,
+      "mean_time_ms": 0.022554397583007812,
+      "median_time_ms": 0.021457672119140625,
+      "std_time_ms": 0.0019559044172280963,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_schema_change",
+      "N": 5,
+      "mean_time_ms": 0.02231597900390625,
+      "median_time_ms": 0.021696090698242188,
+      "std_time_ms": 0.001674031227258869,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "model_drift",
+      "N": 5,
+      "mean_time_ms": 0.023698806762695312,
+      "median_time_ms": 0.02288818359375,
+      "std_time_ms": 0.003970224181340654,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "external_api_state_change",
+      "N": 5,
+      "mean_time_ms": 0.024557113647460938,
+      "median_time_ms": 0.023365020751953125,
+      "std_time_ms": 0.003814697265625,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "policy_mismatch",
+      "N": 5,
+      "mean_time_ms": 0.048160552978515625,
+      "median_time_ms": 0.02574920654296875,
+      "std_time_ms": 0.050674745867605814,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "cross_env_diff",
+      "N": 5,
+      "mean_time_ms": 0.03399848937988281,
+      "median_time_ms": 0.030040740966796875,
+      "std_time_ms": 0.007649113088027244,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "multi_cause_failure",
+      "N": 5,
+      "mean_time_ms": 0.10533332824707031,
+      "median_time_ms": 0.06890296936035156,
+      "std_time_ms": 0.07763946455669221,
+      "mean_replays": 21,
+      "mean_tokens": 31500,
+      "success_rate": 1.0
+    }
+  ],
+  "baseline_random": [
+    {
+      "scenario": "retriever_regression",
+      "N": 5,
+      "mean_time_ms": 0.0438690185546875,
+      "median_time_ms": 0.041961669921875,
+      "std_time_ms": 0.003479604606467825,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "prompt_regression",
+      "N": 5,
+      "mean_time_ms": 0.04210472106933594,
+      "median_time_ms": 0.04076957702636719,
+      "std_time_ms": 0.004266959931979302,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "memory_poisoning",
+      "N": 5,
+      "mean_time_ms": 0.039768218994140625,
+      "median_time_ms": 0.03814697265625,
+      "std_time_ms": 0.0038273422946517636,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_output_corruption",
+      "N": 5,
+      "mean_time_ms": 0.03070831298828125,
+      "median_time_ms": 0.027418136596679688,
+      "std_time_ms": 0.007018987899025208,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_schema_change",
+      "N": 5,
+      "mean_time_ms": 0.027894973754882812,
+      "median_time_ms": 0.02765655517578125,
+      "std_time_ms": 0.00139020726557858,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "model_drift",
+      "N": 5,
+      "mean_time_ms": 0.02613067626953125,
+      "median_time_ms": 0.023126602172851562,
+      "std_time_ms": 0.0057729798612234685,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "external_api_state_change",
+      "N": 5,
+      "mean_time_ms": 0.024509429931640625,
+      "median_time_ms": 0.023126602172851562,
+      "std_time_ms": 0.0036055637414233567,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "policy_mismatch",
+      "N": 5,
+      "mean_time_ms": 0.022268295288085938,
+      "median_time_ms": 0.021696090698242188,
+      "std_time_ms": 0.0020757483348540226,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "cross_env_diff",
+      "N": 5,
+      "mean_time_ms": 0.021791458129882812,
+      "median_time_ms": 0.021457672119140625,
+      "std_time_ms": 0.000977225376697502,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "multi_cause_failure",
+      "N": 5,
+      "mean_time_ms": 0.0217437744140625,
+      "median_time_ms": 0.021219253540039062,
+      "std_time_ms": 0.001530342725360986,
+      "mean_replays": 11,
+      "mean_tokens": 16500,
+      "success_rate": 1.0
+    }
+  ],
+  "baseline_bcrb": [
+    {
+      "scenario": "retriever_regression",
+      "N": 5,
+      "mean_time_ms": 0.021457672119140625,
+      "median_time_ms": 0.021219253540039062,
+      "std_time_ms": 0.00127280691290275,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "prompt_regression",
+      "N": 5,
+      "mean_time_ms": 0.02040863037109375,
+      "median_time_ms": 0.02002716064453125,
+      "std_time_ms": 0.0013550064314253637,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "memory_poisoning",
+      "N": 5,
+      "mean_time_ms": 0.020074844360351562,
+      "median_time_ms": 0.019788742065429688,
+      "std_time_ms": 0.0012434391794591234,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_output_corruption",
+      "N": 5,
+      "mean_time_ms": 0.021076202392578125,
+      "median_time_ms": 0.0209808349609375,
+      "std_time_ms": 0.0011258810952298733,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_schema_change",
+      "N": 5,
+      "mean_time_ms": 0.022745132446289062,
+      "median_time_ms": 0.021457672119140625,
+      "std_time_ms": 0.002548961116963214,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "model_drift",
+      "N": 5,
+      "mean_time_ms": 0.022268295288085938,
+      "median_time_ms": 0.021457672119140625,
+      "std_time_ms": 0.00148510088943457,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "external_api_state_change",
+      "N": 5,
+      "mean_time_ms": 0.021791458129882812,
+      "median_time_ms": 0.021457672119140625,
+      "std_time_ms": 0.0011873149488438352,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "policy_mismatch",
+      "N": 5,
+      "mean_time_ms": 0.022363662719726562,
+      "median_time_ms": 0.021696090698242188,
+      "std_time_ms": 0.0019471661557288569,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "cross_env_diff",
+      "N": 5,
+      "mean_time_ms": 0.021982192993164062,
+      "median_time_ms": 0.0209808349609375,
+      "std_time_ms": 0.002039837802525276,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "multi_cause_failure",
+      "N": 5,
+      "mean_time_ms": 0.024461746215820312,
+      "median_time_ms": 0.02384185791015625,
+      "std_time_ms": 0.0025096316083795104,
+      "mean_replays": 6,
+      "mean_tokens": 9000,
+      "success_rate": 1.0
+    }
+  ],
+  "causal_planner_new": [
+    {
+      "scenario": "retriever_regression",
+      "N": 5,
+      "mean_time_ms": 0.022125244140625,
+      "median_time_ms": 0.021696090698242188,
+      "std_time_ms": 0.0012883430563074394,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "prompt_regression",
+      "N": 5,
+      "mean_time_ms": 0.021839141845703125,
+      "median_time_ms": 0.021696090698242188,
+      "std_time_ms": 0.0015135355232337837,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "memory_poisoning",
+      "N": 5,
+      "mean_time_ms": 0.022125244140625,
+      "median_time_ms": 0.021696090698242188,
+      "std_time_ms": 0.0016205449550596646,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_output_corruption",
+      "N": 5,
+      "mean_time_ms": 0.0225067138671875,
+      "median_time_ms": 0.02193450927734375,
+      "std_time_ms": 0.0015868722240728126,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "tool_schema_change",
+      "N": 5,
+      "mean_time_ms": 0.024557113647460938,
+      "median_time_ms": 0.02384185791015625,
+      "std_time_ms": 0.0014793483788956233,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "model_drift",
+      "N": 5,
+      "mean_time_ms": 0.024700164794921875,
+      "median_time_ms": 0.02384185791015625,
+      "std_time_ms": 0.002227651334151855,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "external_api_state_change",
+      "N": 5,
+      "mean_time_ms": 0.024127960205078125,
+      "median_time_ms": 0.023365020751953125,
+      "std_time_ms": 0.001424538540486303,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "policy_mismatch",
+      "N": 5,
+      "mean_time_ms": 0.024366378784179688,
+      "median_time_ms": 0.024080276489257812,
+      "std_time_ms": 0.0012434391794591234,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "cross_env_diff",
+      "N": 5,
+      "mean_time_ms": 0.02498626708984375,
+      "median_time_ms": 0.024557113647460938,
+      "std_time_ms": 0.0017225639217556422,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    },
+    {
+      "scenario": "multi_cause_failure",
+      "N": 5,
+      "mean_time_ms": 0.026178359985351562,
+      "median_time_ms": 0.026464462280273438,
+      "std_time_ms": 0.0008155170143359695,
+      "mean_replays": 3,
+      "mean_tokens": 4500,
+      "success_rate": 1.0
+    }
+  ]
+}

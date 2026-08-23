@@ -19,10 +19,9 @@ import enum
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from uuid import UUID, uuid4
-
+from datetime import UTC, datetime
+from typing import Any
+from uuid import uuid4
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -75,15 +74,15 @@ class PolicyRule:
     risk_tier: RiskTier
     required_approvers: int = 1
     two_person_control: bool = False
-    allowed_roles: List[str] = field(default_factory=list)
-    max_budget_usd: Optional[float] = None
-    data_retention_days: Optional[int] = None
+    allowed_roles: list[str] = field(default_factory=list)
+    max_budget_usd: float | None = None
+    data_retention_days: int | None = None
     rationale: str = ""
     source_level: PolicyLevel = PolicyLevel.ORGANIZATION
-    override_justification: Optional[str] = None
-    override_metadata: Dict[str, Any] = field(default_factory=dict)
+    override_justification: str | None = None
+    override_metadata: dict[str, Any] = field(default_factory=dict)
     rule_id: str = field(default_factory=lambda: str(uuid4()))
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     _version: str = field(default="", init=False, repr=False)
 
     def __post_init__(self):
@@ -125,14 +124,14 @@ class PolicyNode:
     node_id: str
     level: PolicyLevel
     tenant_id: str
-    parent_id: Optional[str] = None
-    rules: List[PolicyRule] = field(default_factory=list)
+    parent_id: str | None = None
+    rules: list[PolicyRule] = field(default_factory=list)
     is_active: bool = True
     schema_version: str = "v1.0"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
-    def get_rule_for_action(self, action: str) -> Optional[PolicyRule]:
+    def get_rule_for_action(self, action: str) -> PolicyRule | None:
         """Return the first matching rule for an action (first-match wins)."""
         for rule in self.rules:
             if _action_matches(rule.action_pattern, action):
@@ -164,13 +163,13 @@ class EffectivePolicy:
     risk_tier: RiskTier
     required_approvers: int
     two_person_control: bool
-    allowed_roles: List[str]
-    max_budget_usd: Optional[float]
+    allowed_roles: list[str]
+    max_budget_usd: float | None
     winning_rule: PolicyRule
-    override_chain: List[PolicyRule]   # ordered: org → BU → pipeline → agent
+    override_chain: list[PolicyRule]   # ordered: org → BU → pipeline → agent
     conflict_detected: bool = False
-    conflict_description: Optional[str] = None
-    evaluated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    conflict_description: str | None = None
+    evaluated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def explain(self) -> str:
         """Human-readable explanation of how this effective policy was derived."""

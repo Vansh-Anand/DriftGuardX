@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from pydantic import BaseModel
 import uuid
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from apps.api.src.database import get_db
-from apps.api.src.models_manifest import ManifestORM
 from apps.api.src.models_ingestion import CorpusVersionORM
+from apps.api.src.models_manifest import ManifestORM
 from packages.contracts.src.models import ReplayStateManifest
 from packages.rag_pipeline.src.adapters.manifest_store import ManifestStore
 
@@ -23,12 +24,12 @@ async def get_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get_db
     orm_manifest = result.scalar_one_or_none()
     if not orm_manifest:
         raise HTTPException(status_code=404, detail="Manifest not found")
-        
+
     store = ManifestStore()
     try:
         manifest_json = store.get_manifest(orm_manifest.manifest_hash)
         return {"manifest_hash": orm_manifest.manifest_hash, "payload": manifest_json}
-    except Exception as e:
+    except Exception:
         # Fallback to postgres payload if minio fails
         return {"manifest_hash": orm_manifest.manifest_hash, "payload": orm_manifest.payload}
 
@@ -39,12 +40,12 @@ async def verify_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get
     orm_manifest = result.scalar_one_or_none()
     if not orm_manifest:
         raise HTTPException(status_code=404, detail="Manifest not found")
-        
+
     missing_deps = []
-    
+
     # Reconstruct the Pydantic model to use its logic
     manifest = ReplayStateManifest(**orm_manifest.payload)
-    
+
     # Check if fully pinned
     if not manifest.is_fully_pinned():
         missing_deps.append("manifest_not_fully_pinned")
@@ -56,7 +57,7 @@ async def verify_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get
         )
         if not corpus_res.scalar_one_or_none():
             missing_deps.append(f"corpus_version_missing: {manifest.corpus_version_id}")
-            
+
     # Hash check
     computed_hash = manifest.compute_hash()
     if computed_hash != manifest.manifest_hash:
@@ -64,7 +65,7 @@ async def verify_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get
 
     is_valid = len(missing_deps) == 0
     message = "Manifest dependencies verified." if is_valid else "Manifest dependencies failed verification."
-    
+
     return VerificationResponse(
         is_valid=is_valid,
         missing_dependencies=missing_deps,

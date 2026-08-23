@@ -7,12 +7,12 @@ Defines schemas for deterministic and LLM-generated rationale inputs/outputs.
 from __future__ import annotations
 
 import enum
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import Field
-from packages.contracts.src.models import DGXBaseModel, ComponentType, _utcnow, _new_uuid
+
+from packages.contracts.src.models import ComponentType, DGXBaseModel, _new_uuid, _utcnow
 
 
 class RationaleStyle(str, enum.Enum):
@@ -30,27 +30,27 @@ class RationaleInputContract(DGXBaseModel):
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
-    
+
     # Diagnosis evidence
     ranked_cause_component: ComponentType
-    symptom_to_cause_path: List[str]
+    symptom_to_cause_path: list[str]
     root_cause_description: str
-    
+
     # Replay & Metric evidence
-    replay_episode_id: Optional[UUID] = None
+    replay_episode_id: UUID | None = None
     original_version_tag: str
     replay_version_tag: str
-    metric_deltas: Dict[str, float]
-    
+    metric_deltas: dict[str, float]
+
     # Certification & Policy evidence
     is_certified: bool
-    bound_method: Optional[str] = None
-    epsilon: Optional[float] = None
-    delta: Optional[float] = None
+    bound_method: str | None = None
+    epsilon: float | None = None
+    delta: float | None = None
     policy_decision: str
     action_type: str
-    limitations: List[str]
-    
+    limitations: list[str]
+
     created_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -61,18 +61,18 @@ class RationaleOutput(DGXBaseModel):
     id: UUID = Field(default_factory=_new_uuid)
     input_contract_id: UUID
     style: RationaleStyle
-    
+
     content: str
     is_llm_generated: bool
     fallback_triggered: bool = False
-    
+
     # Evaluation scores (optional, populated by validator)
-    factual_consistency_score: Optional[float] = None
-    readability_score: Optional[float] = None
-    
+    factual_consistency_score: float | None = None
+    readability_score: float | None = None
+
     # Provenance
-    prompt_version: Optional[str] = None
-    model_version: Optional[str] = None
-    latency_ms: Optional[float] = None
-    cost_usd: Optional[float] = None
+    prompt_version: str | None = None
+    model_version: str | None = None
+    latency_ms: float | None = None
+    cost_usd: float | None = None
     created_at: datetime = Field(default_factory=_utcnow)

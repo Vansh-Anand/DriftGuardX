@@ -1,31 +1,28 @@
 import asyncio
-import os
-import uuid
-import time
 import math
-import statistics
 import random
-from typing import List, Dict, Any
+import statistics
+import time
+import uuid
+from typing import Any
 
-from packages.rag_benchmark.src.fault_injector import FaultInjector
 from apps.api.src.pipeline.real_rag import RealRAGPipeline
 from packages.evaluation.src.datasets.schema import EvaluationEpisode
 from packages.evaluation.src.metrics import DeterministicMetricsEngine
 from packages.evaluation.src.ragas_evaluator import RagasEvaluator
 from packages.evaluation.src.tracker import Tracker
-from packages.rag_pipeline.src.interfaces import RetrieverAdapter, RetrievedChunk, LLMAdapter
-
-from packages.rag_benchmark.src.real_fault_injector import RealFaultInjector, FaultType
+from packages.rag_benchmark.src.real_fault_injector import FaultType, RealFaultInjector
 from packages.rag_benchmark.src.schedulers import (
-    ExhaustiveScheduler,
-    RandomScheduler,
+    BCRBSchedulerWrapper,
     CheapestFirstScheduler,
-    GreedyPriorScheduler,
-    UCBScheduler,
     DetectorOnlyScheduler,
+    ExhaustiveScheduler,
     GraphOnlyScheduler,
-    BCRBSchedulerWrapper
+    GreedyPriorScheduler,
+    RandomScheduler,
+    UCBScheduler,
 )
+from packages.rag_pipeline.src.interfaces import LLMAdapter, RetrieverAdapter
 
 # Synthetic BEIR/SciFact Dataset (10 episodes)
 SCIFACT_EPISODES = [
@@ -65,7 +62,7 @@ class MockRetrievedChunk:
 class MockHybridRetriever(RetrieverAdapter):
     def __init__(self):
         self.name = "mock_db"
-        
+
     async def retrieve(self, query: str, corpus_version_id: str, top_k: int = 5):
         # Extremely simple mock: just return chunk 1 and 2 if words match
         res = []
@@ -80,7 +77,7 @@ class MockHybridRetriever(RetrieverAdapter):
 class MockLLMAdapter(LLMAdapter):
     def __init__(self, model_name="mock"):
         self.model_name = model_name
-        
+
     async def generate(self, prompt: str, context: list) -> dict:
         ans = "I DONT KNOW" if "ALWAYS RESPOND" in prompt else "Yes, DriftGuard-X uses a Recovery Eligibility Certificate"
         return {
@@ -95,19 +92,19 @@ class MockLLMAdapter(LLMAdapter):
 class LocalArtifactStore:
     def __init__(self, dir_path: str):
         self.dir_path = dir_path
-        
-    async def save_trace(self, run_id: str, trace_data: Dict[str, Any]) -> None:
+
+    async def save_trace(self, run_id: str, trace_data: dict[str, Any]) -> None:
         # Mock artifact store
         pass
 
 async def run_real_benchmark():
     print("Initializing Benchmark Engine...")
-    
+
     # 1. Initialize Pipeline
     retriever = MockHybridRetriever()
     llm = MockLLMAdapter(model_name="gpt-3.5-turbo-mock")
     artifact_store = LocalArtifactStore("/tmp/artifacts")
-    
+
     pipeline = RealRAGPipeline(
         retriever=retriever,
         llm=llm,
@@ -115,12 +112,12 @@ async def run_real_benchmark():
         artifact_store=artifact_store,
         top_k=2
     )
-    
+
     # 2. Initialize Evaluators & Trackers
     metrics_engine = DeterministicMetricsEngine()
     ragas_eval = RagasEvaluator()
     tracker = Tracker(experiment_name="SciFact-RAG-Eval-v1")
-    
+
     # 3. Define Schedulers and Faults
     schedulers = {
         "exhaustive": ExhaustiveScheduler(),
@@ -132,7 +129,7 @@ async def run_real_benchmark():
         "detector_only": DetectorOnlyScheduler(),
         "graph_only": GraphOnlyScheduler()
     }
-    
+
     faults = [
         (FaultType.STALE_CORPUS, "STALE_CORPUS_FAILURE"),
         (FaultType.DROPPED_CHUNKS, "RETRIEVAL_FAILURE"),
@@ -147,33 +144,33 @@ async def run_real_benchmark():
         (FaultType.MEMORY_CONTAMINATION, "MEMORY_CONTAMINATION_FAILURE"),
         (FaultType.DB_FAILURE, "DB_FAILURE")
     ]
-    
+
     candidates = [gt for _, gt in faults]
     injector = RealFaultInjector(pipeline)
-    
+
     num_trials = 30
-    
+
     print(f"Running benchmark grid: {len(faults)} faults x {len(schedulers)} schedulers x {num_trials} trials...")
     print("WARNING: All data below is REAL-SYSTEM DATA (mocked integrations in local harness).")
-    
+
     results = {}
-    
+
     for fault_id, gt_root_cause in faults:
         for scheduler_name, scheduler in schedulers.items():
-            
+
             latencies = []
             costs = []
             accuracies = []
             recovery_costs = []
             successes = []
-            
+
             for _ in range(num_trials):
                 run_id = uuid.uuid4()
                 tenant_id = uuid.uuid4()
-                
+
                 # Inject Fault
                 injector.inject_fault(fault_id)
-                
+
                 # Execute Pipeline
                 try:
                     start_time = time.time()
@@ -187,21 +184,21 @@ async def run_real_benchmark():
                 except Exception as e:
                     out = {"answer": str(e), "chunk_ids": [], "cost_usd": 0, "tokens": {"total": 0}}
                     latency = 0
-                
+
                 history = []
                 predicted_cause = None
                 total_recovery_cost = 0.0
                 replay_success = False
-                
+
                 if scheduler_name not in ["detector_only", "graph_only"]:
                     while True:
                         next_cand = scheduler.select_next(candidates, history)
                         if not next_cand:
                             break
-                        
+
                         history.append({"candidate": next_cand})
                         total_recovery_cost += 0.05
-                        
+
                         if next_cand == gt_root_cause:
                             predicted_cause = next_cand
                             replay_success = True
@@ -217,34 +214,34 @@ async def run_real_benchmark():
                                 scheduler.update(next_cand, False)
                 else:
                     predicted_cause = random.choice(candidates) # Mocking imperfect detection
-                
+
                 rca_metrics = metrics_engine.calculate_rca_metrics(
-                    [predicted_cause] if predicted_cause else [], 
+                    [predicted_cause] if predicted_cause else [],
                     [gt_root_cause]
                 )
-                
+
                 injector.reset()
-                
+
                 latencies.append(latency)
                 costs.append(out.get("cost_usd", 0.0))
                 accuracies.append(rca_metrics["accuracy"])
                 recovery_costs.append(total_recovery_cost)
                 successes.append(1.0 if replay_success else 0.0)
-                
+
             mean_acc = statistics.mean(accuracies)
             std_acc = statistics.stdev(accuracies) if num_trials > 1 else 0.0
             ci_acc = 1.96 * (std_acc / math.sqrt(num_trials))
-            
+
             mean_rec_cost = statistics.mean(recovery_costs)
             std_rec = statistics.stdev(recovery_costs) if num_trials > 1 else 0.0
             ci_rec = 1.96 * (std_rec / math.sqrt(num_trials))
-            
+
             results[(fault_id, scheduler_name)] = {
                 "acc": mean_acc, "acc_ci": ci_acc,
                 "cost": mean_rec_cost, "cost_ci": ci_rec,
                 "succ": statistics.mean(successes)
             }
-            
+
             tracker.log_episode(
                 episode_data={"fault": fault_id, "scheduler": scheduler_name},
                 metrics={"acc": mean_acc, "cost": mean_rec_cost, "succ": statistics.mean(successes)},

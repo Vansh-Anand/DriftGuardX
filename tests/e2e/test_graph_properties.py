@@ -1,16 +1,19 @@
 """
 DriftGuard-X v2 — Graph Property Tests
 """
-import pytest
 from uuid import uuid4
-from packages.contracts.src.graph import CausalGraph, GraphNode, GraphEdge, NodeType, EdgeType
-from packages.graph.src.validation import GraphValidator, GraphValidationError
+
+import pytest
+
+from packages.contracts.src.graph import CausalGraph, EdgeType, GraphEdge, GraphNode, NodeType
+from packages.graph.src.validation import GraphValidationError, GraphValidator
+
 
 def test_graph_hash_deterministic():
     """Verify that identical graphs produce identical hashes."""
     tenant_id = uuid4()
     run_id = uuid4()
-    
+
     # Base graph creation
     def create_graph():
         return CausalGraph(
@@ -25,17 +28,17 @@ def test_graph_hash_deterministic():
             ],
             trace_digest="digest_123"
         )
-        
+
     g1 = create_graph()
     g2 = create_graph()
-    
+
     assert g1.graph_hash == g2.graph_hash
-    
+
     # Modifying a property changes the hash
     g3 = create_graph()
-    g3.nodes[0].label = "changed_label" 
+    g3.nodes[0].label = "changed_label"
     # But wait, our graph hash logic only normalizes nodes by ID and edges by Source->Target:Type!
-    # So g3 will actually have the SAME hash unless we change ID or edges. 
+    # So g3 will actually have the SAME hash unless we change ID or edges.
     # Let's change an edge.
     g4 = CausalGraph(
         tenant_id=tenant_id,
@@ -46,7 +49,7 @@ def test_graph_hash_deterministic():
         ],
         trace_digest="digest_123"
     )
-    
+
     assert g1.graph_hash != g4.graph_hash
 
 def test_graph_validation_orphans():
@@ -60,7 +63,7 @@ def test_graph_validation_orphans():
         edges=[],  # Empty edges means both are orphans
         trace_digest="digest"
     )
-    
+
     with pytest.raises(GraphValidationError, match="Orphan node"):
         GraphValidator.validate(graph)
 
@@ -78,10 +81,10 @@ def test_graph_validation_cycles():
         ],
         trace_digest="digest"
     )
-    
+
     with pytest.raises(GraphValidationError, match="cycle"):
         GraphValidator.validate(graph)
-        
+
 def test_graph_validation_permitted_cycles():
     graph = CausalGraph(
         tenant_id=uuid4(),
@@ -96,6 +99,6 @@ def test_graph_validation_permitted_cycles():
         ],
         trace_digest="digest"
     )
-    
+
     # Memory loops are permitted, so this should not raise an error
     assert GraphValidator.validate(graph) is True

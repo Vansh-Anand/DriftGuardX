@@ -18,21 +18,23 @@ from __future__ import annotations
 
 import pytest
 
-from packages.policy.src.hierarchy import (
-    PolicyLevel, PolicyNode, PolicyRule, RiskTier, RuleVerdict,
-)
-from packages.policy.src.resolver import InheritanceResolver, PolicyRegistry, PolicyConflictError
 from packages.policy.src.approvals import (
-    ApprovalRequest, ApprovalService, ApprovalStatus,
-    SelfApprovalError, UnauthorizedApproverError, ApprovalExpiredError,
+    ApprovalRequest,
+    ApprovalService,
+    ApprovalStatus,
+    SelfApprovalError,
+    UnauthorizedApproverError,
 )
 from packages.policy.src.engine import PolicyEngine
-from packages.policy.src.hooks import (
-    pre_rollback_check, pre_replay_check, PolicyDeniedError,
+from packages.policy.src.hierarchy import (
+    PolicyLevel,
+    PolicyNode,
+    PolicyRule,
+    RiskTier,
+    RuleVerdict,
 )
-from packages.policy.src.shadow import shadow_evaluate, HistoricalEvent
-from packages.policy.src.tiers import get_tier
-
+from packages.policy.src.resolver import InheritanceResolver, PolicyConflictError, PolicyRegistry
+from packages.policy.src.shadow import HistoricalEvent, shadow_evaluate
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 

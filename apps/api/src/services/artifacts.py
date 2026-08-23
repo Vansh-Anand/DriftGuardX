@@ -46,25 +46,25 @@ class LocalFilesystemArtifactStore(ArtifactStore):
     async def put(self, payload: Any) -> str:
         serialized = self._serialize(payload)
         artifact_hash = self._hash_payload(serialized)
-        
+
         file_path = os.path.join(self.base_dir, artifact_hash.split(":")[1])
         if not os.path.exists(file_path):
             with open(file_path, "wb") as f:
                 f.write(serialized)
-                
+
         return artifact_hash
 
     async def get(self, artifact_hash: str) -> Any | None:
         if not artifact_hash.startswith("sha256:"):
             return None
-            
+
         file_path = os.path.join(self.base_dir, artifact_hash.split(":")[1])
         if not os.path.exists(file_path):
             return None
-            
+
         with open(file_path, "rb") as f:
             data = f.read()
-            
+
         try:
             return json.loads(data)
         except Exception:

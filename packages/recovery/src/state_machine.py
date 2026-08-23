@@ -26,8 +26,8 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Callable, Dict, List, Optional, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 
 class RecoveryStatus(str, enum.Enum):
@@ -53,7 +53,7 @@ TERMINAL_STATES = frozenset({
 })
 
 # Allowed transitions (from → set of allowed tos)
-ALLOWED_TRANSITIONS: Dict[RecoveryStatus, frozenset] = {
+ALLOWED_TRANSITIONS: dict[RecoveryStatus, frozenset] = {
     RecoveryStatus.PROPOSED:         frozenset({RecoveryStatus.POLICY_CHECKING, RecoveryStatus.CANCELLED}),
     RecoveryStatus.POLICY_CHECKING:  frozenset({RecoveryStatus.PENDING_APPROVAL, RecoveryStatus.PREPARING, RecoveryStatus.FAILED, RecoveryStatus.CANCELLED}),
     RecoveryStatus.PENDING_APPROVAL: frozenset({RecoveryStatus.PREPARING, RecoveryStatus.CANCELLED}),
@@ -79,8 +79,8 @@ class StateEvent:
     to_status: RecoveryStatus
     actor: str
     reason: str
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -93,10 +93,10 @@ class RecoveryStateMachine:
     """
     proposal_id: str
     current_status: RecoveryStatus = RecoveryStatus.PROPOSED
-    capsule_id: Optional[str] = None
-    event_log: List[StateEvent] = field(default_factory=list)
+    capsule_id: str | None = None
+    event_log: list[StateEvent] = field(default_factory=list)
     timeout_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=30)
+        default_factory=lambda: datetime.now(UTC) + timedelta(minutes=30)
     )
     retry_count: int = 0
     max_retries: int = 2
@@ -107,7 +107,7 @@ class RecoveryStateMachine:
         to_status: RecoveryStatus,
         actor: str = "system",
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """
         Move to a new status. Raises InvalidTransitionError on illegal moves.
@@ -117,7 +117,7 @@ class RecoveryStateMachine:
             raise InvalidTransitionError(
                 f"Cannot transition from terminal state {self.current_status}."
             )
-        if datetime.now(timezone.utc) > self.timeout_at:
+        if datetime.now(UTC) > self.timeout_at:
             # Force compensate on timeout
             self._force_timeout()
             return

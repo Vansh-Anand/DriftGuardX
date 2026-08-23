@@ -1,8 +1,9 @@
-import os
 import hashlib
-import numpy as np
-from typing import Protocol, List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Protocol
+
+import numpy as np
+
 
 class SemanticModelUnavailableError(Exception):
     pass
@@ -11,7 +12,7 @@ class SemanticModelUnavailableError(Exception):
 class SemanticDecision:
     decision: bool
     drift_score: float
-    diagnostics: Dict[str, Any]
+    diagnostics: dict[str, Any]
 
 class SemanticEncoder(Protocol):
     def encode(self, text: str) -> np.ndarray:
@@ -57,7 +58,7 @@ class SentenceTransformerEncoder:
         text = text.strip()
         if not text:
             return np.zeros(384, dtype=np.float32) # Default dimension for MiniLM
-            
+
         emb = self.model.encode([text], convert_to_numpy=True, normalize_embeddings=True)
         return emb[0]
 
@@ -70,13 +71,13 @@ class CosineDriftComparator:
     def compare(self, baseline: str, observation: str) -> SemanticDecision:
         b_emb = self.encoder.encode(baseline)
         o_emb = self.encoder.encode(observation)
-        
+
         # Calculate cosine similarity
         similarity = float(np.dot(b_emb, o_emb))
         drift_score = 1.0 - similarity
-        
+
         is_drifted = similarity < self.threshold
-        
+
         return SemanticDecision(
             decision=is_drifted,
             drift_score=drift_score,
@@ -87,7 +88,8 @@ def get_semantic_encoder(force_real: bool = False) -> SemanticEncoder:
     """
     Returns an appropriate encoder based on DGX_MODE.
     """
-    mode = os.environ.get("DGX_MODE", "development")
-    if mode == "production" or force_real:
+    from apps.api.src.config import RuntimeSecurityConfig
+    config = RuntimeSecurityConfig.load()
+    if force_real or not config.allow_fake_encoders:
         return SentenceTransformerEncoder()
     return DeterministicFakeEncoder()

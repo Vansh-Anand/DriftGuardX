@@ -1,10 +1,11 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_replay_manifest_generation(client: AsyncClient):
     """Verify that creating a replay generates a manifest and returns its info."""
-    
+
     # 1. Create a run with experimental retriever (which makes it synthetic)
     run_payload = {
         "query": "Integration test query",
@@ -35,7 +36,7 @@ async def test_replay_manifest_generation(client: AsyncClient):
     get_resp = await client.get(f"/v1/replays/{replay_id}")
     assert get_resp.status_code == 200
     get_data = get_resp.json()
-    
+
     assert get_data["manifest_id"] == replay_data["manifest_id"]
     assert get_data["manifest_hash"] == replay_data["manifest_hash"]
     assert get_data["is_pinned"] is True

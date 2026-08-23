@@ -13,15 +13,15 @@ class GenerationDriftDetector(DriftDetector):
         return "generation_drift_detector"
 
     def evaluate(
-        self, 
-        trace_or_span: Any, 
+        self,
+        trace_or_span: Any,
         thresholds: dict[str, Any] | None = None,
         **kwargs: Any
     ) -> list[DetectorOutput]:
         from packages.detectors.src.baselines import check_threshold
         thresholds = thresholds or {}
         outputs = []
-        
+
         def _check(feature: str, val: float, default_t: float, default_op: str) -> bool:
             t = thresholds.get(feature)
             if t:
@@ -38,7 +38,7 @@ class GenerationDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.CRITICAL if faithfulness < 0.8 else (SymptomLikelihood.HIGH if is_anom else SymptomLikelihood.NONE),
             evidence={"faithfulness_score": faithfulness}
         ))
-        
+
         contradiction = kwargs.get("contradiction_rate", 0.0)
         is_anom = _check("contradiction", contradiction, 0.05, ">")
         outputs.append(DetectorOutput(
@@ -49,7 +49,7 @@ class GenerationDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.CRITICAL if is_anom else SymptomLikelihood.NONE,
             evidence={"contradiction_rate": contradiction}
         ))
-        
+
         refusal_rate = kwargs.get("refusal_rate", 0.0)
         is_anom = _check("refusal_rate", refusal_rate, 0.1, ">")
         outputs.append(DetectorOutput(
@@ -60,7 +60,7 @@ class GenerationDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.MEDIUM if is_anom else SymptomLikelihood.NONE,
             evidence={"refusal_rate": refusal_rate}
         ))
-        
+
         format_adherence = kwargs.get("format_adherence", 1.0)
         is_anom = _check("format_schema_adherence", format_adherence, 1.0, "<")
         outputs.append(DetectorOutput(

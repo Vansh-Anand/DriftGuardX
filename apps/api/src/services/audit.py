@@ -4,7 +4,7 @@ PRIVATE — All Rights Reserved.
 
 Immutable append-only audit trail for security and governance operations.
 """
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
 import structlog
@@ -24,7 +24,7 @@ class AuditService:
         action: str,
         resource_type: str,
         resource_id: str,
-        metadata: Dict[str, Any] = None,
+        metadata: dict[str, Any] = None,
     ) -> AuditEventORM:
         """
         Record an immutable audit event in the database.
@@ -41,7 +41,7 @@ class AuditService:
         db.add(event)
         # Flush to ensure it's written before returning, but let caller commit transaction
         await db.flush()
-        
+
         log.info(
             "audit_event",
             action=action,
@@ -50,5 +50,5 @@ class AuditService:
             resource_type=resource_type,
             resource_id=resource_id,
         )
-        
+
         return event

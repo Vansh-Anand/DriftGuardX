@@ -1,13 +1,14 @@
 import pytest
+
 from packages.evaluation.src.verifier import DeterministicVerifier
+from packages.utils.src.unicode import UnicodeNormalizationError, secure_normalize
+
 
 def test_verifier_length_bound():
     # Create a string larger than max_length (500_000)
     large_string = "A" * 600_000
-    normalized = DeterministicVerifier._normalize_text(large_string)
-    # The output should be capped at 500,000 chars (and lowercased)
-    assert len(normalized) == 500_000
-    assert normalized == "a" * 500_000
+    with pytest.raises(UnicodeNormalizationError):
+        secure_normalize(large_string)
 
 @pytest.mark.parametrize("attack_payload, forbidden_word", [
     # 1. Spacer attack
@@ -38,14 +39,14 @@ def test_verifier_adversarial_normalization(attack_payload, forbidden_word):
 def test_verifier_safe_words_pass():
     # Ensure we don't trigger false positives unnecessarily
     assert DeterministicVerifier.verify_no_forbidden_words("this is safe", ["badword"]) is True
-    
+
 def test_verifier_url_decoding_loop_bound():
     # If someone tries to infinitely encode, it should stop after 3 passes
     deep_encoded = "hello"
     for _ in range(10):
         # We need to construct something that decodes repeatedly but stops
         pass # The loop bound is tested just by running and ensuring it doesn't hang.
-    
+
     # Let's test 4 levels of encoding
     # h -> %68 -> %2568 -> %252568 -> %25252568
     encoded_4x = "%25252568ello"
@@ -54,7 +55,7 @@ def test_verifier_url_decoding_loop_bound():
     # Actually, % is stripped as punctuation.
     # So '%68ello' becomes '68ello'.
     # Does '68ello' contain 'hello'? No.
-    
+
     assert DeterministicVerifier.verify_no_forbidden_words(encoded_4x, ["hello"]) is True
 
 def test_verifier_multiple_words():

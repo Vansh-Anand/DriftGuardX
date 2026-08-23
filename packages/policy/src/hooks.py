@@ -19,8 +19,7 @@ node, verdict, rule_id, policy_version, requester, and timestamp.
 """
 from __future__ import annotations
 
-from packages.policy.src.engine import PolicyEngine, EngineDecision
-from typing import Optional, List
+from packages.policy.src.engine import EngineDecision, PolicyEngine
 
 
 class PolicyDeniedError(PermissionError):
@@ -47,8 +46,8 @@ def _check(
     node_id: str,
     requester_id: str,
     requester_role: str = "operator",
-    existing_approval_id: Optional[str] = None,
-) -> Optional[str]:
+    existing_approval_id: str | None = None,
+) -> str | None:
     """
     Run the engine. On DENY → raise. On NEEDS_APPROVAL → return request ID.
     On ALLOW → return None.
@@ -77,8 +76,8 @@ def pre_replay_check(
     node_id: str,
     requester_id: str,
     requester_role: str = "operator",
-    existing_approval_id: Optional[str] = None,
-) -> Optional[str]:
+    existing_approval_id: str | None = None,
+) -> str | None:
     """Policy check before scheduling a counterfactual replay."""
     return _check(
         engine, "schedule_replay",
@@ -93,8 +92,8 @@ def pre_recovery_check(
     node_id: str,
     requester_id: str,
     requester_role: str = "operator",
-    existing_approval_id: Optional[str] = None,
-) -> Optional[str]:
+    existing_approval_id: str | None = None,
+) -> str | None:
     """Policy check before proposing a recovery action."""
     return _check(
         engine, "apply_repair_decision",
@@ -109,8 +108,8 @@ def pre_execution_check(
     node_id: str,
     requester_id: str,
     requester_role: str = "operator",
-    existing_approval_id: Optional[str] = None,
-) -> Optional[str]:
+    existing_approval_id: str | None = None,
+) -> str | None:
     """Policy check before executing an approved intervention."""
     return _check(
         engine, "apply_intervention",
@@ -125,8 +124,8 @@ def pre_rollback_check(
     node_id: str,
     requester_id: str,
     requester_role: str = "operator",
-    existing_approval_id: Optional[str] = None,
-) -> Optional[str]:
+    existing_approval_id: str | None = None,
+) -> str | None:
     """Policy check before applying a rollback capsule."""
     return _check(
         engine, "apply_rollback",
@@ -135,7 +134,7 @@ def pre_rollback_check(
 
 def pre_memory_read_check(
     partition_id: str,
-    active_quarantined_partitions: List[str],
+    active_quarantined_partitions: list[str],
     requester_role: str = "agent"
 ) -> None:
     """

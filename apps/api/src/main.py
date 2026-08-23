@@ -10,8 +10,8 @@ from __future__ import annotations
 import os
 import time
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -19,13 +19,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.src.database import create_all_tables
-from apps.api.src.routes import ingest, runs, telemetry, graph
 from apps.api.src.routers import manifest
+from apps.api.src.routes import graph, ingest, runs, telemetry
 from apps.api.src.routes.detectors import router as detectors_router
-from apps.api.src.routes.replays import router as replays_router
-from apps.api.src.routes.runs import router as runs_router
 from apps.api.src.routes.jobs import router as jobs_router
 from apps.api.src.routes.providers import router as providers_router
+from apps.api.src.routes.replays import router as replays_router
 from apps.api.src.schemas import HealthResponse, ReadinessResponse
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
@@ -53,7 +52,7 @@ from contextlib import asynccontextmanager
 
 
 @asynccontextmanager
-async def _lifespan(app_: "FastAPI"):
+async def _lifespan(app_: FastAPI):
     """App lifespan: startup + shutdown."""
     db_url = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./driftguardx_dev.db")
     if "sqlite" in db_url:
@@ -119,7 +118,7 @@ async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         version=APP_VERSION,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
 
 

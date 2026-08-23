@@ -5,7 +5,7 @@ Allows online trace evaluation and run-level anomaly detection via the trained G
 from __future__ import annotations
 
 import os
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -31,15 +31,15 @@ detector = GATTraceDetector(model_path=_MODEL_PATH)
 
 class SpanInput(BaseModel):
     span_id: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     duration_ms: float = 0.0
     operation_name: str = "unknown"
     is_error: bool = False
 
 
 class TraceEvaluateRequest(BaseModel):
-    trace_id: Optional[str] = None
-    spans: List[SpanInput] = Field(..., min_length=1)
+    trace_id: str | None = None
+    spans: list[SpanInput] = Field(..., min_length=1)
 
 
 class RootCauseCandidate(BaseModel):
@@ -55,7 +55,7 @@ class TraceEvaluateResponse(BaseModel):
     fault_probability: float
     predicted_class: int
     num_spans: int
-    root_cause_candidates: List[RootCauseCandidate]
+    root_cause_candidates: list[RootCauseCandidate]
 
 
 class RunEvaluateResponse(BaseModel):
@@ -64,7 +64,7 @@ class RunEvaluateResponse(BaseModel):
     fault_probability: float
     predicted_class: int
     num_spans: int
-    root_cause_candidates: List[RootCauseCandidate]
+    root_cause_candidates: list[RootCauseCandidate]
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ async def evaluate_trace(request: TraceEvaluateRequest) -> TraceEvaluateResponse
     """Evaluate an arbitrary list of spans using the trained GAT model."""
     raw_spans = [s.model_dump() for s in request.spans]
     result = detector.detect_trace_anomaly(raw_spans)
-    
+
     candidates = [
         RootCauseCandidate(
             span_id=c["span_id"],
@@ -95,7 +95,7 @@ async def evaluate_trace(request: TraceEvaluateRequest) -> TraceEvaluateResponse
         )
         for c in result.get("root_cause_candidates", [])
     ]
-    
+
     return TraceEvaluateResponse(
         is_fault=result["is_fault"],
         fault_probability=result["fault_probability"],
@@ -113,19 +113,19 @@ async def evaluate_run(run_id: UUID, db: AsyncSession = Depends(get_db)) -> RunE
     stmt = select(SpanRecordORM).where(SpanRecordORM.run_id == run_id).order_by(SpanRecordORM.start_time.asc())
     res = await db.execute(stmt)
     span_records = res.scalars().all()
-    
+
     if not span_records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No spans found for run_id {run_id}"
         )
-        
+
     spans = []
     for s in span_records:
         dur_ms = 0.0
         if s.start_time and s.end_time:
             dur_ms = max(0.0, (s.end_time - s.start_time).total_seconds() * 1000.0)
-            
+
         is_err = s.status_code == "ERROR"
         spans.append({
             "span_id": s.span_id,
@@ -134,9 +134,9 @@ async def evaluate_run(run_id: UUID, db: AsyncSession = Depends(get_db)) -> RunE
             "operation_name": s.name or "unknown",
             "is_error": is_err
         })
-        
+
     result = detector.detect_trace_anomaly(spans)
-    
+
     candidates = [
         RootCauseCandidate(
             span_id=c["span_id"],
@@ -147,7 +147,7 @@ async def evaluate_run(run_id: UUID, db: AsyncSession = Depends(get_db)) -> RunE
         )
         for c in result.get("root_cause_candidates", [])
     ]
-    
+
     return RunEvaluateResponse(
         run_id=str(run_id),
         is_fault=result["is_fault"],

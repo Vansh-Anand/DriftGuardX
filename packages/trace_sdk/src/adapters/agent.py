@@ -4,8 +4,9 @@ DriftGuard-X v2 — Python Agent Loop Adapter
 Decorator and context manager for standard Python agent loop instrumentation.
 """
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from packages.contracts.src.models import ComponentType, SpanKind
 from packages.trace_sdk.src.tracer import TraceContext
@@ -26,19 +27,19 @@ def instrument_tool(
             # We must pull TraceContext from kwargs if injected by orchestrator
             # In a real async-context setup, we'd use contextvars
             trace_ctx: TraceContext | None = kwargs.pop("trace_ctx", None)
-            
+
             if not trace_ctx:
                 # If no active trace context, just run it
                 return func(*args, **kwargs)
-                
+
             span_name = name or func.__name__
             builder = trace_ctx.start_span(span_name, kind=SpanKind.INTERNAL)
             builder.set_component(component_type, version_id, version_tag)
-            
+
             # Combine args and kwargs for input payload hashing
             input_payload = {"args": args, "kwargs": kwargs}
             builder.set_input(input_payload)
-            
+
             try:
                 result = func(*args, **kwargs)
                 builder.set_output(result)
@@ -54,17 +55,17 @@ def instrument_tool(
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             trace_ctx: TraceContext | None = kwargs.pop("trace_ctx", None)
-            
+
             if not trace_ctx:
                 return await func(*args, **kwargs)
-                
+
             span_name = name or func.__name__
             builder = trace_ctx.start_span(span_name, kind=SpanKind.INTERNAL)
             builder.set_component(component_type, version_id, version_tag)
-            
+
             input_payload = {"args": args, "kwargs": kwargs}
             builder.set_input(input_payload)
-            
+
             try:
                 result = await func(*args, **kwargs)
                 builder.set_output(result)
@@ -90,7 +91,7 @@ class AgentInstrumentor:
     """
     def __init__(self, trace_ctx: TraceContext):
         self.trace_ctx = trace_ctx
-        
+
     def start_span(
         self,
         name: str,

@@ -25,8 +25,8 @@ import enum
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 
@@ -61,28 +61,28 @@ class RollbackCapsule:
     component_id: str = ""
 
     # State snapshots
-    previous_state: Dict[str, Any] = field(default_factory=dict)
-    target_state: Dict[str, Any] = field(default_factory=dict)
+    previous_state: dict[str, Any] = field(default_factory=dict)
+    target_state: dict[str, Any] = field(default_factory=dict)
 
     # Artifact hashes (SHA-256; verify before rollback)
-    artifact_hashes: Dict[str, str] = field(default_factory=dict)
+    artifact_hashes: dict[str, str] = field(default_factory=dict)
 
     # Compatibility checks — all must pass before rollback proceeds
-    compatibility_constraints: List[CompatibilityConstraint] = field(default_factory=list)
+    compatibility_constraints: list[CompatibilityConstraint] = field(default_factory=list)
 
     # Abstract rollback command (typed, not a shell string)
-    rollback_params: Dict[str, Any] = field(default_factory=dict)
+    rollback_params: dict[str, Any] = field(default_factory=dict)
 
     # Verification steps to run after rollback completes
-    verify_steps: List[str] = field(default_factory=list)
+    verify_steps: list[str] = field(default_factory=list)
 
     # Lifecycle
     status: CapsuleStatus = CapsuleStatus.ACTIVE
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=72)
+        default_factory=lambda: datetime.now(UTC) + timedelta(hours=72)
     )
-    used_at: Optional[datetime] = None
+    used_at: datetime | None = None
     created_by: str = "system"
 
     # Integrity seal (computed on creation, verified before use)
@@ -113,7 +113,7 @@ class RollbackCapsule:
 
     def is_usable(self) -> tuple[bool, str]:
         """Returns (usable, reason). Capsule must be ACTIVE and not expired."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if self.status == CapsuleStatus.USED:
             return False, "Capsule already consumed."
         if self.status == CapsuleStatus.VOIDED:
@@ -125,8 +125,8 @@ class RollbackCapsule:
         return True, "ok"
 
     def check_compatibility(
-        self, live_versions: Dict[str, str]
-    ) -> List[str]:
+        self, live_versions: dict[str, str]
+    ) -> list[str]:
         """
         Check all compatibility constraints against live component versions.
         Returns list of constraint violation descriptions (empty = compatible).
@@ -145,7 +145,7 @@ class RollbackCapsule:
     def seal_used(self) -> None:
         """Mark capsule as consumed (prevents reuse)."""
         self.status = CapsuleStatus.USED
-        self.used_at = datetime.now(timezone.utc)
+        self.used_at = datetime.now(UTC)
 
 
 # ─── Capsule Registry ─────────────────────────────────────────────────────────
@@ -159,15 +159,15 @@ class CapsuleRegistry:
     def store(self, capsule: RollbackCapsule) -> None:
         self._capsules[capsule.capsule_id] = capsule
 
-    def get(self, capsule_id: str) -> Optional[RollbackCapsule]:
+    def get(self, capsule_id: str) -> RollbackCapsule | None:
         cap = self._capsules.get(capsule_id)
         if cap and cap.status == CapsuleStatus.ACTIVE:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if now > cap.expires_at:
                 cap.status = CapsuleStatus.EXPIRED
         return cap
 
-    def for_proposal(self, proposal_id: str) -> Optional[RollbackCapsule]:
+    def for_proposal(self, proposal_id: str) -> RollbackCapsule | None:
         for cap in self._capsules.values():
             if cap.proposal_id == proposal_id:
                 return cap

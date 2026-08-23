@@ -2,10 +2,13 @@
 DriftGuard-X v2 — Asynchronous Optimizer Recomputing (AOR) Scheduler
 Hardware-Gated Compute Scheduler.
 """
-from typing import Any, Callable, Dict, List, Optional, Set
 import concurrent.futures
 import threading
+from collections.abc import Callable
+from typing import Any
+
 from packages.replay.src.executor import LocalDevExecutor
+
 
 class TaskStatus:
     PENDING = "PENDING"
@@ -16,7 +19,7 @@ class TaskStatus:
     DIAGNOSING = "DIAGNOSING"
 
 class AORTask:
-    def __init__(self, task_id: str, func: Callable, inputs: Dict[str, Any], dependencies: List[str] = None):
+    def __init__(self, task_id: str, func: Callable, inputs: dict[str, Any], dependencies: list[str] = None):
         self.task_id = task_id
         self.func = func
         self.inputs = inputs
@@ -28,18 +31,18 @@ class AORTask:
 
 class AORScheduler:
     def __init__(self, max_workers: int = 4):
-        self.tasks: Dict[str, AORTask] = {}
+        self.tasks: dict[str, AORTask] = {}
         self.max_workers = max_workers
         self._lock = threading.Lock()
         self._condition = threading.Condition(self._lock)
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         self._diagnostic_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-        
+
     def add_task(self, task: AORTask):
         with self._lock:
             self.tasks[task.task_id] = task
-            
-    def _get_ready_tasks(self) -> List[AORTask]:
+
+    def _get_ready_tasks(self) -> list[AORTask]:
         ready = []
         for task in self.tasks.values():
             if task.status == TaskStatus.PENDING:
@@ -69,11 +72,11 @@ class AORScheduler:
             with self._lock:
                 task.error = e
                 task.status = TaskStatus.FAILED
-                
+
                 # Instantly divert to VTI sandbox for counterfactual testing
                 task.status = TaskStatus.DIAGNOSING
                 self._diagnostic_executor.submit(self._run_diagnostic, task)
-                
+
                 self._condition.notify_all()
 
     def _run_diagnostic(self, task: AORTask):
@@ -110,13 +113,13 @@ class AORScheduler:
                         break
                 if all_done:
                     break
-                    
+
                 ready_tasks = self._get_ready_tasks()
                 for task in ready_tasks:
                     task.status = TaskStatus.RUNNING
                     f = self._executor.submit(self._execute_task, task)
                     futures.append(f)
-                    
+
                 self._condition.wait(timeout=0.1)
 
     def get_task(self, task_id: str) -> AORTask:

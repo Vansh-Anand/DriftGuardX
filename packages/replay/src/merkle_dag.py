@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 
 def _length_prefix_encode(data: bytes) -> bytes:
@@ -41,14 +41,14 @@ class MerkleNode:
     """
     node_id: str
     payload: Any
-    parent_hashes: List[str] = field(default_factory=list)
+    parent_hashes: list[str] = field(default_factory=list)
     version: str = "v1"
     node_hash: str = field(init=False)
-    children_ids: Set[str] = field(default_factory=set, repr=False, compare=False)
+    children_ids: set[str] = field(default_factory=set, repr=False, compare=False)
 
     def __post_init__(self):
         self.node_hash = self.compute_hash()
-        
+
     def compute_hash(self) -> str:
         """Computes the deterministic hash based on node version."""
         if self.version == "v0":
@@ -57,13 +57,13 @@ class MerkleNode:
             prefix = b"\x00" if is_leaf else b"\x01"
             raw = _content_hash(self.payload) + "".join(sorted(self.parent_hashes))
             return hashlib.sha256(prefix + raw.encode()).hexdigest()
-            
+
         elif self.version == "v1":
             # Hardened domain separation
             # Removed default=str to prevent hash collisions from unstable string representations
             payload_bytes = json.dumps(self.payload, sort_keys=True).encode("utf-8")
             version_bytes = b"V1"
-            
+
             if not self.parent_hashes:
                 # Leaf Domain
                 encoded = b"\x00" + version_bytes + _length_prefix_encode(payload_bytes)
@@ -94,11 +94,11 @@ class MerkleDAGStore:
 
     def __init__(self):
         # Content-addressed blob store: hash -> payload
-        self._blobs: Dict[str, Any] = {}
+        self._blobs: dict[str, Any] = {}
         # Node registry: node_id -> MerkleNode
-        self._nodes: Dict[str, MerkleNode] = {}
+        self._nodes: dict[str, MerkleNode] = {}
         # Reverse index: node_hash -> node_id (for dedup checks)
-        self._hash_index: Dict[str, str] = {}
+        self._hash_index: dict[str, str] = {}
 
     # ── Insertion ─────────────────────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ class MerkleDAGStore:
         self,
         node_id: str,
         payload: Any,
-        parent_ids: Optional[List[str]] = None,
+        parent_ids: list[str] | None = None,
     ) -> MerkleNode:
         """
         Add a new node to the DAG.
@@ -137,6 +137,13 @@ class MerkleDAGStore:
             version="v1"  # Always create new nodes as v1
         )
 
+        # Reject duplicate ID mutations
+        if node_id in self._nodes:
+            existing_node = self._nodes[node_id]
+            if existing_node.node_hash != node.node_hash:
+                raise ValueError(f"Duplicate ID mutation rejected: node_id '{node_id}' already exists with different payload/ancestry.")
+            return existing_node
+
         # Dedup: if exact hash already in store, reuse
         if node.node_hash in self._hash_index:
             existing_id = self._hash_index[node.node_hash]
@@ -149,14 +156,14 @@ class MerkleDAGStore:
 
         self._nodes[node_id] = node
         self._hash_index[node.node_hash] = node_id
-        
+
         # Track children for lineage forking
         for pid in (parent_ids or []):
             if pid in self._nodes:
                 self._nodes[pid].children_ids.add(node_id)
-                
+
         return node
-        
+
     def fork_lineage(self, target_node_id: str, new_payload: Any) -> MerkleNode:
         """
         Creates a semantic rollback fork (Update 9). 
@@ -166,24 +173,24 @@ class MerkleDAGStore:
         original_node = self._nodes.get(target_node_id)
         if not original_node:
             raise ValueError(f"Target node {target_node_id} not found.")
-            
+
         # 1. Find all descendants using BFS, including the target node
         from collections import deque
         descendants = set()
         queue = deque([target_node_id])
         visited_search = {target_node_id}
-        
+
         while queue:
             curr = queue.popleft()
             descendants.add(curr)
-            
+
             node = self._nodes.get(curr)
             if node:
                 for child in node.children_ids:
                     if child not in visited_search:
                         visited_search.add(child)
                         queue.append(child)
-                        
+
         # 2. Compute in-degrees within the descendant subgraph
         in_degrees = {d: 0 for d in descendants}
         for d in descendants:
@@ -192,24 +199,24 @@ class MerkleDAGStore:
                 for child in node.children_ids:
                     if child in descendants:
                         in_degrees[child] += 1
-                        
+
         # 3. Process in topological order
         topo_queue = deque([d for d, deg in in_degrees.items() if deg == 0])
         old_to_new = {}
         processed_count = 0
         forked_node = None
-        
+
         # Buffer new nodes to prevent graph pollution on cycle failure
         buffered_nodes = []
-        
+
         while topo_queue:
             curr = topo_queue.popleft()
             processed_count += 1
-            
+
             curr_node = self._nodes[curr]
-            
+
             payload = new_payload if curr == target_node_id else curr_node.payload
-            
+
             new_parent_ids = []
             for p_hash in curr_node.parent_hashes:
                 pid = self._hash_index.get(p_hash)
@@ -217,34 +224,34 @@ class MerkleDAGStore:
                     new_parent_ids.append(old_to_new[pid])
                 elif pid:
                     new_parent_ids.append(pid)
-                    
+
             new_curr_id = f"{curr}_fork"
             buffered_nodes.append((new_curr_id, payload, new_parent_ids))
             old_to_new[curr] = new_curr_id
-            
+
             for child in curr_node.children_ids:
                 if child in in_degrees:
                     in_degrees[child] -= 1
                     if in_degrees[child] == 0:
                         topo_queue.append(child)
-                        
+
         if processed_count != len(descendants):
             raise ValueError("Cycle detected in Merkle-DAG during lineage forking.")
-            
+
         # 4. Commit buffer if no cycle detected
         for new_id, payload, parent_ids in buffered_nodes:
             new_node = self.add_node(new_id, payload, parent_ids)
             if new_id == f"{target_node_id}_fork":
                 forked_node = new_node
-                
+
         return forked_node
 
     # ── Retrieval ─────────────────────────────────────────────────────────────
 
-    def get_node(self, node_id: str) -> Optional[MerkleNode]:
+    def get_node(self, node_id: str) -> MerkleNode | None:
         return self._nodes.get(node_id)
 
-    def get_by_hash(self, node_hash: str) -> Optional[MerkleNode]:
+    def get_by_hash(self, node_hash: str) -> MerkleNode | None:
         node_id = self._hash_index.get(node_hash)
         return self._nodes.get(node_id) if node_id else None
 
@@ -263,6 +270,13 @@ class MerkleDAGStore:
             version=node.version
         )
         return recomputed.node_hash == node.node_hash
+
+    def verify_full_dag(self) -> bool:
+        """Verify cryptographic integrity of the entire DAG."""
+        for node_id in self._nodes:
+            if not self.verify_chain(node_id):
+                return False
+        return True
 
     # ── Stats ─────────────────────────────────────────────────────────────────
 

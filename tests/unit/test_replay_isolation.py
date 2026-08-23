@@ -7,42 +7,58 @@ and pin all other versions to the original run.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import pytest
 
+from apps.api.src.pipeline.mock_rag import (
+    ALL_COMPONENT_VERSIONS,
+    PIPELINE_WITH_EXPERIMENTAL_RETRIEVER,
+    RETRIEVER_V1,
+    RETRIEVER_V2_EXP,
+    MockRAGPipeline,
+)
 from packages.contracts.src.models import (
     ComponentType,
-    ComponentVersion,
-    ComponentVersionState,
     Intervention,
     InterventionType,
-    RequestRun,
-    RunStatus,
-    SpanKind,
-    SpanRecord,
-    TraceArtifact,
     ReplayStateManifest,
+    RequestRun,
+    TraceArtifact,
 )
 from packages.replay.src.engine import (
     ReplayEngine,
     VersionRegistry,
 )
-from apps.api.src.pipeline.mock_rag import (
-    ALL_COMPONENT_VERSIONS,
-    RETRIEVER_V1,
-    RETRIEVER_V2_EXP,
-    RERANKER_V1,
-    GENERATOR_V1,
-    PIPELINE_WITH_EXPERIMENTAL_RETRIEVER,
-    MockRAGPipeline,
-)
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
+
+def _make_fully_pinned_manifest(run_id, tenant_id) -> ReplayStateManifest:
+    return ReplayStateManifest(
+        run_id=run_id,
+        tenant_id=tenant_id,
+        original_query_hash="query-hash",
+        corpus_version_id="corpus-v1",
+        model_provider="openai",
+        model_identifier="gpt-4",
+        model_config_hash="abc",
+        prompt_template_hash="def",
+        retriever_version="v1",
+        retriever_settings={"k": 5},
+        retrieved_chunk_ids=["chunk1"],
+        embedding_model_version="v2",
+        vector_index_snapshot_id="snapshot-1",
+        tool_schemas_hash="tool-hash",
+        policy_config_hash="policy-hash",
+        memory_snapshot_id="memory-1",
+        random_seed=42,
+        container_image_digest="sha256:123",
+        dependency_lockfile_hash="lock-hash",
+        trace_root_hash="trace-hash"
+    )
 
 def _make_registry() -> VersionRegistry:
     registry = VersionRegistry()
@@ -77,14 +93,7 @@ def test_replay_only_swaps_one_component() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
-    manifest = ReplayStateManifest(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
-        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
-        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
-        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
-        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
-    )
+    manifest = _make_fully_pinned_manifest(original_run.id, original_run.tenant_id)
     episode, replay_trace = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
@@ -126,14 +135,7 @@ def test_replay_pins_non_swapped_versions() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
-    manifest = ReplayStateManifest(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
-        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
-        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
-        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
-        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
-    )
+    manifest = _make_fully_pinned_manifest(original_run.id, original_run.tenant_id)
 
     episode, replay_trace = engine.execute_replay(
         original_run=original_run,
@@ -172,15 +174,8 @@ def test_replay_improves_reliability_over_experimental() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
-    
-    manifest = ReplayStateManifest(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
-        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
-        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
-        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
-        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
-    )
+
+    manifest = _make_fully_pinned_manifest(original_run.id, original_run.tenant_id)
     episode, _ = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
@@ -216,15 +211,8 @@ def test_replay_episode_has_correct_version_ids() -> None:
     )
 
     engine = ReplayEngine(_make_registry())
-    
-    manifest = ReplayStateManifest(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
-        model_provider="openai", model_identifier="gpt-4", model_config_hash="abc", prompt_template_hash="def",
-        retriever_version="v1", embedding_model_version="v2", vector_index_snapshot_id="snapshot-1",
-        tool_schemas_hash="tool-hash", policy_config_hash="policy-hash", memory_snapshot_id="memory-1",
-        random_seed=42, container_image_digest="sha256:123", dependency_lockfile_hash="lock-hash", trace_root_hash="trace-hash"
-    )
+
+    manifest = _make_fully_pinned_manifest(original_run.id, original_run.tenant_id)
     episode, _ = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,

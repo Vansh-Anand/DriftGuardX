@@ -1,5 +1,6 @@
+
 import pytest
-import time
+
 
 @pytest.mark.e2e
 def test_worker_redis_loss():
@@ -24,7 +25,7 @@ def test_db_failover():
     """Simulates a database failover during a write operation."""
     primary_db = False
     replica_db = True
-    
+
     # Write attempts to failover
     write_success = primary_db or replica_db
     assert write_success

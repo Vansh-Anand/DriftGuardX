@@ -1,11 +1,10 @@
-import os
-import zipfile
 import hashlib
 import json
 import logging
+import os
+import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
-import argparse
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -38,7 +37,7 @@ def validate_beir_structure(raw_dir: Path) -> bool:
 def count_lines(filepath: Path) -> int:
     if not filepath.exists():
         return 0
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, encoding='utf-8') as f:
         return sum(1 for _ in f)
 
 def extract_and_register():
@@ -47,7 +46,7 @@ def extract_and_register():
 
     registry = {}
     if REGISTRY_FILE.exists():
-        with open(REGISTRY_FILE, "r") as f:
+        with open(REGISTRY_FILE) as f:
             try:
                 registry = json.load(f)
             except json.JSONDecodeError:
@@ -60,7 +59,7 @@ def extract_and_register():
             continue
 
         raw_dataset_dir = RAW_DIR / dataset
-        
+
         # Check if already processed
         current_hash = compute_sha256(zip_path)
         if dataset in registry and registry[dataset].get("sha256") == current_hash and raw_dataset_dir.exists():
@@ -68,11 +67,11 @@ def extract_and_register():
             continue
 
         logger.info(f"Processing {dataset}...")
-        
+
         # Safely extract
         if not raw_dataset_dir.exists():
             raw_dataset_dir.mkdir(parents=True)
-            
+
         with zipfile.ZipFile(zip_path, 'r') as zf:
             for member in zf.infolist():
                 if not is_safe_path(raw_dataset_dir, member.filename):
@@ -82,7 +81,7 @@ def extract_and_register():
                 # Need to handle nested directories. Usually BEIR zips have a top-level dir like `scifact/corpus.jsonl`
                 # Let's extract everything, but we might need to find the actual root.
                 zf.extract(member, raw_dataset_dir)
-                
+
         # Find BEIR root. It might be directly in raw_dataset_dir or in raw_dataset_dir/<dataset>
         beir_root = raw_dataset_dir
         if not (beir_root / "corpus.jsonl").exists():
@@ -98,7 +97,7 @@ def extract_and_register():
 
         corpus_count = count_lines(beir_root / "corpus.jsonl")
         queries_count = count_lines(beir_root / "queries.jsonl")
-        
+
         splits = []
         qrels_count = 0
         qrels_dir = beir_root / "qrels"
@@ -128,13 +127,13 @@ def extract_and_register():
             "query_count": queries_count,
             "qrels_count": qrels_count,
             "available_splits": splits,
-            "extraction_timestamp": datetime.now(timezone.utc).isoformat(),
+            "extraction_timestamp": datetime.now(UTC).isoformat(),
             "preprocessing_chunking_configuration_version": "v1.0.0"
         }
-        
+
         with open(REGISTRY_FILE, "w") as f:
             json.dump(registry, f, indent=4)
-            
+
         logger.info(f"Successfully processed and registered {dataset}.")
 
 if __name__ == "__main__":

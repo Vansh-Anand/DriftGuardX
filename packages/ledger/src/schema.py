@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from typing import Any
 
 DOMAIN_SEPARATOR = "DriftGuardX-Recovery-Cert-V1"
 
@@ -23,37 +23,37 @@ class RecoveryCertificate:
     tenant_id: str
     pipeline_id: str
     run_id: str
-    
+
     # State digests
     trace_before_digest: str
-    trace_after_digest: Optional[str]
+    trace_after_digest: str | None
     replay_capsule_hash: str
-    
+
     # Intervention & Policy
-    intervention_vector: Dict[str, Any]
-    contribution_metrics: Dict[str, float]
+    intervention_vector: dict[str, Any]
+    contribution_metrics: dict[str, float]
     certification_method: str
     epsilon: float
     delta: float
     policy_version: str
     policy_reason: str
-    approvals: List[str]
-    
+    approvals: list[str]
+
     # Execution
     action_result: str
     verification_result: str
-    rollback_capsule_digest: Optional[str]
-    
-    # Ledger specific
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    previous_cert_hash: str = "GENESIS"
-    
-    # Authentication (Set during signing, excluded from payload hash)
-    signature: Optional[str] = None
-    signer_key_id: Optional[str] = None
-    signer_pub_key: Optional[str] = None
+    rollback_capsule_digest: str | None
 
-    def _canonical_dict(self) -> Dict[str, Any]:
+    # Ledger specific
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    previous_cert_hash: str = "GENESIS"
+
+    # Authentication (Set during signing, excluded from payload hash)
+    signature: str | None = None
+    signer_key_id: str | None = None
+    signer_pub_key: str | None = None
+
+    def _canonical_dict(self) -> dict[str, Any]:
         """Return dict with signature fields omitted for hashing."""
         d = asdict(self)
         d.pop("signature", None)
@@ -81,5 +81,5 @@ class RecoveryCertificate:
         return hashlib.sha256(self.canonical_bytes()).hexdigest()
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> RecoveryCertificate:
+    def from_dict(cls, data: dict[str, Any]) -> RecoveryCertificate:
         return cls(**data)

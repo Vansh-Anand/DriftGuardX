@@ -4,9 +4,9 @@ PRIVATE — All Rights Reserved.
 """
 import json
 import os
-from typing import List
 
 from packages.replay.src.faults import get_all_fault_recipes
+
 
 def generate_fault_episodes(output_dir: str):
     """
@@ -15,9 +15,9 @@ def generate_fault_episodes(output_dir: str):
     """
     os.makedirs(output_dir, exist_ok=True)
     out_file = os.path.join(output_dir, "synthetic_fault_episodes.jsonl")
-    
+
     recipes = get_all_fault_recipes()
-    
+
     with open(out_file, "w") as f:
         for recipe in recipes:
             episode = {
@@ -34,5 +34,5 @@ def generate_fault_episodes(output_dir: str):
                 }
             }
             f.write(json.dumps(episode) + "\n")
-            
+
     return out_file

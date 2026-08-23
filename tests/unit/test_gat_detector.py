@@ -2,10 +2,11 @@
 Unit tests for GATTraceDetector and SymptomRegistry GAT integration.
 """
 import os
-import pytest
 from uuid import uuid4
 
-from packages.detectors.src.gat_inference import GATTraceDetector, DriftGuardX_GAT
+import pytest
+
+from packages.detectors.src.gat_inference import DriftGuardX_GAT, GATTraceDetector
 from packages.detectors.src.registry import SymptomRegistry
 
 
@@ -78,7 +79,7 @@ def test_symptom_registry_gat_integration(detector):
         {"span_id": "pay", "parent_id": "root", "duration_ms": 4900.0, "operation_name": "ts-payment.pay", "is_error": True},
     ]
     result = detector.detect_trace_anomaly(faulty_trace)
-    
+
     # Force result is_fault for testing symptom registry mapping
     result["is_fault"] = True
     result["fault_probability"] = 0.85

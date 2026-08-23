@@ -7,7 +7,7 @@ validation errors, and serialization.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -16,13 +16,8 @@ from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
     ComponentVersionState,
-    DiagnosisClaimStatus,
     RecoveryCertificate,
-    ReplayEpisode,
-    ReplayStatus,
     RequestRun,
-    RunStatus,
-    SpanKind,
     SpanRecord,
     Tenant,
     TraceArtifact,
@@ -30,7 +25,7 @@ from packages.contracts.src.models import (
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ─── Schema Tests ─────────────────────────────────────────────────────────────
@@ -94,8 +89,8 @@ def test_agent_pipeline_duplicate_component_type_rejected() -> None:
 def test_span_record_end_before_start_rejected() -> None:
     """SpanRecord must reject end_time < start_time."""
     import pydantic
-    start = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    end = datetime(2024, 1, 1, 11, 0, 0, tzinfo=timezone.utc)  # before start!
+    start = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    end = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)  # before start!
     with pytest.raises(pydantic.ValidationError, match="end_time must be"):
         SpanRecord(
             trace_id="a" * 32,

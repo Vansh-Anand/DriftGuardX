@@ -4,8 +4,9 @@ DriftGuard-X v2 - Layer-specific Evaluation Report Generator
 import json
 import os
 import random
-from typing import Any
+
 from packages.detectors.src.calibration import calibrate_detector
+
 
 def generate_mock_data(size: int = 100):
     """Generate synthetic predictions and truths for clean controls and injected faults."""
@@ -24,17 +25,17 @@ def generate_mock_data(size: int = 100):
 
 def main():
     print("Generating Evaluation Reports with Calibration Plots Data...")
-    
+
     layers = ["Generation", "Retrieval", "Memory", "Operational", "Policy", "Tool"]
     report = "# DriftGuard-X: Layer-Specific Evaluation Reports\n\n"
     report += "This report includes evaluation results for both **clean controls** and **injected faults**.\n\n"
-    
+
     artifacts = {}
-    
+
     for layer in layers:
         y_true, y_score = generate_mock_data(200)
         cal = calibrate_detector(y_true, y_score, target_fpr=0.05)
-        
+
         report += f"## {layer} Layer\n"
         report += f"- **Optimal Threshold:** `{cal['optimal_threshold']:.3f}`\n"
         report += f"- **F1 Score:** `{cal['f1']:.3f}`\n"
@@ -42,17 +43,17 @@ def main():
         report += f"- **False Positive Rate (FPR):** `{cal['fpr']:.3f}`\n"
         report += f"- **AUROC:** `{cal['auroc']:.3f}`\n"
         report += f"- **AUPRC:** `{cal['auprc']:.3f}`\n\n"
-        
+
         artifacts[layer] = cal
-        
+
     os.makedirs("reports", exist_ok=True)
-    
+
     with open("reports/evaluation_report.md", "w") as f:
         f.write(report)
-        
+
     with open("reports/calibration_artifacts.json", "w") as f:
         json.dump(artifacts, f, indent=2)
-        
+
     print("Generated reports/evaluation_report.md and reports/calibration_artifacts.json")
 
 if __name__ == "__main__":

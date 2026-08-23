@@ -16,9 +16,8 @@ PRIVATE — All Rights Reserved.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
-from packages.contracts.src.models import SpanRecord, TraceArtifact
+from packages.contracts.src.models import TraceArtifact
 
 
 @dataclass

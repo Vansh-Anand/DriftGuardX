@@ -13,15 +13,15 @@ class PolicyDriftDetector(DriftDetector):
         return "policy_drift_detector"
 
     def evaluate(
-        self, 
-        trace_or_span: Any, 
+        self,
+        trace_or_span: Any,
         thresholds: dict[str, Any] | None = None,
         **kwargs: Any
     ) -> list[DetectorOutput]:
         from packages.detectors.src.baselines import check_threshold
         thresholds = thresholds or {}
         outputs = []
-        
+
         def _check(feature: str, val: float, default_t: float, default_op: str) -> bool:
             t = thresholds.get(feature)
             if t:
@@ -38,7 +38,7 @@ class PolicyDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.LOW if is_anom else SymptomLikelihood.NONE,
             evidence={"rule_version_change_events": rule_version_changes}
         ))
-        
+
         unexpected_allow = kwargs.get("unexpected_allow_rate", 0.0)
         is_anom = _check("unexpected_allow_rate", unexpected_allow, 0.05, ">")
         outputs.append(DetectorOutput(
@@ -49,7 +49,7 @@ class PolicyDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.HIGH if is_anom else SymptomLikelihood.NONE,
             evidence={"unexpected_allow_rate": unexpected_allow}
         ))
-        
+
         risk_tier_mismatch = kwargs.get("risk_tier_mismatch_rate", 0.0)
         is_anom = _check("risk_tier_mismatch", risk_tier_mismatch, 0.01, ">")
         outputs.append(DetectorOutput(
@@ -60,5 +60,5 @@ class PolicyDriftDetector(DriftDetector):
             likelihood=SymptomLikelihood.CRITICAL if is_anom else SymptomLikelihood.NONE,
             evidence={"risk_tier_mismatch_rate": risk_tier_mismatch}
         ))
-        
+
         return outputs

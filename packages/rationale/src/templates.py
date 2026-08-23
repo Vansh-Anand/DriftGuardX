@@ -5,7 +5,7 @@ PRIVATE — All Rights Reserved.
 Provides fully deterministic fallback rationale text generation.
 These templates must be complete enough for operation without any LLM.
 """
-from packages.rationale.src.models import RationaleInputContract, RationaleStyle, RationaleOutput
+from packages.rationale.src.models import RationaleInputContract, RationaleOutput, RationaleStyle
 
 
 def format_metrics(metrics: dict[str, float]) -> str:

@@ -11,11 +11,9 @@ WITHOUT activating it. Produces a shadow report showing:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 from packages.policy.src.resolver import InheritanceResolver, PolicyRegistry
-from packages.policy.src.hierarchy import RuleVerdict
 
 
 @dataclass
@@ -28,7 +26,7 @@ class HistoricalEvent:
     requester_id: str
     requester_role: str
     recorded_verdict: str   # "allow" | "deny" | "needs_approval"
-    recorded_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    recorded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -39,7 +37,7 @@ class ShadowResult:
     recorded_verdict: str
     shadow_verdict: str
     changed: bool
-    change_direction: Optional[str]  # "tightened" | "relaxed" | None
+    change_direction: str | None  # "tightened" | "relaxed" | None
     shadow_rule_id: str
     shadow_rationale: str
 
@@ -52,8 +50,8 @@ class ShadowReport:
     n_unchanged: int
     n_tightened: int          # events that would be more restricted
     n_relaxed: int            # events that would be less restricted (flag for review)
-    results: List[ShadowResult]
-    generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    results: list[ShadowResult]
+    generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def summary(self) -> str:
         return (
@@ -66,7 +64,7 @@ class ShadowReport:
 
 
 def shadow_evaluate(
-    events: List[HistoricalEvent],
+    events: list[HistoricalEvent],
     candidate_registry: PolicyRegistry,
     candidate_policy_id: str = "candidate",
 ) -> ShadowReport:
@@ -75,7 +73,7 @@ def shadow_evaluate(
     Returns a ShadowReport without activating the candidate policy.
     """
     resolver = InheritanceResolver(candidate_registry)
-    results: List[ShadowResult] = []
+    results: list[ShadowResult] = []
     n_unchanged = n_tightened = n_relaxed = 0
 
     _VERDICT_RANK = {

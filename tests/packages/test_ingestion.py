@@ -1,18 +1,21 @@
-import pytest
 import uuid
-from packages.ingestion.src.scanner import PIISecretScanner
-from packages.ingestion.src.chunker import BaseChunker
+
+import pytest
+
 from packages.contracts.src.models import ReplayStateManifest
+from packages.ingestion.src.chunker import BaseChunker
+from packages.ingestion.src.scanner import PIISecretScanner
+
 
 def test_pii_scanner_rejects_secrets():
     scanner = PIISecretScanner()
-    
+
     safe_text = "This is a document about machine learning."
     assert scanner.scan_text(safe_text) is False
-    
+
     unsafe_text = "Here is my key: API_KEY=abc123XYZ"
     assert scanner.scan_text(unsafe_text) is True
-    
+
     unsafe_text2 = "-----BEGIN PRIVATE KEY-----\nMIIEvgIB"
     assert scanner.scan_text(unsafe_text2) is True
 
@@ -25,7 +28,7 @@ def test_chunker_determinism():
     chunker = BaseChunker(chunk_size=10, chunk_overlap=2)
     text = "one two three four five six seven eight nine ten eleven twelve thirteen"
     chunks = chunker.chunk_text(text)
-    
+
     # Check bounds
     assert chunks[0] == "one two three four five six seven eight nine ten"
     assert chunks[1] == "nine ten eleven twelve thirteen"

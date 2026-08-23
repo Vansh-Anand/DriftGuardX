@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from typing import List, Dict, Any
+from typing import Any
 
 from packages.ledger.src.schema import RecoveryCertificate
 
 
-def redact_sensitive_data(payload: Dict[str, Any]) -> Dict[str, Any]:
+def redact_sensitive_data(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Redact specific fields that might contain PII or sensitive prompts,
     while leaving structural integrity intact. Note: Redaction happens on the
@@ -30,7 +30,7 @@ def redact_sensitive_data(payload: Dict[str, Any]) -> Dict[str, Any]:
     2. `human_summary`: Redacted/simplified view for PDFs or dashboards.
     """
     summary = payload.copy()
-    
+
     # Redact sensitive values from the intervention vector for human summaries
     if "intervention_vector" in summary:
         safe_vector = {}
@@ -44,7 +44,7 @@ def redact_sensitive_data(payload: Dict[str, Any]) -> Dict[str, Any]:
     return summary
 
 
-def export_machine_bundle(certs: List[RecoveryCertificate]) -> str:
+def export_machine_bundle(certs: list[RecoveryCertificate]) -> str:
     """
     Exports a complete, unredacted JSON bundle of certificates suitable for 
     independent cryptographic verification by the standalone verifier.
@@ -57,7 +57,7 @@ def export_machine_bundle(certs: List[RecoveryCertificate]) -> str:
     return json.dumps(bundle, indent=2)
 
 
-def export_human_summary(certs: List[RecoveryCertificate]) -> str:
+def export_human_summary(certs: list[RecoveryCertificate]) -> str:
     """
     Exports a redacted JSON summary for human review/reporting.
     Signatures will NOT verify against this output.
@@ -65,7 +65,7 @@ def export_human_summary(certs: List[RecoveryCertificate]) -> str:
     summaries = []
     for c in certs:
         summaries.append(redact_sensitive_data(asdict(c)))
-        
+
     bundle = {
         "version": "1.0",
         "type": "DriftGuardX_Ledger_Human_Summary",

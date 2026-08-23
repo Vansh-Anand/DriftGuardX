@@ -1,7 +1,7 @@
-import os
 import json
 import logging
-from typing import Dict, Any
+import os
+from typing import Any
 
 try:
     import mlflow
@@ -16,13 +16,13 @@ class Tracker:
         self.experiment_name = experiment_name
         self.results_dir = os.path.join(os.getcwd(), "results", "benchmark_runs")
         os.makedirs(self.results_dir, exist_ok=True)
-        
+
         self.use_mlflow = HAS_MLFLOW
         if self.use_mlflow:
             mlflow.set_tracking_uri("sqlite:///mlruns.db")
             mlflow.set_experiment(self.experiment_name)
-            
-    def log_episode(self, episode_data: Dict[str, Any], metrics: Dict[str, float], run_id: str):
+
+    def log_episode(self, episode_data: dict[str, Any], metrics: dict[str, float], run_id: str):
         # 1. Local JSON File Logging (MinIO equivalent for local runs)
         run_file = os.path.join(self.results_dir, f"run_{run_id}.json")
         payload = {
@@ -31,14 +31,14 @@ class Tracker:
         }
         with open(run_file, "w") as f:
             json.dump(payload, f, indent=2, default=str)
-            
+
         # 2. MLflow Tracking
         if self.use_mlflow:
             try:
                 with mlflow.start_run(run_name=f"episode_{run_id}"):
                     # Log parameters
                     mlflow.log_params({
-                        k: v for k, v in episode_data.items() 
+                        k: v for k, v in episode_data.items()
                         if isinstance(v, (str, int, float, bool))
                     })
                     # Log metrics

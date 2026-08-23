@@ -3,13 +3,14 @@ DriftGuard-X v2 — Rationale Evaluation Suite
 PRIVATE — All Rights Reserved.
 """
 import uuid
+
 import pytest
 
 from packages.contracts.src.models import ComponentType
+from packages.rationale.src.llm import generate_rationale
 from packages.rationale.src.models import RationaleInputContract, RationaleStyle
 from packages.rationale.src.templates import generate_template_rationale
 from packages.rationale.src.validator import validate_factual_consistency
-from packages.rationale.src.llm import generate_rationale, invoke_llm
 
 
 @pytest.fixture
@@ -87,15 +88,15 @@ def test_validator_passes_valid_text(base_contract):
 
 def test_llm_fallback_on_hallucination(monkeypatch, base_contract):
     """If LLM hallucinates, system must silently fallback to template."""
-    
+
     # Mock LLM to hallucinate
     def mock_invoke(*args, **kwargs):
         return "I upgraded retriever to v3, reducing latency by 999.0.", 10.0
-        
+
     monkeypatch.setattr("packages.rationale.src.llm.invoke_llm", mock_invoke)
-    
+
     out = generate_rationale(base_contract, use_llm=True)
-    
+
     # Even though we asked for LLM, it hallucinated, so we get template fallback
     assert out.fallback_triggered is True
     assert out.factual_consistency_score == 0.0
@@ -107,14 +108,14 @@ def test_llm_fallback_on_hallucination(monkeypatch, base_contract):
 
 def test_llm_success_path(monkeypatch, base_contract):
     """If LLM generates strictly valid text, it passes through."""
-    
+
     def mock_invoke(*args, **kwargs):
         return "The retriever component was fixed by moving from v1 to v2-exp, gaining 0.05 in quality.", 10.0
-        
+
     monkeypatch.setattr("packages.rationale.src.llm.invoke_llm", mock_invoke)
-    
+
     out = generate_rationale(base_contract, use_llm=True)
-    
+
     assert out.fallback_triggered is False
     assert out.is_llm_generated is True
     assert out.factual_consistency_score == 1.0
@@ -131,7 +132,7 @@ def test_undercertified_logic(base_contract):
     """Test generating rationale for an uncertified diagnosis."""
     base_contract.is_certified = False
     base_contract.bound_method = None
-    
+
     out = generate_template_rationale(base_contract, RationaleStyle.OPERATOR_SUMMARY)
     assert "UNCERTIFIED" in out.content
     assert "Bound:" not in out.content

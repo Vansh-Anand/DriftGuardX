@@ -6,7 +6,7 @@ PRIVATE — All Rights Reserved.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 
 class LazyStateStore:
@@ -16,11 +16,11 @@ class LazyStateStore:
     reducing peak volatile memory footprint.
     """
 
-    def __init__(self, raw_state: Dict[str, Any]):
+    def __init__(self, raw_state: dict[str, Any]):
         # Raw serialized state — stored cheaply before hydration
-        self._raw: Dict[str, Any] = raw_state
+        self._raw: dict[str, Any] = raw_state
         # Cache of already-hydrated variables
-        self._hydrated: Dict[str, Any] = {}
+        self._hydrated: dict[str, Any] = {}
 
     def hydrate(self, variable_name: str) -> Any:
         """
@@ -56,7 +56,7 @@ class JITGraphHydrator:
     local neighbourhood.
     """
 
-    def __init__(self, graph: Dict[str, Any], state_store: LazyStateStore):
+    def __init__(self, graph: dict[str, Any], state_store: LazyStateStore):
         """
         Args:
             graph: adjacency list representation {"node_id": [neighbour_ids...]}
@@ -65,15 +65,15 @@ class JITGraphHydrator:
         self._graph = graph  # adjacency list: {node_id: [neighbour_ids]}
         self._state_store = state_store
 
-    def _find_neighbourhood(self, failing_node: str, depth: int = 1) -> Set[str]:
+    def _find_neighbourhood(self, failing_node: str, depth: int = 1) -> set[str]:
         """
         BFS up to `depth` hops from the failing node to find directly
         connected variables in the causal sub-graph.
         """
-        visited: Set[str] = {failing_node}
+        visited: set[str] = {failing_node}
         frontier = {failing_node}
         for _ in range(depth):
-            next_frontier: Set[str] = set()
+            next_frontier: set[str] = set()
             for node in frontier:
                 for neighbour in self._graph.get(node, []):
                     if neighbour not in visited:
@@ -84,7 +84,7 @@ class JITGraphHydrator:
 
     def hydrate_for_node(
         self, failing_node: str, depth: int = 1
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         JIT hydrate only the variables in the failing node's neighbourhood.
 
@@ -94,7 +94,7 @@ class JITGraphHydrator:
             KeyError if a graph node has no matching state variable.
         """
         neighbourhood = self._find_neighbourhood(failing_node, depth=depth)
-        hydrated: Dict[str, Any] = {}
+        hydrated: dict[str, Any] = {}
         for var in neighbourhood:
             try:
                 hydrated[var] = self._state_store.hydrate(var)

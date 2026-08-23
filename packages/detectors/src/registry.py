@@ -1,31 +1,30 @@
 """
 DriftGuard-X v2 — Symptom Registry
 """
-from typing import List
 from uuid import UUID
 
 from packages.contracts.src.models import (
-    DetectorOutput, 
-    SymptomLikelihood, 
+    CausalDriftChannel,
+    DetectorOutput,
+    SymptomLikelihood,
     SymptomRegistryEntry,
     TypedCausalMap,
-    CausalDriftChannel,
     _new_uuid,
-    _utcnow
+    _utcnow,
 )
 
 
 class SymptomRegistry:
     """In-memory or persistent registry mapping detector outputs to graph nodes."""
-    
+
     def __init__(self):
-        self._entries: List[SymptomRegistryEntry] = []
-        
+        self._entries: list[SymptomRegistryEntry] = []
+
     def register_symptom(
-        self, 
-        tenant_id: UUID, 
-        run_id: UUID, 
-        graph_node_id: str, 
+        self,
+        tenant_id: UUID,
+        run_id: UUID,
+        graph_node_id: str,
         detector_output: DetectorOutput,
         detector_version: str = "v1"
     ) -> SymptomRegistryEntry:
@@ -33,7 +32,7 @@ class SymptomRegistry:
         # Only register if it breaches threshold or is explicitly marked anomaly
         if not detector_output.is_anomaly:
             return None
-            
+
         # Semantic-Causal Drift Decomposition (Update 2)
         # Use explicit drift_channel from DetectorOutput if provided, fallback to UNKNOWN
         if detector_output.drift_channel:
@@ -42,13 +41,13 @@ class SymptomRegistry:
             import warnings
             warnings.warn(f"Detector {detector_output.detector_name} did not explicitly register a drift channel. Defaulting to UNKNOWN.")
             channel = CausalDriftChannel.UNKNOWN
-            
+
         typed_map = TypedCausalMap(
             primary_channel=channel,
             channel_scores={channel: detector_output.value},
             containment_partition_id=graph_node_id
         )
-            
+
         entry = SymptomRegistryEntry(
             id=_new_uuid(),
             tenant_id=tenant_id,
@@ -65,11 +64,11 @@ class SymptomRegistry:
         self._entries.append(entry)
         return entry
 
-    def get_symptoms_for_run(self, run_id: UUID) -> List[SymptomRegistryEntry]:
+    def get_symptoms_for_run(self, run_id: UUID) -> list[SymptomRegistryEntry]:
         """Fetch all symptoms for a specific run."""
         return [e for e in self._entries if e.run_id == run_id]
 
-    def get_symptoms_for_node(self, run_id: UUID, graph_node_id: str) -> List[SymptomRegistryEntry]:
+    def get_symptoms_for_node(self, run_id: UUID, graph_node_id: str) -> list[SymptomRegistryEntry]:
         """Fetch symptoms localized to a specific node."""
         return [e for e in self._entries if e.run_id == run_id and e.graph_node_id == graph_node_id]
 
@@ -79,7 +78,7 @@ class SymptomRegistry:
         run_id: UUID,
         gat_result: dict,
         detector_version: str = "gat-v1"
-    ) -> List[SymptomRegistryEntry]:
+    ) -> list[SymptomRegistryEntry]:
         """Convert GAT detector results into symptom registry entries."""
         created_entries = []
         if not gat_result.get("is_fault", False) and not gat_result.get("root_cause_candidates"):

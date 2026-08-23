@@ -17,8 +17,9 @@ changed without bumping POLICY_VERSION.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List, Literal
+from datetime import UTC, datetime
+from typing import Literal
+
 from packages.evaluation.src.bounds import BoundResult
 
 # ─── Policy Version ───────────────────────────────────────────────────────────
@@ -48,12 +49,12 @@ class CertificationDecision:
     """
     status: CertStatus
     policy_version: str
-    gates_passed: List[str] = field(default_factory=list)
-    gates_failed: List[str] = field(default_factory=list)
+    gates_passed: list[str] = field(default_factory=list)
+    gates_failed: list[str] = field(default_factory=list)
     human_review_required: bool = False
     block_automated_action: bool = False
     reason: str = ""
-    decided_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    decided_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ─── Gate Checks ──────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ def _check_calibration_age(
 ) -> tuple[bool, str]:
     if last_calibrated_at is None:
         return False, "calibration_age: no calibration dataset found — UNCERTIFIED"
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     age_days = (now - last_calibrated_at).total_seconds() / 86400
     ok = age_days <= policy.max_calibration_age_days
     msg = (
@@ -153,8 +154,8 @@ def certify(
     if policy is None:
         policy = CertificationPolicy()
 
-    gates_passed: List[str] = []
-    gates_failed: List[str] = []
+    gates_passed: list[str] = []
+    gates_failed: list[str] = []
     critical_failure = False
 
     # ── Gate 1: Bound assumptions ─────────────────────────────────────────────

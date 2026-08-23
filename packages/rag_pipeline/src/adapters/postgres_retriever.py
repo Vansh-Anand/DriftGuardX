@@ -1,9 +1,10 @@
-from typing import List, Any
-import uuid
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
+
 from sqlalchemy import text
-from packages.rag_pipeline.src.interfaces import RetrieverAdapter, RetrievedChunk
-from apps.api.src.models_ingestion import ChunkORM
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from packages.rag_pipeline.src.interfaces import RetrievedChunk, RetrieverAdapter
+
 
 class PgRetrievedChunk:
     def __init__(self, chunk_id: str, text_content: str, score: float, document_id: str):
@@ -18,10 +19,10 @@ class PostgresHybridRetriever(RetrieverAdapter):
         self.db = db_session
         self.embedding_adapter = embedding_adapter
 
-    async def retrieve(self, query: str, corpus_version_id: str, top_k: int) -> List[RetrievedChunk]:
+    async def retrieve(self, query: str, corpus_version_id: str, top_k: int) -> list[RetrievedChunk]:
         # 1. Embed query
         query_embedding = await self.embedding_adapter.embed(query)
-        
+
         # 2. RRF SQL Query combining pgvector and tsvector
         # Warning: For this to work efficiently in prod, we'd need appropriate indexes on tsvector and vector
         sql = text("""
@@ -46,7 +47,7 @@ class PostgresHybridRetriever(RetrieverAdapter):
             ORDER BY rrf_score DESC
             LIMIT :top_k
         """)
-        
+
         # We fetch a larger pool for ranking
         result = await self.db.execute(sql, {
             "embedding": str(query_embedding),
@@ -55,7 +56,7 @@ class PostgresHybridRetriever(RetrieverAdapter):
             "top_k_pool": top_k * 5,
             "top_k": top_k
         })
-        
+
         chunks = []
         for row in result.mappings():
             chunks.append(PgRetrievedChunk(
@@ -64,5 +65,5 @@ class PostgresHybridRetriever(RetrieverAdapter):
                 score=float(row["rrf_score"]),
                 document_id=str(row["document_id"])
             ))
-            
+
         return chunks
