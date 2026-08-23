@@ -99,16 +99,22 @@ def _run_causal_planner_trial(
     )
     from packages.replay.src.stopping_rule import EvidentiaryStoppingRule
     from packages.replay.src.divergence_validator import DynamicCausalDivergenceValidator, ExecutionSnapshot
-    from packages.recovery.src.causal_cut import RecoveryCutSolver as RealCutSolver
-    from packages.contracts.src.graph import CausalGraph, CausalGraphNode, CausalGraphEdge
+
+    from packages.contracts.src.graph import CausalGraph, GraphNode, GraphEdge, NodeType, EdgeType
 
     start_t = time.monotonic()
 
     # Build a simple linear causal graph: fault → component → output
-    nodes = [CausalGraphNode(id=c, label=c) for c in candidates]
-    nodes.append(CausalGraphNode(id="output", label="output"))
-    edges = [CausalGraphEdge(source=c, target="output") for c in candidates]
-    graph = CausalGraph(nodes=nodes, edges=edges)
+    nodes = [GraphNode(id=c, type=NodeType.MODEL, label=c) for c in candidates]
+    nodes.append(GraphNode(id="output", type=NodeType.REQUEST, label="output"))
+    edges = [GraphEdge(id=f"{c}->output", source=c, target="output", type=EdgeType.DATA_DEPENDENCY) for c in candidates]
+    graph = CausalGraph(
+        tenant_id=uuid.uuid4(),
+        run_id=uuid.uuid4(),
+        trace_digest="digest",
+        nodes=nodes,
+        edges=edges
+    )
 
     # Build candidate experiments
     candidate_experiments = [
@@ -285,13 +291,12 @@ class _BeliefModelAdapter:
 
 # ── Baseline Strategies ─────────────────────────────────────────────────────
 
-def _run_exhaustive_trial(gt_root_cause: str, candidates: list[str]) -> dict[str, Any]:
+def _run_exhaustive_trial(gt_root_cause: str, candidates: list[str], budget_usd: float = 1.0) -> dict[str, Any]:
     """Exhaustive: test every candidate in fixed order, regardless of evidence."""
     replays = 0
     cost = 0.0
     correct = False
     for c in candidates:
-        replays += 1
         cost += 0.05
         if c == gt_root_cause:
             correct = True
@@ -299,7 +304,7 @@ def _run_exhaustive_trial(gt_root_cause: str, candidates: list[str]) -> dict[str
             "blast_radius": 1.0, "cut_size": 1, "posterior_max": 1.0}
 
 
-def _run_random_trial(gt_root_cause: str, candidates: list[str]) -> dict[str, Any]:
+def _run_random_trial(gt_root_cause: str, candidates: list[str], budget_usd: float = 1.0) -> dict[str, Any]:
     """Random: shuffle candidates and test until found or budget exhausted."""
     shuffled = list(candidates)
     random.shuffle(shuffled)
@@ -307,6 +312,8 @@ def _run_random_trial(gt_root_cause: str, candidates: list[str]) -> dict[str, An
     cost = 0.0
     correct = False
     for c in shuffled:
+        if cost + 0.05 > budget_usd:
+            break
         replays += 1
         cost += 0.05
         if c == gt_root_cause:
@@ -316,10 +323,10 @@ def _run_random_trial(gt_root_cause: str, candidates: list[str]) -> dict[str, An
             "blast_radius": 0.5, "cut_size": 1, "posterior_max": 1.0}
 
 
-def _run_bcrb_trial(gt_root_cause: str, candidates: list[str]) -> dict[str, Any]:
+def _run_bcrb_trial(gt_root_cause: str, candidates: list[str], budget_usd: float = 1.0) -> dict[str, Any]:
     """BCRB: UCB1 bandit with Thompson-style selection."""
     from packages.rag_benchmark.src.schedulers import BCRBSchedulerWrapper
-    scheduler = BCRBSchedulerWrapper(total_budget=len(candidates) * 0.05)
+    scheduler = BCRBSchedulerWrapper(total_budget=budget_usd)
     history: list[dict] = []
     replays = 0
     cost = 0.0
@@ -360,13 +367,18 @@ async def run_real_benchmark(dataset: str, split: str, max_trials: int) -> None:
         ("MODEL_DRIFT", "MODEL_DRIFT_FAILURE"),
         ("MALFORMED_OUTPUT", "PARSER_FAILURE"),
     ]
-    candidates = [gt for _, gt in faults]
+    gt_candidates = [gt for _, gt in faults]
+    # Add distractor components to make the search space larger (15 candidates total)
+    distractors = [f"DISTRACTOR_{i}" for i in range(12)]
+    candidates = gt_candidates + distractors
+
+    budget = 0.20  # Only enough for 4 replays (0.05 each)
 
     strategies = {
-        "causal_planner_new": lambda gt: _run_causal_planner_trial(gt, candidates),
+        "causal_planner_new": lambda gt: _run_causal_planner_trial(gt, candidates, budget_usd=budget),
         "exhaustive": lambda gt: _run_exhaustive_trial(gt, candidates),
-        "random": lambda gt: _run_random_trial(gt, candidates),
-        "bcrb_current": lambda gt: _run_bcrb_trial(gt, candidates),
+        "random": lambda gt: _run_random_trial(gt, candidates, budget_usd=budget),
+        "bcrb_current": lambda gt: _run_bcrb_trial(gt, candidates, budget_usd=budget),
     }
 
     sampled_qids = random.sample(valid_qids, min(max_trials, len(valid_qids)))
@@ -414,9 +426,9 @@ async def run_real_benchmark(dataset: str, split: str, max_trials: int) -> None:
             }
 
     # ── Print report ──────────────────────────────────────────────────────
-    print(f"\n{'─'*110}")
+    print(f"\n{'-'*110}")
     print(f"{'Fault':<25} {'Strategy':<22} {'Acc':>8} {'Replays':>10} {'Cost $':>10} {'Blast':>8}")
-    print(f"{'─'*110}")
+    print(f"{'-'*110}")
     for key, r in all_results.items():
         print(
             f"{r['fault_type']:<25} {r['strategy']:<22} "
@@ -425,7 +437,7 @@ async def run_real_benchmark(dataset: str, split: str, max_trials: int) -> None:
             f"{r['cost_mean']:>7.3f}±{r['cost_ci']:.3f} "
             f"{r['blast_mean']:>6.3f}"
         )
-    print(f"{'─'*110}")
+    print(f"{'-'*110}")
 
     # ── Save JSON results ─────────────────────────────────────────────────
     ts = time.strftime("%Y%m%d_%H%M%S")

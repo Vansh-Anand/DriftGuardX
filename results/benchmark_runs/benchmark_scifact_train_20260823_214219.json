@@ -1,0 +1,1196 @@
+{
+  "dataset": "scifact",
+  "split": "train",
+  "max_trials": 10,
+  "timestamp": "20260823_214219",
+  "results": {
+    "STALE_CORPUS|causal_planner_new": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "causal_planner_new",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 4,
+      "replays_ci": 0.0,
+      "cost_mean": 0.2,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.005788399954326451
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.0039305000100284815
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.005042399978265166
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.00405649992171675
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004013999947346747
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004246200085617602
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004051299998536706
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003962200018577278
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.0039323000237345695
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.4426229508196721,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004045999958179891
+        }
+      ]
+    },
+    "STALE_CORPUS|exhaustive": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "exhaustive",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 0,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.0,
+      "trials": [
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "STALE_CORPUS|random": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "random",
+      "n_trials": 10,
+      "acc_mean": 0.4,
+      "acc_ci": 0.32006665972366866,
+      "replays_mean": 3.5,
+      "replays_ci": 0.6694674500426937,
+      "cost_mean": 0.17500000000000002,
+      "cost_ci": 0.03347337250213469,
+      "blast_mean": 0.5,
+      "trials": [
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "STALE_CORPUS|bcrb_current": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "bcrb_current",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 2,
+      "replays_ci": 0.0,
+      "cost_mean": 0.1,
+      "cost_ci": 0.0,
+      "blast_mean": 0.5,
+      "trials": [
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "MODEL_DRIFT|causal_planner_new": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "causal_planner_new",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 4,
+      "replays_ci": 0.0,
+      "cost_mean": 0.2,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.005090299993753433
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003989799995906651
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003858799929730594
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.0060888000298291445
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004920000093989074
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004015399958007038
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003991200006566942
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004138899967074394
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.00399600004311651
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003799100057221949
+        }
+      ]
+    },
+    "MODEL_DRIFT|exhaustive": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "exhaustive",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 0,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.0,
+      "trials": [
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "MODEL_DRIFT|random": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "random",
+      "n_trials": 10,
+      "acc_mean": 0.4,
+      "acc_ci": 0.32006665972366866,
+      "replays_mean": 3.4,
+      "replays_ci": 0.6662718831094571,
+      "cost_mean": 0.17,
+      "cost_ci": 0.03331359415547286,
+      "blast_mean": 0.5,
+      "trials": [
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 3,
+          "cost_usd": 0.15000000000000002,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "MODEL_DRIFT|bcrb_current": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "bcrb_current",
+      "n_trials": 10,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 2,
+      "replays_ci": 0.0,
+      "cost_mean": 0.1,
+      "cost_ci": 0.0,
+      "blast_mean": 0.5,
+      "trials": [
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 2,
+          "cost_usd": 0.1,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|causal_planner_new": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "causal_planner_new",
+      "n_trials": 10,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 4,
+      "replays_ci": 0.0,
+      "cost_mean": 0.2,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003963700029999018
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004215199965983629
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.00399300002027303
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.003876499948091805
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004278999986127019
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004156199982389808
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.0040296000661328435
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.0038912000600248575
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.0037589999847114086
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "blast_radius": 1.875,
+          "posterior_max": 0.08737864077669903,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "Resource budget exhausted (USD or time limit).",
+          "wall_seconds": 0.004052300006151199
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|exhaustive": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "exhaustive",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 0,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.0,
+      "trials": [
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 0,
+          "cost_usd": 0.7500000000000001,
+          "correct": true,
+          "blast_radius": 1.0,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|random": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "random",
+      "n_trials": 10,
+      "acc_mean": 0.4,
+      "acc_ci": 0.32006665972366866,
+      "replays_mean": 3.2,
+      "replays_ci": 0.7619110475931192,
+      "cost_mean": 0.16,
+      "cost_ci": 0.038095552379655964,
+      "blast_mean": 0.5,
+      "trials": [
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 3,
+          "cost_usd": 0.15000000000000002,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 4,
+          "cost_usd": 0.2,
+          "correct": false,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 3,
+          "cost_usd": 0.15000000000000002,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|bcrb_current": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "bcrb_current",
+      "n_trials": 10,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 1,
+      "replays_ci": 0.0,
+      "cost_mean": 0.05,
+      "cost_ci": 0.0,
+      "blast_mean": 0.5,
+      "trials": [
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        },
+        {
+          "replays_executed": 1,
+          "cost_usd": 0.05,
+          "correct": true,
+          "blast_radius": 0.5,
+          "cut_size": 1,
+          "posterior_max": 1.0
+        }
+      ]
+    }
+  }
+}
