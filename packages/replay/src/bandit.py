@@ -118,10 +118,18 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
             if pulls == 0:
                 expected_reward = arm.prior
-                ucb_bonus = self.c
+                # Unseen arms get a high bonus to encourage exploration initially,
+                # but scaled relative to the exploration constant.
+                ucb_bonus = self.c * math.sqrt(math.log(max(self.total_pulls, 1) + 1))
             else:
                 expected_reward = self.rewards.get(arm.arm_id, 0.0) / pulls
-                ucb_bonus = self.c * math.sqrt(math.log(self.total_pulls) / pulls)
+                # Safe log for total_pulls to prevent math domain error
+                ucb_bonus = self.c * math.sqrt(math.log(max(self.total_pulls, 1)) / pulls)
+
+            if math.isnan(expected_reward):
+                expected_reward = 0.0
+            if math.isnan(ucb_bonus):
+                ucb_bonus = 0.0
 
             ucb_score = expected_reward + ucb_bonus
             knapsack_score = ucb_score / effective_cost

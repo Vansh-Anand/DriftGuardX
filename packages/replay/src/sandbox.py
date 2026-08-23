@@ -77,6 +77,9 @@ def _sandbox_audit_hook(event: str, args: tuple):
         sandbox_local.staged_actions.append({"trace_id": trace_id, "type": "SHELL_EXEC", "payload": {"event": event, "command": str(args)}})
         raise SandboxViolationError(f"Shell execution staged and blocked in sandbox: {event}")
 
+    if event == "os.kill":
+        raise SandboxViolationError("Process signaling (os.kill) blocked in sandbox.")
+
 def _apply_os_limits(memory_mb: int, cpu_seconds: int):
     """Apply strict OS resource limits where available (Linux/Unix)."""
     if HAS_RESOURCE_LIMITS:
@@ -85,6 +88,8 @@ def _apply_os_limits(memory_mb: int, cpu_seconds: int):
         resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
         # Limit CPU time
         resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+        # Limit subprocesses
+        resource.setrlimit(resource.RLIMIT_NPROC, (0, 0))
     else:
         # Warning printed for audit logs
         print("WARNING: OS resource limits (RLIMIT) unavailable on this platform. Falling back to multiprocessing timeouts.")
@@ -165,7 +170,7 @@ class ReplayEngineWithInvariants:
             orig_out = json.dumps(orig_span.get('output', {}), sort_keys=True).encode()
             replay_out = json.dumps(replay_span.get('output', {}), sort_keys=True).encode()
 
-            if hashlib.md5(orig_out).hexdigest() != hashlib.md5(replay_out).hexdigest():
+            if hashlib.sha256(orig_out).hexdigest() != hashlib.sha256(replay_out).hexdigest():
                 raise InvariantViolationError(
                     f"Freeze invariant violated! Component {span_id} output changed during replay despite not being intervened."
                 )

@@ -51,7 +51,7 @@ class TestEvidentiaryStoppingRule:
         ctx.spent_usd = 0.0  # budget is 0 so any more is exhausted
         ctx.elapsed_seconds = 999.0
         model = _MockBeliefModel({"a": 0.5, "b": 0.5})
-        stop, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
         assert stop
         assert "budget" in reason.lower() or "time" in reason.lower() or "limit" in reason.lower()
 
@@ -60,7 +60,7 @@ class TestEvidentiaryStoppingRule:
         ctx = ResourceContext(budget_usd=100.0)
         ctx.replay_count = 3
         model = _MockBeliefModel({"a": 0.5, "b": 0.5})
-        stop, reason = rule.is_sufficient(None, ctx, model, [])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [])
         assert stop
         assert "cap" in reason.lower() or "3" in reason
 
@@ -71,7 +71,7 @@ class TestEvidentiaryStoppingRule:
         rule.record_iteration(0.5)
         ctx = ResourceContext(budget_usd=10.0)
         model = _MockBeliefModel({"retriever": 0.90, "model": 0.10})
-        stop, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
         assert stop
         assert "confidence" in reason.lower() or "0.9" in reason
 
@@ -80,7 +80,7 @@ class TestEvidentiaryStoppingRule:
         rule._replay_count = 1  # below min_replays
         ctx = ResourceContext(budget_usd=10.0)
         model = _MockBeliefModel({"a": 0.6, "b": 0.4})
-        stop, _ = rule.is_sufficient(None, ctx, model, [{"id": "x"}, {"id": "y"}])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}, {"id": "y"}])
         assert not stop
 
     def test_margin_threshold_stops(self):
@@ -91,7 +91,7 @@ class TestEvidentiaryStoppingRule:
         ctx = ResourceContext(budget_usd=10.0)
         # Top-2 margin = 0.75 - 0.15 = 0.60 > 0.50
         model = _MockBeliefModel({"a": 0.75, "b": 0.15, "c": 0.10})
-        stop, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
         assert stop
         assert "margin" in reason.lower()
 
@@ -103,7 +103,7 @@ class TestEvidentiaryStoppingRule:
             rule.record_iteration(0.500)
         ctx = ResourceContext(budget_usd=10.0)
         model = _MockBeliefModel({"a": 0.55, "b": 0.45})
-        stop, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [{"id": "x"}])
         assert stop
         assert "entropy" in reason.lower()
 
@@ -111,7 +111,7 @@ class TestEvidentiaryStoppingRule:
         rule = self._rule()
         ctx = ResourceContext(budget_usd=10.0)
         model = _MockBeliefModel({"a": 0.5, "b": 0.5})
-        stop, reason = rule.is_sufficient(None, ctx, model, [])
+        stop, outcome, reason = rule.is_sufficient(None, ctx, model, [])
         assert stop
         assert "candidate" in reason.lower() or "remaining" in reason.lower()
 

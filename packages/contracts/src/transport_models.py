@@ -54,10 +54,9 @@ class CausalEnvironmentDescriptor(DGXBaseModel):
 
     def recompute_signature(self, secret_key: str) -> str:
         """Compute HMAC over critical descriptor fields."""
-        payload = (
-            f"{self.tenant_id}|{self.model}|{self.prompt}|{self.retriever}|"
-            f"{self.policy}|{self.data_distribution_fingerprint}|{self.causal_graph_hash}"
-        ).encode()
+        import json
+        dump = self.model_dump(exclude={"signature"}, mode="json")
+        payload = json.dumps(dump, sort_keys=True, separators=(',', ':')).encode('utf-8')
         mac = hmac.new(secret_key.encode('utf-8'), payload, hashlib.sha256).digest()
         return base64.b64encode(mac).decode('utf-8')
 

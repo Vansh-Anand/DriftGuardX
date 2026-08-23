@@ -52,12 +52,6 @@ class DeterministicVerifier:
         except json.JSONDecodeError:
             return False
 
-    @staticmethod
-    def verify_arithmetic_consistency(text: str) -> bool:
-        """
-        A placeholder for a check that extracts equations from text and verifies them.
-        """
-        return True
 
     def run_all_contracts(self, trace_attributes: dict[str, Any], final_output: str, constraints: dict[str, Any]) -> bool:
         """

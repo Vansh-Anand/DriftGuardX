@@ -368,13 +368,11 @@ class LocalDevExecutor(RecoveryExecutor):
                 from datetime import datetime, timedelta
 
                 from packages.memory.src.auth import AccessContext
-                from packages.memory.src.capabilities import (
-                    AuthorizationCapability,
-                    CapabilityVerifier,
-                )
+                from packages.contracts.src.recovery_models import SignedCapability
+                from packages.memory.src.capabilities import CapabilityVerifier
                 from packages.memory.src.store import global_provenance_store
                 verifier = CapabilityVerifier(b"dgx_secret_key_prod")
-                cap = AuthorizationCapability(capability_id=uuid.uuid4().hex, tenant_id=proposal.tenant_id, action="QUARANTINE", resource=pid, expires_at=datetime.now(UTC)+timedelta(minutes=5))
+                cap = SignedCapability(capability_id=uuid.uuid4().hex, requester_id="executor", tenant_id=proposal.tenant_id, action="QUARANTINE", resource=pid, expires_at=datetime.now(UTC)+timedelta(minutes=5))
                 cap = verifier.sign(cap)
                 ctx = AccessContext(requester_id="executor", tenant_id=proposal.tenant_id, expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
                 global_provenance_store.quarantine_partition(pid, context=ctx, reason=f"Quarantined by proposal {proposal.proposal_id}")
@@ -443,13 +441,11 @@ class LocalDevExecutor(RecoveryExecutor):
                     from datetime import datetime, timedelta
 
                     from packages.memory.src.auth import AccessContext
-                    from packages.memory.src.capabilities import (
-                        AuthorizationCapability,
-                        CapabilityVerifier,
-                    )
+                    from packages.contracts.src.recovery_models import SignedCapability
+                    from packages.memory.src.capabilities import CapabilityVerifier
                     from packages.memory.src.store import global_provenance_store
                     verifier = CapabilityVerifier(b"dgx_secret_key_prod")
-                    cap = AuthorizationCapability(capability_id=uuid.uuid4().hex, tenant_id="system", action="UNQUARANTINE", resource=prev["partition_id"], expires_at=datetime.now(UTC)+timedelta(minutes=5))
+                    cap = SignedCapability(capability_id=uuid.uuid4().hex, requester_id="executor", tenant_id="system", action="UNQUARANTINE", resource=prev["partition_id"], expires_at=datetime.now(UTC)+timedelta(minutes=5))
                     cap = verifier.sign(cap)
                     ctx = AccessContext(requester_id="executor", tenant_id="system", expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
                     global_provenance_store.unquarantine_partition(prev["partition_id"], context=ctx)

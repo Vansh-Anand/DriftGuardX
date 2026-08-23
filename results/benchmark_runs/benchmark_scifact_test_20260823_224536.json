@@ -1,0 +1,6 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "max_trials": 3,
+  "results": {}
+}

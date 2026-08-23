@@ -1,0 +1,295 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "max_trials": 1,
+  "results": {
+    "STALE_CORPUS|causal_planner_new": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "causal_planner_new",
+      "n_trials": 1,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 8,
+      "replays_ci": 0.0,
+      "cost_mean": 0.39999999999999997,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11338880006223917
+        }
+      ]
+    },
+    "STALE_CORPUS|exhaustive": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "exhaustive",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18119280005339533
+        }
+      ]
+    },
+    "STALE_CORPUS|random": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "random",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18170760001521558
+        }
+      ]
+    },
+    "STALE_CORPUS|bcrb_current": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "bcrb_current",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18643110000994056
+        }
+      ]
+    },
+    "MODEL_DRIFT|causal_planner_new": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "causal_planner_new",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 8,
+      "replays_ci": 0.0,
+      "cost_mean": 0.39999999999999997,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.12683329998981208
+        }
+      ]
+    },
+    "MODEL_DRIFT|exhaustive": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "exhaustive",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.185733100050129
+        }
+      ]
+    },
+    "MODEL_DRIFT|random": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "random",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1784719000570476
+        }
+      ]
+    },
+    "MODEL_DRIFT|bcrb_current": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "bcrb_current",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1844536999706179
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|causal_planner_new": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "causal_planner_new",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 8,
+      "replays_ci": 0.0,
+      "cost_mean": 0.39999999999999997,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10428830003365874
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|exhaustive": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "exhaustive",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17858160007745028
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|random": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "random",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1822339000646025
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|bcrb_current": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "bcrb_current",
+      "n_trials": 1,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18359829997643828
+        }
+      ]
+    }
+  }
+}

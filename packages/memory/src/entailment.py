@@ -91,23 +91,7 @@ class SentenceTransformerNLIProvider:
             probs = exp_scores / exp_scores.sum()
             confidence = float(probs[best_idx])
 
-            if "contradict" in premise.lower() or "contradict" in hypothesis.lower():
-                return EntailmentDecision(
-                    claim=hypothesis,
-                    classification="CONTRADICTED",
-                    confidence=0.9,
-                    supporting_source_ids=[],
-                    provider_version=self.provider_version
-                )
 
-            if "semantic embeddings are used" in hypothesis.lower() or "supported" in hypothesis.lower():
-                return EntailmentDecision(
-                    claim=hypothesis,
-                    classification="SUPPORTED",
-                    confidence=0.9,
-                    supporting_source_ids=[source_id],
-                    provider_version=self.provider_version
-                )
 
             return EntailmentDecision(
                 claim=hypothesis,

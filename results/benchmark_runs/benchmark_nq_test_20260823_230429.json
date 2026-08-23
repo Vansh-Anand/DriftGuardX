@@ -1,0 +1,6175 @@
+{
+  "dataset": "nq",
+  "split": "test",
+  "max_trials": 50,
+  "results": {
+    "STALE_CORPUS|causal_planner_new": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "causal_planner_new",
+      "n_trials": 50,
+      "acc_mean": 1.0,
+      "acc_ci": 0.0,
+      "replays_mean": 8,
+      "replays_ci": 0.0,
+      "cost_mean": 0.39999999999999997,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1460746000520885
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11238910001702607
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11842459999024868
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1043341999175027
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11198909999802709
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10936690005473793
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10908970003947616
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10742639994714409
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1061250000493601
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10237960005179048
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10200059995986521
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10281219996977597
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1015618999954313
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11175100004766136
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10753100004512817
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10949389997404069
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1097099999897182
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11252940003760159
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10619950003456324
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10785060003399849
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10196980007458478
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10622960003092885
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10449609998613596
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10234079998917878
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10736639995593578
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11528429994359612
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11373350000940263
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10262200003489852
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10947590006981045
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10546459991019219
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10124470002483577
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10260790004394948
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10286519990768284
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10645870002917945
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11389010003767908
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1134083999786526
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10879730002488941
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1056879999814555
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11252210009843111
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11120299994945526
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11151880002580583
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10433909995481372
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10231330001261085
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1013824000256136
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10795179998967797
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11259339994285256
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.11646070005372167
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10791839996818453
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.1145522000733763
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": true,
+          "stop_reason": "solved",
+          "wall_seconds": 0.10954039997886866
+        }
+      ]
+    },
+    "STALE_CORPUS|exhaustive": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "exhaustive",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19226020004134625
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19510449992958456
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1982766999863088
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18855069996789098
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18524949997663498
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17857200000435114
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1783290000166744
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18309790000785142
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18273330002557486
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.180068000103347
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1806996000232175
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1816281999927014
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1791520999977365
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17962729989085346
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17817590001504868
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17756170011125505
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17931380006484687
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19157880009151995
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19551490002777427
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1921808000188321
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19406850007362664
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1809287000214681
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1786749999737367
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18973049998749048
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1778057999908924
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18279180000536144
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19081210007425398
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1859670999692753
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18325100000947714
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18595210008788854
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17924009996932
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.185294600087218
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19463749998249114
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18560960004106164
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19188739999663085
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19289910001680255
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1950514999916777
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1781597000081092
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18568570003844798
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1774229999864474
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19029449997469783
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19658290001098067
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1943133999593556
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1967287000734359
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1879953999305144
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1783417999977246
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18978269991930574
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17951159994117916
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18994449998717755
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19975450006313622
+        }
+      ]
+    },
+    "STALE_CORPUS|random": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "random",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1988118999870494
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18953920004423708
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18686410004738718
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18654630007222295
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1841662999941036
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19683200004510581
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1806918999645859
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17845409992150962
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17404479999095201
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17772979999426752
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17932380002457649
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17739460000302643
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17718550004065037
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17641710001043975
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18723549996502697
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20714880002196878
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18707400001585484
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17985509999562055
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18227290001232177
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18327540007885545
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1861016999464482
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19206969998776913
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19221260002814233
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18276579992379993
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18708850000984967
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1804075000109151
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18582619994413108
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19127429998479784
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19499530002940446
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1798858999973163
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17667859990615398
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17735020001418889
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17756099998950958
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18766820000018924
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19667820003814995
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19149350002408028
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18392999994102865
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17913149995729327
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18306529999244958
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17850589996669441
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1912352000363171
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1939115000423044
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18802460003644228
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19638310000300407
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19323559990152717
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18099770008120686
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1768217000644654
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18039779993705451
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18340919993352145
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1886036000214517
+        }
+      ]
+    },
+    "STALE_CORPUS|bcrb_current": {
+      "fault_type": "STALE_CORPUS",
+      "strategy": "bcrb_current",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18532160005997866
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18437090003862977
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17798290005885065
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17749060003552586
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17901379999238998
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17941039998549968
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17929819994606078
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1776655000867322
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18344250007066876
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19011610001325607
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18871809996198863
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1852763999486342
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18773060000967234
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19272159994579852
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1883737000171095
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18398390000220388
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18914210004732013
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1860774999950081
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18874980008695275
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18587069993373007
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18547200004104525
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18832179997116327
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.195704200072214
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19337819993961602
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19185549998655915
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18365779996383935
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17635710001923144
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.2070098000112921
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18994169996585697
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19478129991330206
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19674829998984933
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17749680008273572
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18180879997089505
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17650109995156527
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18239460000768304
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18123820004984736
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18793410004582256
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18575350008904934
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1916392999701202
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18327819998376071
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.187260500038974
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1832810000050813
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18559280002955347
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.2029750000219792
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19946050003636628
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19829219998791814
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19750730006489903
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19350789999589324
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1820152000291273
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1806093999184668
+        }
+      ]
+    },
+    "MODEL_DRIFT|causal_planner_new": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "causal_planner_new",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 8,
+      "replays_ci": 0.0,
+      "cost_mean": 0.39999999999999997,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11414520000107586
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10321610001847148
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10513450007420033
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11148900003172457
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1179705000249669
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1200597999850288
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11239459994249046
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11176720005460083
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1165380000602454
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10962010000366718
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10600849997717887
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10252109996508807
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10964139993302524
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10892279993277043
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10374599997885525
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11497819994110614
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10915370006114244
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1108142000157386
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11224170005880296
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10896089999005198
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1063158999895677
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10525739996228367
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10928009997587651
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11762829998042434
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11992550001014024
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10416860005352646
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10231949994340539
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10087630001362413
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10052310000173748
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1000680000288412
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10139630001503974
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10310810001101345
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.102877700002864
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10259110003244132
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10167680005542934
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10413740004878491
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10233709996100515
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11018349998630583
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11013239994645119
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10958359995856881
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11083050002343953
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10463660000823438
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1015128999715671
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10075820004567504
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10131910000927746
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10070359997916967
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10707290004938841
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10232790000736713
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10185129998717457
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10398969997186214
+        }
+      ]
+    },
+    "MODEL_DRIFT|exhaustive": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "exhaustive",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1864171999040991
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1736554999370128
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18931310006882995
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18886670004576445
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19128839997574687
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1849682000465691
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17601970001123846
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17289740010164678
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17239259998314083
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17767479992471635
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17933129996526986
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18745279998984188
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17751960002351552
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18048799992538989
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18254030006937683
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17685839999467134
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17602789995726198
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17880649992730469
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1917317999759689
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19132579991128296
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19401219999417663
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19198620005045086
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19748840003740042
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18777730001602322
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18221290002111346
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18033260002266616
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1819003999698907
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18742360000032932
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18730069999583066
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17997239995747805
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18029399996157736
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1793535000178963
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1779920000117272
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1772869999986142
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1758786999853328
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17543540010228753
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17333520005922765
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1760768999811262
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17508709989488125
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17516840004827827
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18013300001621246
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1798558000009507
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18255769996903837
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.195294399978593
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1929853999754414
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19521889998577535
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17839420004747808
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17885759996715933
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18719929992221296
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19682930002454668
+        }
+      ]
+    },
+    "MODEL_DRIFT|random": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "random",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1931628999300301
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18829860002733767
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1816110999789089
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18687640002463013
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17773469991516322
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1904932000907138
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1942070999648422
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1943530000280589
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19427789992187172
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19077910005580634
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1871775999898091
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17662449995987117
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18471729999873787
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18084039993118495
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18811049999203533
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1939360999967903
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1988615000154823
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18378500000108033
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1838135999860242
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18115299998316914
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17824619996827096
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1948718000203371
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19320530002005398
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19931369996629655
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19842659996356815
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19361359998583794
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18237329996190965
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18985520000569522
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17922719998750836
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18508199998177588
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18933359999209642
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1845000000903383
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1953535999637097
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19291470001917332
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1860731999622658
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17729560006409883
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19065109989605844
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1780999000184238
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19038319995161146
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19716929993592203
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19106069998815656
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.184594799997285
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17758080002386123
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17691270005889237
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17775149992667139
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1790845999494195
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18250260001514107
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1785100999986753
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19007949996739626
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1902161999605596
+        }
+      ]
+    },
+    "MODEL_DRIFT|bcrb_current": {
+      "fault_type": "MODEL_DRIFT",
+      "strategy": "bcrb_current",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18685930001083761
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18352670001331717
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18030979996547103
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17312690010294318
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17313350003678352
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17988439998589456
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18812479998450726
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17837790003977716
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1958070999244228
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1951470000203699
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19208069995511323
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18362360005266964
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1757394999731332
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1735814999556169
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18121660000178963
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18746330006979406
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18069479998666793
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1863275000359863
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19155400001909584
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19517149997409433
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19194699998479337
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1800548000028357
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17728340008761734
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17559879994951189
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18324409995693713
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1832513000117615
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20165300008375198
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19794610003009439
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19054680003318936
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1857851999811828
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17602600005920976
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17405480006709695
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1749105000635609
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1814013000112027
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1772925000404939
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18253200000617653
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19257339998148382
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18085689994040877
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1800976999802515
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1783154000295326
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17771810002159327
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19653139996808022
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19998450006823987
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20304119994398206
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1957850999897346
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19114439992699772
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19453310000244528
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18062879994977266
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18944449990522116
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.180884400033392
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|causal_planner_new": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "causal_planner_new",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 8,
+      "replays_ci": 0.0,
+      "cost_mean": 0.39999999999999997,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10321190010290593
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11297350004315376
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11374579998664558
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11476700007915497
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.12033129995688796
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11957280000206083
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10346420004498214
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1012661000713706
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11043180001433939
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10567800002172589
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10237550002057105
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10682660003658384
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11651760002132505
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11206680000759661
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1159097000490874
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.12058999994769692
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11673880007583648
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11782439996022731
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.12036709999665618
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1194137999555096
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10941700008697808
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11041839991230518
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10614339995663613
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10372689994983375
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10441619995981455
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10176520003005862
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11154099996201694
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1065834000473842
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10582900000736117
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10439890006091446
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10412290005479008
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10444529994856566
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.101309800054878
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1033253000350669
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10191770002711564
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10011939995456487
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10031330003403127
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10056030005216599
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10235389997251332
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10103490005712956
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10888559999875724
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.105458699981682
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10545749997254461
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10229110007639974
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11577239993494004
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11355799995362759
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.11671860003843904
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1188035000814125
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10534679994452745
+        },
+        {
+          "replays_executed": 8,
+          "cost_usd": 0.39999999999999997,
+          "blast_radius": 1.875,
+          "posterior_max": 0.1267605633802817,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.10164090001489967
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|exhaustive": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "exhaustive",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17991990002337843
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18039259989745915
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1836464999942109
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18832760001532733
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19595520000439137
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18351310002617538
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18624059995636344
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18773659993894398
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18457369995303452
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18107970000710338
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18794249999336898
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19663879997096956
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19158169999718666
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18767919996753335
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1878575999289751
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19079280004370958
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17867289995774627
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18223969999235123
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17963029991369694
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18553150002844632
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19522889994550496
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19505970005411655
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19538720010314137
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1969064000295475
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18232170003466308
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1769936999771744
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1817793999798596
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1859664999647066
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1918543999781832
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19497209996916354
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19805819995235652
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20112199999857694
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1959093000041321
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18371920008212328
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1882582000689581
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18220030004158616
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18478359992150217
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20061959989834577
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19505139999091625
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19293440005276352
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17816060001496226
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18819020001683384
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17666970007121563
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19187479990068823
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19415939995087683
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1988565999781713
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1908619999885559
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19143170001916587
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19081040006130934
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17927210009656847
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|random": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "random",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1774590000277385
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1791502000996843
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17928589996881783
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18991870002355427
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18852590001188219
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19015729997772723
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1946565000107512
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18076550005935133
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18328550003934652
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18331370002124459
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17597250000108033
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19262180000077933
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19342390005476773
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18311729992274195
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18828270002268255
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17947500001173466
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18675170000642538
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18617579992860556
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18543579999823123
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1823930999962613
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18053040001541376
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1833371000830084
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18186229991260916
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1793919000774622
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19029489997774363
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19109660002868623
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1915894999401644
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18503050005529076
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19882519997190684
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19157839997205883
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1865891000488773
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18961420003324747
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19225060008466244
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19047150004189461
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19266900001093745
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19141950004268438
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19938269990962
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20016720006242394
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19223739998415112
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19277759990654886
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18365090002771467
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1816912000067532
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18043179996311665
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18591420003212988
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1898020999506116
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19427340000402182
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19410050008445978
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19601349998265505
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19632740004453808
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17994030006229877
+        }
+      ]
+    },
+    "MALFORMED_OUTPUT|bcrb_current": {
+      "fault_type": "MALFORMED_OUTPUT",
+      "strategy": "bcrb_current",
+      "n_trials": 50,
+      "acc_mean": 0.0,
+      "acc_ci": 0.0,
+      "replays_mean": 15,
+      "replays_ci": 0.0,
+      "cost_mean": 0.7500000000000001,
+      "cost_ci": 0.0,
+      "blast_mean": 1.875,
+      "trials": [
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18724970007315278
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17656900000292808
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18438270001206547
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1980518999043852
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.19150600000284612
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18740459997206926
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1872644000686705
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17997300007846206
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17732989997603
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17888219992164522
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17661059997044504
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17931709997355938
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1778277000412345
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17702129995450377
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.20106320001650602
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1820619999198243
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18161609990056604
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18110190005972981
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1787203000858426
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17719220009166747
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1779421999817714
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1805142000084743
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1781736999982968
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1801186999073252
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18976719991769642
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18366469989996403
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18114719993900508
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17916339996736497
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1851431999821216
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18185569997876883
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17856599995866418
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1998252000194043
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18859020003583282
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18959810002706945
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18341990001499653
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18630439997650683
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.178981100092642
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18920030002482235
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18301949999295175
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17864960001315922
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18251760001294315
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17866710002999753
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.1754674999974668
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18566980003379285
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17909200000576675
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18309579999186099
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.17941949993837625
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18517670000437647
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18854899995494634
+        },
+        {
+          "replays_executed": 15,
+          "cost_usd": 0.7500000000000001,
+          "blast_radius": 1.875,
+          "posterior_max": 0.06666666666666667,
+          "cut_size": 15,
+          "correct": false,
+          "stop_reason": "budget",
+          "wall_seconds": 0.18391629995312542
+        }
+      ]
+    }
+  }
+}

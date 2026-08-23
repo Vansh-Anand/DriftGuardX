@@ -157,7 +157,7 @@ class CausalRecoveryOrchestrator:
                 resource_context.elapsed_seconds = time.monotonic() - loop_start
 
                 # Check stopping rule BEFORE selecting next experiment
-                should_stop, stop_reason = self.stopping_policy.is_sufficient(
+                should_stop, stop_outcome, stop_reason = self.stopping_policy.is_sufficient(
                     state=incident_state,
                     resource_context=resource_context,
                     belief_model=self.belief_model,
@@ -224,7 +224,7 @@ class CausalRecoveryOrchestrator:
                 all_replays.extend(replays)
 
             # 5. Check if evidence is sufficient after loop
-            should_stop, stop_reason = self.stopping_policy.is_sufficient(
+            should_stop, stop_outcome, stop_reason = self.stopping_policy.is_sufficient(
                 state=incident_state,
                 resource_context=resource_context,
                 belief_model=self.belief_model,
@@ -249,7 +249,14 @@ class CausalRecoveryOrchestrator:
 
             # 7. Validate in controlled replay with signed capabilities
             machine.transition(IncidentStatus.RECOVERY_VALIDATING, "Validating cut in controlled replay.")
-            val_result = self.recovery_validator.validate(cut, capabilities)
+            val_result = self.recovery_validator.validate_cut(
+                cut=cut,
+                invariants=envelope.invariants,
+                trace_id=envelope.trace_id,
+                original_spans=trace.get("spans", []),
+                provided_capabilities=capabilities,
+                exogenous_variables=envelope.exogenous_variables,
+            )
             if not val_result.invariants_satisfied:
                 machine.transition(IncidentStatus.RECOVERY_REJECTED, "Invariant validation failed.")
                 return ""

@@ -24,7 +24,7 @@ from packages.contracts.src.recovery_models import (
     ReplayEquivalenceEnvelope,
     SignedCapability,
 )
-from packages.memory.src.capabilities import AuthorizationCapability, CapabilityVerifier
+from packages.memory.src.capabilities import CapabilityVerifier
 from packages.replay.src.divergence_validator import (
     DynamicCausalDivergenceValidator,
     ExecutionSnapshot,
@@ -109,7 +109,7 @@ class RecoveryValidator:
         invariants: list[RecoveryInvariant],
         trace_id: str,
         original_spans: list[dict[str, Any]] | None = None,
-        provided_capabilities: list[AuthorizationCapability | SignedCapability] | None = None,
+        provided_capabilities: list[SignedCapability] | None = None,
         exogenous_variables: dict[str, Any] | None = None,
     ) -> RecoveryValidationResult:
         """
@@ -131,8 +131,8 @@ class RecoveryValidator:
 
         # --- 1. Verify all signed capability objects ---
         for cap in provided_capabilities:
-            if isinstance(cap, AuthorizationCapability):
-                if not self.verifier.verify(cap):
+            if isinstance(cap, SignedCapability):
+                if not self.verifier.verify(cap, context_requester="system", context_tenant="system"):
                     return RecoveryValidationResult(
                         recovery_cut=cut,
                         failure_resolved=False,
@@ -261,7 +261,7 @@ class RecoveryValidator:
     def validate(
         self,
         cut: CausalRecoveryCut,
-        provided_capabilities: list[AuthorizationCapability | SignedCapability] | None = None,
+        provided_capabilities: list[SignedCapability] | None = None,
     ) -> RecoveryValidationResult:
         """
         Orchestrator-compatible interface (minimal args).

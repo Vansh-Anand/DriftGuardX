@@ -38,6 +38,7 @@ class RAEBGateway:
         self,
         live_trace: TraceArtifact,
         proposed_replay: ReplayEpisode,
+        belief_model: RootCauseBeliefModel | None = None,
         trusted_timestamp: TrustedTimestampEnvelope | None = None
     ) -> RAEBEvaluation:
         """
@@ -85,8 +86,6 @@ class RAEBGateway:
                 if s.parent_span_id:
                     graph_edges.append({"source_id": s.parent_span_id, "target_id": s.span_id})
 
-        # Resolve intervention_node from actual component_type in spans, not by position.
-        # Falls back to the proposed replay's component_id if no matching span is found.
         component_id = getattr(proposed_replay, "component_id", None)
         if component_id and hasattr(live_trace, "spans"):
             # Find the span whose component_type matches the intervention target
@@ -96,7 +95,7 @@ class RAEBGateway:
                 component_id  # fallback to component_id itself as node label
             )
         else:
-            intervention_node = graph_nodes[0] if graph_nodes else "mock_node"
+            intervention_node = component_id or "mock_node"
 
         determinism = self.determinism_estimator.estimate(intervention_node)
 
@@ -125,7 +124,8 @@ class RAEBGateway:
             rejection_reason = "Equivalence vector below acceptable threshold."
 
         # Expected Information Gain calculation via Belief Model
-        belief_model = RootCauseBeliefModel(components=graph_nodes)
+        if belief_model is None:
+            belief_model = RootCauseBeliefModel(components=graph_nodes)
         expected_ig = belief_model.expected_information_gain(intervention_node, self.estimator)
 
         # We append a simple metadata tracking block

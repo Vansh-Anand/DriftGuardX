@@ -8,8 +8,8 @@ from datetime import UTC, datetime, timedelta
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-for-caps")
 
+from packages.contracts.src.recovery_models import SignedCapability
 from packages.memory.src.capabilities import (
-    AuthorizationCapability,
     CapabilityRevocationStore,
     CapabilityVerifier,
 )
@@ -23,7 +23,7 @@ def _past() -> datetime:
     return datetime.now(UTC) - timedelta(hours=1)
 
 
-def _make_cap(**kwargs) -> AuthorizationCapability:
+def _make_cap(**kwargs) -> SignedCapability:
     defaults = {
         "capability_id": "cap-001",
         "requester_id": "agent-alpha",
@@ -33,7 +33,7 @@ def _make_cap(**kwargs) -> AuthorizationCapability:
         "expires_at": _future(),
     }
     defaults.update(kwargs)
-    return AuthorizationCapability(**defaults)
+    return SignedCapability(**defaults)
 
 
 class TestCapabilityVerifier:
@@ -44,35 +44,35 @@ class TestCapabilityVerifier:
     def test_signed_capability_verifies(self):
         cap = _make_cap()
         signed = self.verifier.sign(cap)
-        assert self.verifier.verify(signed)
+        assert self.verifier.verify(signed, context_requester=signed.requester_id, context_tenant=signed.tenant_id)
 
     def test_unsigned_capability_fails(self):
         cap = _make_cap()
-        assert not self.verifier.verify(cap)
+        assert not self.verifier.verify(cap, context_requester=cap.requester_id, context_tenant=cap.tenant_id)
 
     def test_expired_capability_fails(self):
         cap = _make_cap(expires_at=_past())
         signed = self.verifier.sign(cap)
-        assert not self.verifier.verify(signed)
+        assert not self.verifier.verify(signed, context_requester=signed.requester_id, context_tenant=signed.tenant_id)
 
     def test_tampered_action_fails(self):
         cap = _make_cap()
         signed = self.verifier.sign(cap)
         signed.action = "DELETE_ALL"  # tamper
-        assert not self.verifier.verify(signed)
+        assert not self.verifier.verify(signed, context_requester=signed.requester_id, context_tenant=signed.tenant_id)
 
     def test_tampered_resource_fails(self):
         cap = _make_cap()
         signed = self.verifier.sign(cap)
         signed.resource = "prod-database"  # tamper
-        assert not self.verifier.verify(signed)
+        assert not self.verifier.verify(signed, context_requester=signed.requester_id, context_tenant=signed.tenant_id)
 
     def test_revoked_capability_fails(self):
         cap = _make_cap()
         signed = self.verifier.sign(cap)
-        assert self.verifier.verify(signed)  # passes before revocation
+        assert self.verifier.verify(signed, context_requester=signed.requester_id, context_tenant=signed.tenant_id)  # passes before revocation
         self.verifier.revoke(signed.capability_id)
-        assert not self.verifier.verify(signed)  # fails after revocation
+        assert not self.verifier.verify(signed, context_requester=signed.requester_id, context_tenant=signed.tenant_id)  # fails after revocation
 
     def test_different_capabilities_same_action_are_independent(self):
         cap1 = _make_cap(capability_id="cap-A", requester_id="agent-1")
@@ -80,15 +80,15 @@ class TestCapabilityVerifier:
         s1 = self.verifier.sign(cap1)
         s2 = self.verifier.sign(cap2)
         self.verifier.revoke("cap-A")
-        assert not self.verifier.verify(s1)
-        assert self.verifier.verify(s2), "Revoking cap-A must not affect cap-B"
+        assert not self.verifier.verify(s1, context_requester=s1.requester_id, context_tenant=s1.tenant_id)
+        assert self.verifier.verify(s2, context_requester=s2.requester_id, context_tenant=s2.tenant_id), "Revoking cap-A must not affect cap-B"
 
     def test_cross_requester_token_fails(self):
         """Capability signed for agent-1 must not verify as agent-2."""
         cap_orig = _make_cap(requester_id="agent-1", capability_id="cap-X")
         signed = self.verifier.sign(cap_orig)
         # Forge a capability with the same ID but different requester
-        forged = AuthorizationCapability(
+        forged = SignedCapability(
             capability_id="cap-X",
             requester_id="agent-EVIL",
             tenant_id="tenant-xyz",
@@ -97,7 +97,7 @@ class TestCapabilityVerifier:
             expires_at=_future(),
             signature=signed.signature,  # reuse original signature
         )
-        assert not self.verifier.verify(forged)
+        assert not self.verifier.verify(forged, context_requester='agent-2', context_tenant='tenant-xyz')
 
 
 class TestRevocationStore:

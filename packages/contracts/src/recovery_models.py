@@ -158,6 +158,8 @@ class ReplayEquivalenceEnvelope(DGXBaseModel):
         description="ID of the TrustedTimestampEnvelope used at original trace time."
     )
     sandbox_config: dict[str, Any] = Field(default_factory=lambda: {"isolation_level": "strict"})
+    schema_version: str = "2.0"
+    graph_hash: str = ""
 
     # Computed on construction — verified before replay begins
     envelope_hash: str = ""
@@ -166,20 +168,32 @@ class ReplayEquivalenceEnvelope(DGXBaseModel):
     def compute_envelope_hash(self) -> "ReplayEquivalenceEnvelope":
         """Compute HMAC-SHA256 envelope hash over all critical fields."""
         if self.envelope_hash:
-            # Already set (e.g. deserialized) — don't recompute
             return self
-        secret = os.environ.get("DGX_CAPABILITY_SECRET", "dgx-insecure-dev-key")
+        secret = os.environ.get("DGX_CAPABILITY_SECRET")
+        if not secret:
+            raise RuntimeError("DGX_CAPABILITY_SECRET is missing. Cannot bind envelope.")
+
+        # Serialize invariants deterministically
+        serialized_invariants = [inv.model_dump(mode="json") for inv in self.invariants]
+
         payload = json.dumps({
             "trace_id": self.trace_id,
             "snapshot_hash": self.snapshot_hash,
             "frozen_variables": self.frozen_variables,
             "intervened_variables": sorted(self.intervened_variables),
+            "exogenous_variables": self.exogenous_variables,
             "allowed_causal_descendants": sorted(self.allowed_causal_descendants),
             "forbidden_divergence_nodes": sorted(self.forbidden_divergence_nodes),
+            "constraints": self.constraints,
+            "invariants": serialized_invariants,
+            "sandbox_config": self.sandbox_config,
+            "graph_hash": self.graph_hash,
+            "schema_version": self.schema_version,
             "policy_binding": self.policy_binding,
             "trusted_time_binding": self.trusted_time_binding,
             "recovery_id": self.recovery_cut.recovery_id,
         }, sort_keys=True)
+
         mac = hmac.new(
             secret.encode("utf-8"),
             payload.encode("utf-8"),

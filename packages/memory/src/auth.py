@@ -3,14 +3,14 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
-from packages.memory.src.capabilities import AuthorizationCapability
+from packages.contracts.src.recovery_models import SignedCapability
 
 
 class AccessContext(BaseModel):
     requester_id: str
     tenant_id: str
     authenticated_roles: list[str] = Field(default_factory=list)
-    capabilities: list[AuthorizationCapability] = Field(default_factory=list)
+    capabilities: list[SignedCapability] = Field(default_factory=list)
     issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
     integrity_hash: str | None = None
