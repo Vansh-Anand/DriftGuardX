@@ -131,18 +131,18 @@ def test_unaffected_subsystem_regression():
     targets = [FailureTarget(node_id="t1", failure_type="err", severity="high")]
 
     paths = FailurePathEnumerator(graph).enumerate_paths(sources, targets)
-    # 'risky_component' triggers the subsystem invariant failure in our mock validator
     actions = [RecoveryAction(target_component="m1", action_type="b", change_cost=1)]
-
     cut = CutOptimizer(actions).optimize(paths, sources, targets)
-    # forcibly rename the component for the mock test trigger
-    cut.selected_actions[0].target_component = "risky_component"
+
+    # Set a non-zero regression_risk so measured_metrics["regression_count"] > 0
+    # The controlled replay propagates cut.regression_risk into the measured metrics.
+    cut.regression_risk = 0.5
 
     inv = RecoveryInvariant(
         scope="unaffected subsystem",
-        metric="regression",
-        baseline=0,
-        allowed_deviation=0,
+        metric="regression_count",   # matches the key in measured_metrics
+        baseline=0.0,
+        allowed_deviation=0.0,       # strict: any regression fails this
         severity="high",
         evidence_source="sim"
     )
@@ -226,18 +226,34 @@ def test_approximate_solver_path():
 
 def test_unauthorized_recovery_action():
     """10. unauthorized recovery action (fails security capability check)"""
+    import os
+    from datetime import UTC, datetime, timedelta
+    from packages.contracts.src.recovery_models import SignedCapability
+
+    os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
+
     graph = _mock_graph(["s1", "m1", "t1"], ["s1->m1", "m1->t1"])
     sources = [FaultSource(node_id="s1", probability=1.0)]
     targets = [FailureTarget(node_id="t1", failure_type="err", severity="high")]
 
     paths = FailurePathEnumerator(graph).enumerate_paths(sources, targets)
 
-    actions = [RecoveryAction(target_component="m1", action_type="b", change_cost=1, required_capability="admin_cap")]
+    # Create the required SignedCapability (not a bare string)
+    admin_cap = SignedCapability(
+        capability_id="admin_cap",
+        requester_id="admin",
+        tenant_id="tenant_A",
+        action="COMPONENT_ROLLBACK",
+        resource="m1",
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    actions = [RecoveryAction(target_component="m1", action_type="b",
+                              change_cost=1, required_capability=admin_cap)]
     cut = CutOptimizer(actions).optimize(paths, sources, targets)
 
     validator = RecoveryValidator(verifier=None)
-    # Don't provide the required capability
-    res = validator.validate_cut(cut, [], "trace1", provided_capabilities=["user_cap"])
+    # Don't provide any capabilities — the required admin_cap is missing
+    res = validator.validate_cut(cut, [], "trace1", provided_capabilities=[])
 
     assert res.failure_resolved is False
     assert res.eligible_for_canary is False

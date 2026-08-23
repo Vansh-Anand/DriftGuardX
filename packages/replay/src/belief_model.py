@@ -29,18 +29,64 @@ class HeuristicLikelihoodEstimator:
                 return 0.9
 
 class DeterminismEstimator:
+    """
+    Estimates per-component determinism from observed output variance.
+    Falls back to a conservative 0.7 for unseen components (not 0.95 — that was
+    overconfident and masked real uncertainty in RAEB scoring).
+
+    Variance is tracked as the fraction of runs where the component produced
+    the same output hash as the previous run. Updated via record_observation().
+    """
+
+    # Conservative default for unseen components
+    _DEFAULT_DETERMINISM = 0.7
+
+    def __init__(self) -> None:
+        self._run_counts: dict[str, int] = {}
+        self._stable_counts: dict[str, int] = {}
+
+    def record_observation(self, component_id: str, output_hash: str) -> None:
+        """Record an output hash for a component run."""
+        last_hash_key = f"_last_{component_id}"
+        last = self._stable_counts.get(last_hash_key)  # type: ignore[arg-type]
+        self._run_counts[component_id] = self._run_counts.get(component_id, 0) + 1
+        # We store last hash as a special key to avoid a separate dict
+        if not hasattr(self, '_last_hashes'):
+            self._last_hashes: dict[str, str] = {}
+        prev = self._last_hashes.get(component_id)
+        if prev is not None and prev == output_hash:
+            self._stable_counts[component_id] = self._stable_counts.get(component_id, 0) + 1
+        self._last_hashes[component_id] = output_hash
+
     def estimate(self, component_id: str) -> float:
-        """Estimate how deterministic a component is based on past variance."""
-        return 0.95
+        """Returns empirical determinism score for the component, or conservative default."""
+        runs = self._run_counts.get(component_id, 0)
+        if runs < 2:
+            return self._DEFAULT_DETERMINISM
+        stable = self._stable_counts.get(component_id, 0)
+        # Laplace-smooth: add 1 stable and 2 total to avoid extreme 0 or 1
+        return (stable + 1) / (runs + 2)
 
 
 class RootCauseBeliefModel:
-    def __init__(self, components: list[str]):
+    """
+    Bayesian belief model over root-cause candidates.
+
+    Unseen arms (candidates not yet observed) get Laplace-smoothed priors
+    so they are always selectable by the experiment planner — fixes the
+    BCRB unseen-arm zero-weight bug where unseen components could never be chosen.
+    """
+
+    # Laplace smoothing pseudo-count for unseen components
+    _LAPLACE_ALPHA = 0.1
+
+    def __init__(self, components: list[str]) -> None:
         if not components:
-            self.beliefs = {}
+            self.beliefs: dict[str, float] = {}
         else:
-            initial_p = 1.0 / len(components)
-            self.beliefs = {c: initial_p for c in components}
+            # Laplace-smoothed uniform prior: each component gets alpha pseudo-count
+            total = len(components) * (1.0 + self._LAPLACE_ALPHA)
+            self.beliefs = {c: (1.0 + self._LAPLACE_ALPHA) / total for c in components}
 
     def _safe_prob(self, p: float) -> float:
         if math.isnan(p) or p < 0.0:

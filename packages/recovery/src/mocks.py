@@ -1,5 +1,6 @@
 """
 DriftGuard-X v2 — Orchestrator Mocks for Testing & Benchmarks
+Updated to match new interface signatures.
 PRIVATE — All Rights Reserved.
 """
 import uuid
@@ -8,6 +9,7 @@ from typing import Any
 from packages.contracts.src.incident_models import IncidentState
 from packages.contracts.src.interfaces import (
     BeliefModel,
+    DivergenceReport,
     DivergenceValidator,
     EnvelopeBuilder,
     ExperimentPlanner,
@@ -19,6 +21,7 @@ from packages.contracts.src.interfaces import (
     RecoveryCutSolver,
     RecoveryValidator,
     ReplayExecutor,
+    ResourceContext,
     StoppingPolicy,
     TraceProvider,
     TransportabilityGate,
@@ -30,6 +33,7 @@ from packages.contracts.src.recovery_models import (
     RecoveryAction,
     RecoveryValidationResult,
     ReplayEquivalenceEnvelope,
+    SignedCapability,
 )
 from packages.contracts.src.transport_models import (
     CausalEnvironmentDescriptor,
@@ -50,117 +54,218 @@ class MockGraphProvider(GraphProvider):
 
 
 class MockInterventionGenerator(InterventionGenerator):
-    def __init__(self, candidates=None):
-        self.candidates = candidates or [{"target": "retriever"}]
+    def __init__(self, candidates: list[dict[str, Any]] | None = None) -> None:
+        self.candidates = candidates or [
+            {"candidate_id": "retriever", "target_variable": "retriever",
+             "node_id": "retriever", "estimated_cost_usd": 0.05}
+        ]
+
     def generate_candidates(self, incident_state: IncidentState) -> list[dict[str, Any]]:
         return self.candidates
 
 
 class MockEnvelopeBuilder(EnvelopeBuilder):
-    def build_envelope(self, incident_id: str, candidates: list[dict[str, Any]]) -> ReplayEquivalenceEnvelope:
+    def build_envelope(
+        self, incident_id: str, candidates: list[dict[str, Any]]
+    ) -> ReplayEquivalenceEnvelope:
         cut = CausalRecoveryCut(
             fault_sources=[],
             failure_targets=[],
             selected_actions=[],
             optimization_method=OptimizationMethod.HEURISTIC,
-            evidence_hash="mock_hash"
+            evidence_hash="mock_hash",
         )
-        return ReplayEquivalenceEnvelope(trace_id=str(incident_id), recovery_cut=cut, invariants=[])
+        return ReplayEquivalenceEnvelope(
+            trace_id=str(incident_id),
+            recovery_cut=cut,
+            invariants=[],
+        )
 
 
 class MockRAEBGateway(RAEBGateway):
-    def __init__(self, admissible=True):
+    def __init__(self, admissible: bool = True) -> None:
         self.admissible = admissible
+
     def check_admissibility(self, envelope: ReplayEquivalenceEnvelope) -> bool:
         return self.admissible
 
 
 class MockExperimentPlanner(ExperimentPlanner):
-    def __init__(self, experiments: list[dict[str, Any]] | None = None):
-        self.experiments = experiments
+    """
+    Mock planner that returns candidates one-at-a-time, respecting ResourceContext.
+    Tracks replays_executed and tokens_used for benchmark reporting.
+    """
 
-    def plan_experiments(self, env: ReplayEquivalenceEnvelope, candidates: list[RecoveryAction]) -> list[dict[str, Any]]:
-        if self.experiments is not None:
-            return self.experiments
-        return [{"id": str(uuid.uuid4()), "action": c} for c in candidates]
+    def __init__(self, experiments: list[dict[str, Any]] | None = None) -> None:
+        self._experiments = experiments
+        self._index = 0
+        self.replays_executed = 0
+        self.tokens_used = 0
+
+    def plan_next_experiment(
+        self,
+        envelope: ReplayEquivalenceEnvelope,
+        candidates: list[dict[str, Any]],
+        belief_state: dict[str, float],
+        resource_context: ResourceContext,
+    ) -> dict[str, Any] | None:
+        if resource_context.budget_exhausted():
+            return None
+        if self._experiments is not None:
+            if self._index >= len(self._experiments):
+                return None
+            exp = {**self._experiments[self._index], "envelope_id": envelope.trace_id}
+            self._index += 1
+        else:
+            untested = [c for c in candidates
+                       if c.get("candidate_id", "") not in
+                       {str(i) for i in range(self._index)}]
+            if not untested:
+                return None
+            exp = {**untested[0], "envelope_id": envelope.trace_id}
+            self._index += 1
+
+        cost = float(exp.get("estimated_cost_usd", 0.05))
+        if not resource_context.reserve(cost):
+            return None
+
+        self.replays_executed += 1
+        self.tokens_used += 1500
+        return exp
 
 
 class MockReplayExecutor(ReplayExecutor):
-    def __init__(self):
+    def __init__(self) -> None:
         self.replays_executed = 0
         self.tokens_used = 0
 
     def execute_replays(self, experiments: list[dict[str, Any]]) -> list[dict[str, Any]]:
         self.replays_executed += len(experiments)
-        self.tokens_used += len(experiments) * 1500  # Arbitrary mock cost per replay
-        return experiments
+        self.tokens_used += len(experiments) * 1500
+        return [{"spans": [], "replay_spans": [], "original_spans": [], **e} for e in experiments]
 
 
 class MockDivergenceValidator(DivergenceValidator):
-    def __init__(self, valid=True):
+    def __init__(self, valid: bool = True) -> None:
         self.valid = valid
-    def validate_divergence(self, replays: list[dict[str, Any]]) -> bool:
-        return self.valid
+
+    def validate_divergence(
+        self,
+        replays: list[dict[str, Any]],
+        envelope: ReplayEquivalenceEnvelope,
+    ) -> DivergenceReport:
+        return DivergenceReport(
+            valid=self.valid,
+            reason="" if self.valid else "Mock divergence failure.",
+        )
 
 
 class MockBeliefModel(BeliefModel):
-    def __init__(self, posterior=None):
-        self.posterior = posterior or {"retriever": 0.95}
-    def update_belief(self, state: IncidentState, replays: list[dict[str, Any]]) -> dict[str, float]:
-        return self.posterior
+    def __init__(self, posterior: dict[str, float] | None = None) -> None:
+        self._posterior = posterior or {"retriever": 0.95}
+
+    def update_belief(
+        self, state: IncidentState, replays: list[dict[str, Any]]
+    ) -> dict[str, float]:
+        return self._posterior
+
+    def current_beliefs(self) -> dict[str, float]:
+        return self._posterior
+
+    def entropy(self) -> float:
+        import math
+        h = 0.0
+        for p in self._posterior.values():
+            if p > 0:
+                h -= p * math.log2(p)
+        return max(0.0, h)
 
 
 class MockStoppingPolicy(StoppingPolicy):
-    def __init__(self, sufficient=True):
+    def __init__(self, sufficient: bool = True) -> None:
         self.sufficient = sufficient
-    def is_sufficient(self, state: IncidentState) -> bool:
-        return self.sufficient
+        self._call_count = 0
+
+    def record_iteration(self, entropy: float) -> None:
+        pass
+
+    def is_sufficient(
+        self,
+        state: IncidentState,
+        resource_context: ResourceContext,
+        belief_model: BeliefModel,
+        remaining_candidates: list[dict[str, Any]],
+    ) -> tuple[bool, str]:
+        self._call_count += 1
+        if self.sufficient:
+            return True, "Mock: sufficient after first check."
+        return False, "Mock: not sufficient."
 
 
 class MockRecoveryCutSolver(RecoveryCutSolver):
-    def __init__(self, cut="DEFAULT"):
+    def __init__(self, cut: CausalRecoveryCut | str = "DEFAULT") -> None:
         if cut == "DEFAULT":
-            self.cut = CausalRecoveryCut(
+            self.cut: CausalRecoveryCut | None = CausalRecoveryCut(
                 fault_sources=[],
                 failure_targets=[],
-                selected_actions=[RecoveryAction(target_component="retriever", action_type="ROLLBACK", arguments={"version": "v6"})],
+                selected_actions=[
+                    RecoveryAction(
+                        target_component="retriever",
+                        action_type="ROLLBACK",
+                        metadata={"version": "v6"},
+                    )
+                ],
                 optimization_method=OptimizationMethod.HEURISTIC,
                 evidence_hash="mock_hash",
                 total_change_cost=10.0,
-                expected_downtime=100
+                expected_downtime=100,
             )
         else:
-            self.cut = cut
-    def solve(self, targets: list[FailureTarget], fault_sources: dict[str, float]) -> CausalRecoveryCut | None:
+            self.cut = cut  # type: ignore[assignment]
+
+    def solve(
+        self, targets: list[FailureTarget], fault_sources: dict[str, float]
+    ) -> CausalRecoveryCut | None:
         return self.cut
 
 
 class MockRecoveryValidator(RecoveryValidator):
-    def __init__(self, result=None):
+    def __init__(self, result: RecoveryValidationResult | None = None) -> None:
         if result is None:
-            from packages.contracts.src.recovery_models import CausalRecoveryCut
+            dummy_cut = CausalRecoveryCut(
+                fault_sources=[],
+                failure_targets=[],
+                selected_actions=[],
+                optimization_method=OptimizationMethod.HEURISTIC,
+                evidence_hash="mock_hash",
+            )
             self.result = RecoveryValidationResult(
-                recovery_cut=CausalRecoveryCut(
-                    fault_sources=[],
-                    failure_targets=[],
-                    selected_actions=[],
-                    optimization_method=OptimizationMethod.HEURISTIC,
-                    evidence_hash="mock_hash"
-                ),
+                recovery_cut=dummy_cut,
                 failure_resolved=True,
                 invariants=[],
-                invariants_satisfied=True
+                invariants_satisfied=True,
+                eligible_for_canary=True,
             )
         else:
             self.result = result
-    def validate(self, cut: CausalRecoveryCut) -> RecoveryValidationResult:
+
+    def validate(
+        self,
+        cut: CausalRecoveryCut,
+        provided_capabilities: list[SignedCapability] | None = None,
+    ) -> RecoveryValidationResult:
         return self.result
 
 
 class MockPolicyEngine(PolicyEngine):
-    def __init__(self, authorized=True):
+    def __init__(self, authorized: bool = True) -> None:
         self.authorized = authorized
-    def authorize(self, validation_result: RecoveryValidationResult) -> bool:
+
+    def authorize(
+        self,
+        validation_result: RecoveryValidationResult,
+        capabilities: list[SignedCapability],
+    ) -> bool:
         return self.authorized
 
 
@@ -170,7 +275,7 @@ class MockLedger(Ledger):
 
 
 class MockTransportabilityGate(TransportabilityGate):
-    def __init__(self, decision=None):
+    def __init__(self, decision: TransportabilityDecision | None = None) -> None:
         self.decision = decision or TransportabilityDecision(
             recovery_id="rec_1",
             source_environment="env_a",
@@ -181,7 +286,13 @@ class MockTransportabilityGate(TransportabilityGate):
             unknown_conditions=[],
             required_target_experiments=[],
             confidence_metadata={},
-            explanation="OK"
+            explanation="OK",
         )
-    def evaluate(self, src: CausalEnvironmentDescriptor, tgt: CausalEnvironmentDescriptor, footprint: RecoveryMechanismFootprint) -> TransportabilityDecision:
+
+    def evaluate(
+        self,
+        src: CausalEnvironmentDescriptor,
+        tgt: CausalEnvironmentDescriptor,
+        footprint: RecoveryMechanismFootprint,
+    ) -> TransportabilityDecision:
         return self.decision

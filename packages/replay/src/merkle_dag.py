@@ -257,7 +257,7 @@ class MerkleDAGStore:
 
     def verify_chain(self, node_id: str) -> bool:
         """
-        Verify the cryptographic integrity of a node by recomputing its hash
+        Verify the cryptographic integrity of a single node by recomputing its hash
         from its payload and parent hashes.  Returns False if tampered.
         """
         node = self._nodes.get(node_id)
@@ -270,6 +270,53 @@ class MerkleDAGStore:
             version=node.version
         )
         return recomputed.node_hash == node.node_hash
+
+    def verify_path(self, leaf_id: str, root_id: str) -> bool:
+        """
+        Verify the full cryptographic path from leaf_id up to root_id.
+
+        Walks the parent chain from the leaf, recomputing each node's hash
+        at every step. Returns False immediately on the first hash mismatch
+        or if any ancestor is missing from the store.
+
+        This prevents a tampered interior node from passing single-node
+        verify_chain() while still corrupting the ancestry chain.
+        """
+        # First verify the leaf itself
+        if not self.verify_chain(leaf_id):
+            return False
+
+        current_id = leaf_id
+        visited: set[str] = set()
+
+        while current_id != root_id:
+            if current_id in visited:
+                # Cycle detected — invalid DAG structure
+                return False
+            visited.add(current_id)
+
+            current_node = self._nodes.get(current_id)
+            if current_node is None:
+                return False
+
+            if not current_node.parent_hashes:
+                # Reached a root node — check if it's the expected root
+                return current_id == root_id
+
+            # Follow the first parent (primary ancestry path)
+            parent_hash = current_node.parent_hashes[0]
+            parent_id = self._hash_index.get(parent_hash)
+            if parent_id is None:
+                return False
+
+            # Verify the parent's hash integrity
+            if not self.verify_chain(parent_id):
+                return False
+
+            current_id = parent_id
+
+        # We've arrived at root_id — do a final integrity check
+        return self.verify_chain(root_id)
 
     def verify_full_dag(self) -> bool:
         """Verify cryptographic integrity of the entire DAG."""

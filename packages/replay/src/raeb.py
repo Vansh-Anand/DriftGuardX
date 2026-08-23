@@ -85,8 +85,18 @@ class RAEBGateway:
                 if s.parent_span_id:
                     graph_edges.append({"source_id": s.parent_span_id, "target_id": s.span_id})
 
-        # Assume the replay targets the root node if not specified
-        intervention_node = proposed_replay.component_id if hasattr(proposed_replay, "component_id") else graph_nodes[0]
+        # Resolve intervention_node from actual component_type in spans, not by position.
+        # Falls back to the proposed replay's component_id if no matching span is found.
+        component_id = getattr(proposed_replay, "component_id", None)
+        if component_id and hasattr(live_trace, "spans"):
+            # Find the span whose component_type matches the intervention target
+            intervention_node = next(
+                (s.span_id for s in live_trace.spans
+                 if getattr(s, "component_type", "") == component_id),
+                component_id  # fallback to component_id itself as node label
+            )
+        else:
+            intervention_node = graph_nodes[0] if graph_nodes else "mock_node"
 
         determinism = self.determinism_estimator.estimate(intervention_node)
 
