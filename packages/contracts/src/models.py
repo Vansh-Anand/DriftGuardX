@@ -30,6 +30,7 @@ def _new_uuid() -> UUID:
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 class ComponentType(str, enum.Enum):
+    # ── Original values — DO NOT RENAME (used in _EXECUTOR_MAP and DB rows) ──
     RETRIEVER = "retriever"
     RERANKER = "reranker"
     GENERATOR = "generator"
@@ -39,6 +40,21 @@ class ComponentType(str, enum.Enum):
     POLICY_CHECK = "policy_check"
     FINAL_RESPONSE = "final_response"
     AGENT = "agent"
+
+    # ── Extended values for causal recovery foundation (additive only) ────────
+    # MODEL is the semantic alias for a deployed LLM; GENERATOR is the pipeline
+    # execution step.  Both coexist — do not collapse.
+    MODEL = "model"
+    PROMPT = "prompt"
+    EMBEDDING_MODEL = "embedding_model"
+    MEMORY = "memory"
+    TOOL = "tool"
+    INDEX = "index"
+    PLANNER = "planner"
+    SCHEMA = "schema"
+    CONFIGURATION = "configuration"
+    EXTERNAL_SERVICE = "external_service"
+    OTHER = "other"
 
 
 class ComponentVersionState(str, enum.Enum):

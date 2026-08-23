@@ -36,8 +36,9 @@ class NodeType(str, enum.Enum):
 
 
 class EdgeType(str, enum.Enum):
+    # ── Original values — DO NOT RENAME ──
     DATA_DEPENDENCY = "data_dependency"
-    CONTROL_FLOW = "control_flow"
+    CONTROL_FLOW = "control_flow"           # temporal ordering (not strictly causal)
     VERSION_LINEAGE = "version_lineage"
     POLICY_DEPENDENCY = "policy_dependency"
     MEMORY_INFLUENCE = "memory_influence"
@@ -45,6 +46,14 @@ class EdgeType(str, enum.Enum):
     TOOL_EFFECT = "tool_effect"
     RETRY_FALLBACK = "retry_fallback"
     INTER_AGENT_COMMUNICATION = "inter_agent_communication"
+
+    # ── Extended causal edge types (additive) ──
+    # These must be set explicitly; CONTROL_FLOW must NOT be auto-promoted to causal.
+    CONTROL_DEPENDENCY = "control_dependency"  # explicitly causal control path
+    MEMORY_DEPENDENCY = "memory_dependency"    # memory read causes downstream output
+    TOOL_DEPENDENCY = "tool_dependency"        # tool result determines downstream
+    DERIVED_DEPENDENCY = "derived_dependency"  # computed/derived value dependency
+    UNKNOWN_DEPENDENCY = "unknown_dependency"  # causal relationship unknown; do not fabricate
 
 
 class GraphNode(DGXBaseModel):
