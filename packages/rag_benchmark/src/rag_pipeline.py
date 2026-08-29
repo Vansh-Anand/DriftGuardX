@@ -70,9 +70,7 @@ class DummyLLM:
 
         # Simple keyword matching to simulate generation
         response = "I don't have enough information to answer that."
-        if "fault" in prompt.lower():
-            response = "The system encountered a simulated fault in the retrieved context."
-        elif "hello" in prompt.lower():
+        if "hello" in prompt.lower():
             response = "Hello! I am a simulated RAG pipeline."
         elif "drift" in prompt.lower():
             response = "DriftGuard-X monitors the behavior of agentic systems."

@@ -388,7 +388,7 @@ async def create_replay(
                     error_type=s.get("error_type"),
                 )
             )
-        except Exception:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             pass  # skip malformed spans
 
     original_trace = TraceArtifact(

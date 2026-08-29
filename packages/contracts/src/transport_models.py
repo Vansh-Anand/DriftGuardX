@@ -80,6 +80,12 @@ class RecoveryMechanismFootprint(DGXBaseModel):
     required_data_conditions: dict[str, Any]
     required_calibration_conditions: dict[str, Any]
 
+    def compute_hash(self) -> str:
+        import json
+        dump = self.model_dump(mode="json")
+        payload = json.dumps(dump, sort_keys=True, separators=(',', ':')).encode('utf-8')
+        return hashlib.sha256(payload).hexdigest()
+
 
 class TransportabilityDecision(DGXBaseModel):
     """Result of the transportability gate evaluation."""
@@ -93,9 +99,19 @@ class TransportabilityDecision(DGXBaseModel):
     required_target_experiments: list[dict[str, Any]]
     confidence_metadata: dict[str, Any]
     explanation: str
+
+    policy_version: str = "2.0"
+    footprint_hash: str
+    source_descriptor_signature: str | None = None
+    target_descriptor_signature: str | None = None
+    decision_schema_version: str = "1.0"
+    created_at: datetime = Field(default_factory=_utcnow)
+
     decision_hash: str = ""
 
     def compute_hash(self) -> str:
-        status_str = self.status.value if hasattr(self.status, 'value') else str(self.status)
-        payload = f"{self.recovery_id}|{self.source_environment}|{self.target_environment}|{status_str}"
-        return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+        import json
+        dump = self.model_dump(exclude={"decision_hash"}, mode="json")
+        payload = json.dumps(dump, sort_keys=True, separators=(',', ':')).encode('utf-8')
+        return hashlib.sha256(payload).hexdigest()
+

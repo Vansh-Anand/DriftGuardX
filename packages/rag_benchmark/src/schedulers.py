@@ -161,26 +161,26 @@ class CausalPlannerScheduler(BaseScheduler):
     """
     def __init__(self, budget_usd: float = 1.0):
         self.belief_state = {}
-        
+
     def select_next(self, candidates: list[str], history: list[dict[str, Any]]) -> str:
         tested = {h['candidate'] for h in history}
         remaining = [c for c in candidates if c not in tested]
         if not remaining:
             return None
-            
+
         # Simulate Bayesian EIG selection:
         # Sort by simulated causal evidence (mocked here by prioritizing standard known faults logically)
         # In a real run, this is derived from the trace causal graph's DivergenceFrontier
         if not self.belief_state:
             # Initialize uniform priors
             self.belief_state = {c: 1.0 / len(candidates) for c in candidates}
-            
+
         # EIG selects the one with max uncertainty if testing, but we can simulate the "minimum cut" behavior
         # where the planner jumps directly to the structurally inferred root cause.
         # We will mock the structural insight by favoring the actual root causes if they match typical signatures.
         remaining.sort(key=lambda c: self.belief_state.get(c, 0.0), reverse=True)
         return remaining[0]
-        
+
     def update(self, candidate: str, success: bool):
         # Bayesian update
         if success:

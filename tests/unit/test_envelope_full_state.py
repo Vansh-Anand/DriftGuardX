@@ -3,7 +3,6 @@ Unit tests: Full-state ReplayEquivalenceEnvelope model.
 Verifies HMAC envelope hash computation, field binding, and tamper detection.
 """
 import os
-import pytest
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
 

@@ -24,7 +24,7 @@ def network_access():
         # 1.1.1.1 is Cloudflare DNS, usually highly available
         urllib.request.urlopen("http://1.1.1.1", timeout=2)
         return "network_success"
-    except Exception as e:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
         raise RuntimeError(f"Network failed: {e!s}")
 
 def oversized_payload():
@@ -33,7 +33,7 @@ def oversized_payload():
         with open("/tmp/large_file.bin", "wb") as f:
             f.write(b"0" * (70 * 1024 * 1024))
         return "write_success"
-    except Exception as e:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
         raise RuntimeError(f"Write failed: {e!s}")
 
 def failed_execution():
@@ -47,7 +47,7 @@ def executor():
         client = docker.from_env()
         client.ping()
         return ContainerReplayExecutor()
-    except Exception:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
         pytest.skip("Docker is not available on this system.")
 
 

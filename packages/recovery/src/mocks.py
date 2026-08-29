@@ -41,6 +41,8 @@ from packages.contracts.src.transport_models import (
     TransportabilityDecision,
     TransportStatus,
 )
+from packages.memory.src.auth import AccessContext
+from packages.replay.src.stopping_rule import StoppingOutcome
 
 
 class MockTraceProvider(TraceProvider):
@@ -195,11 +197,11 @@ class MockStoppingPolicy(StoppingPolicy):
         resource_context: ResourceContext,
         belief_model: BeliefModel,
         remaining_candidates: list[dict[str, Any]],
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, StoppingOutcome, str]:
         self._call_count += 1
         if self.sufficient:
-            return True, "Mock: sufficient after first check."
-        return False, "Mock: not sufficient."
+            return True, StoppingOutcome.CONFIRMED, "Mock: sufficient after first check."
+        return False, StoppingOutcome.UNRESOLVED, "Mock: not sufficient."
 
 
 class MockRecoveryCutSolver(RecoveryCutSolver):
@@ -249,10 +251,14 @@ class MockRecoveryValidator(RecoveryValidator):
         else:
             self.result = result
 
-    def validate(
+    def validate_cut(
         self,
         cut: CausalRecoveryCut,
-        provided_capabilities: list[SignedCapability] | None = None,
+        invariants: list[Any],
+        trace_id: str,
+        original_spans: list[Any],
+        access_context: AccessContext,
+        exogenous_variables: list[Any] | None = None,
     ) -> RecoveryValidationResult:
         return self.result
 

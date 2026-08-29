@@ -228,6 +228,7 @@ def test_unauthorized_recovery_action():
     """10. unauthorized recovery action (fails security capability check)"""
     import os
     from datetime import UTC, datetime, timedelta
+
     from packages.contracts.src.recovery_models import SignedCapability
 
     os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")

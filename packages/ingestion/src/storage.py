@@ -22,7 +22,7 @@ class MinioStorage:
         try:
             if not self.client.bucket_exists(self.bucket_name):
                 self.client.make_bucket(self.bucket_name)
-        except Exception as e:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
             print(f"Error ensuring bucket exists (bypassing MinIO): {e}")
             self.bypassed = True
 
@@ -49,7 +49,7 @@ class MinioStorage:
                 tmp_path,
                 content_type="application/json"
             )
-        except Exception:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             self.bypassed = True
             pass # Bypass if not running
         finally:

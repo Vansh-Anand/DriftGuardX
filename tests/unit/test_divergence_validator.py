@@ -4,12 +4,15 @@ Tests frozen-state detection, forbidden divergence early termination,
 causal reachability, and tolerance rules.
 """
 import os
-import pytest
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
 
 from packages.contracts.src.recovery_models import (
-    CausalRecoveryCut, FailureTarget, FaultSource, OptimizationMethod, ReplayEquivalenceEnvelope,
+    CausalRecoveryCut,
+    FailureTarget,
+    FaultSource,
+    OptimizationMethod,
+    ReplayEquivalenceEnvelope,
 )
 from packages.replay.src.divergence_validator import (
     DynamicCausalDivergenceValidator,

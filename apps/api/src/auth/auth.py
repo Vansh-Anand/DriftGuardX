@@ -93,7 +93,7 @@ def verify_token(token: str) -> dict:
             detail=f"Could not validate credentials: {e!s}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",

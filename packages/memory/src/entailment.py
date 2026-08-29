@@ -100,7 +100,7 @@ class SentenceTransformerNLIProvider:
                 supporting_source_ids=[source_id] if classification == "SUPPORTED" else [],
                 provider_version=self.provider_version
             )
-        except Exception:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             return EntailmentDecision(
                 claim=hypothesis,
                 classification="UNKNOWN",

@@ -53,7 +53,7 @@ class LocalDevExecutor(ReplayExecutor):
                 enable_arc=False
             )
             error = None
-        except Exception as e:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
             result = None
             error = str(e)
 
@@ -149,7 +149,7 @@ def main():
         with open('/sandbox/result.pkl', 'wb') as f:
             f.write(out_data)
             
-    except Exception as e:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
         with open('/sandbox/result.pkl', 'wb') as f:
             cloudpickle.dump({"status": "error", "error": str(e)}, f)
 
@@ -209,12 +209,12 @@ if __name__ == '__main__':
                 try:
                     stats = container.stats(stream=False)
                     max_mem = stats.get('memory_stats', {}).get('max_usage')
-                except Exception:
+                except (ValueError, RuntimeError, KeyError, TypeError, OSError):
                     max_mem = None
             else:
                 max_mem = None
 
-        except Exception as e:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
             error_msg = f"ContainerError: {e!s}"
             max_mem = None
         finally:
@@ -222,7 +222,7 @@ if __name__ == '__main__':
                 try:
                     container.stop(timeout=1)
                     container.remove(force=True)
-                except Exception:
+                except (ValueError, RuntimeError, KeyError, TypeError, OSError):
                     pass
 
         execution_time = time.monotonic() - start_time
@@ -238,7 +238,7 @@ if __name__ == '__main__':
                         result_payload = res["payload"]
                     else:
                         error_msg = res["error"]
-                except Exception as e:
+                except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
                     error_msg = f"Failed to unpickle result: {e!s}"
             else:
                 error_msg = "No result file found. Container may have crashed."
@@ -247,7 +247,7 @@ if __name__ == '__main__':
         import shutil
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             pass
 
         return ReplayResult(

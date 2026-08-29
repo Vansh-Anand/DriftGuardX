@@ -17,13 +17,13 @@ def generate_freeze():
     try:
         git_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
         freeze_data["repository_state"]["git_commit"] = git_hash
-    except Exception:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
         freeze_data["repository_state"]["git_commit"] = "Unknown or Uncommitted"
 
     try:
         pip_freeze = subprocess.check_output(["pip", "freeze"]).decode("utf-8").strip().split('\n')
         freeze_data["environment"]["pip_packages"] = pip_freeze
-    except Exception:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
         pass
 
     with open(out_dir / "reproducibility_lock.json", "w") as f:

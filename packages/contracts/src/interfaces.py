@@ -3,7 +3,7 @@ DriftGuard-X v2 — Orchestration Interfaces
 PRIVATE — All Rights Reserved.
 """
 import abc
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.incident_models import IncidentState
 from packages.contracts.src.recovery_models import (
@@ -13,6 +13,10 @@ from packages.contracts.src.recovery_models import (
     ReplayEquivalenceEnvelope,
     SignedCapability,
 )
+from packages.memory.src.auth import AccessContext
+
+if TYPE_CHECKING:
+    from packages.replay.src.stopping_rule import StoppingOutcome
 from packages.contracts.src.transport_models import (
     CausalEnvironmentDescriptor,
     RecoveryMechanismFootprint,
@@ -45,25 +49,99 @@ class DivergenceReport:
         return self.valid
 
 
+import threading
+import uuid
+from dataclasses import dataclass, field
+
+
+@dataclass
+class ResourceBudget:
+    budget_usd: float = 10.0
+    max_wall_seconds: float = 300.0
+
+@dataclass
+class ResourceEstimate:
+    cost_usd: float = 0.0
+    replay_count: int = 1
+    wall_seconds: float = 0.0
+
+@dataclass
+class ResourceMeasurement:
+    cost_usd: float = 0.0
+    replay_count: int = 1
+    wall_seconds: float = 0.0
+
+@dataclass
+class ResourceReservation:
+    estimate: ResourceEstimate
+    reservation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    committed: bool = False
+    released: bool = False
+    context: 'ResourceContext' = field(repr=False, default=None)
+
+    def commit(self, measurement: ResourceMeasurement) -> None:
+        """Commit the reservation using actual measurements."""
+        if not self.committed and not self.released and self.context:
+            self.context.reconcile(self, measurement)
+            self.committed = True
+
+    def release(self) -> None:
+        """Release the reserved estimate back to the budget."""
+        if not self.committed and not self.released and self.context:
+            self.context.release(self)
+            self.released = True
+
 class ResourceContext:
-    """Tracks resource consumption during the experiment loop."""
+    """Tracks resource consumption during the experiment loop with thread-safety."""
     def __init__(self, budget_usd: float = 10.0, max_wall_seconds: float = 300.0) -> None:
-        self.budget_usd = budget_usd
-        self.max_wall_seconds = max_wall_seconds
+        self.budget = ResourceBudget(budget_usd=budget_usd, max_wall_seconds=max_wall_seconds)
         self.spent_usd: float = 0.0
         self.elapsed_seconds: float = 0.0
         self.replay_count: int = 0
+        self.reserved_usd: float = 0.0
+        self.reserved_count: int = 0
+        self._lock = threading.Lock()
 
-    def reserve(self, cost_usd: float) -> bool:
-        """Returns True if reservation succeeds, False if budget exceeded."""
-        if self.spent_usd + cost_usd > self.budget_usd:
-            return False
-        self.spent_usd += cost_usd
-        self.replay_count += 1
-        return True
+    def reserve(self, estimate: ResourceEstimate) -> ResourceReservation | None:
+        """Attempt to reserve resources. Returns a reservation if budget allows, else None."""
+        with self._lock:
+            total_projected_usd = self.spent_usd + self.reserved_usd + estimate.cost_usd
+            if total_projected_usd > self.budget.budget_usd:
+                return None
+
+            self.reserved_usd += estimate.cost_usd
+            self.reserved_count += estimate.replay_count
+
+            res = ResourceReservation(estimate=estimate, context=self)
+            return res
+
+    def reconcile(self, reservation: ResourceReservation, measurement: ResourceMeasurement) -> None:
+        """Reconcile a committed reservation with actual measured costs."""
+        with self._lock:
+            # Free the reserved amounts
+            self.reserved_usd -= reservation.estimate.cost_usd
+            self.reserved_count -= reservation.estimate.replay_count
+
+            # Apply actual measurements
+            self.spent_usd += measurement.cost_usd
+            self.replay_count += measurement.replay_count
+            self.elapsed_seconds += measurement.wall_seconds
+
+    def release(self, reservation: ResourceReservation) -> None:
+        """Release a reservation without committing any actual usage."""
+        with self._lock:
+            self.reserved_usd -= reservation.estimate.cost_usd
+            self.reserved_count -= reservation.estimate.replay_count
 
     def budget_exhausted(self) -> bool:
-        return self.spent_usd >= self.budget_usd or self.elapsed_seconds >= self.max_wall_seconds
+        with self._lock:
+            return (self.spent_usd + self.reserved_usd >= self.budget.budget_usd) or \
+                   (self.elapsed_seconds >= self.budget.max_wall_seconds)
+
+    # Legacy compatibility properties
+    @property
+    def budget_usd(self) -> float:
+        return self.budget.budget_usd
 
 
 class TraceProvider(abc.ABC):
@@ -170,9 +248,9 @@ class StoppingPolicy(abc.ABC):
         resource_context: ResourceContext,
         belief_model: BeliefModel,
         remaining_candidates: list[dict[str, Any]],
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, 'StoppingOutcome', str]:
         """
-        Returns (should_stop, reason).
+        Returns (should_stop, outcome, reason).
         Evaluates: posterior confidence, margin, entropy convergence,
         next-best EIG, minimum evidence count, resource limits.
         No hard iteration cap as primary logic.
@@ -190,11 +268,28 @@ class RecoveryCutSolver(abc.ABC):
 
 class RecoveryValidator(abc.ABC):
     @abc.abstractmethod
-    def validate(
+    def validate_cut(
         self,
         cut: CausalRecoveryCut,
-        provided_capabilities: list[SignedCapability] | None = None,
+        invariants: list[Any],
+        trace_id: str,
+        original_spans: list[Any],
+        access_context: AccessContext,
+        exogenous_variables: list[Any] | None = None,
     ) -> RecoveryValidationResult:
+        pass
+
+
+class RecoveryReplayExecutor(abc.ABC):
+    @abc.abstractmethod
+    def replay(
+        self,
+        original_execution: Any,
+        recovery_cut: CausalRecoveryCut,
+        envelope: ReplayEquivalenceEnvelope,
+        context: Any,
+    ) -> Any:
+        """Executes the replay and returns RecoveryReplayResult."""
         pass
 
 

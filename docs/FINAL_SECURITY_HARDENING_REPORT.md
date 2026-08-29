@@ -8,7 +8,7 @@ The system architecture was significantly refactored to enforce correct instanti
 - **Runtime Enforcement**: Security invariants are built into core abstractions (e.g., `AccessContext`, `ProvenanceMemoryStore`).
 - **Tests as Proof**: The `tests/e2e` and `tests/security` test suites cover isolation, bounds calibration, ledger tampering, RAEB admissibility, and provenance quarantine.
 - **Pydantic Hardening**: Strict types and schema validation are applied to core entities (e.g., `RAEBEvaluation`, `RecoveryEligibilityCertificate`).
-- **Cryptographic Signatures**: The `CapabilityVerifier` issues and verifies `AuthorizationCapability` to enforce authorization invariants cryptographically.
+- **Cryptographic Signatures**: The `CapabilityVerifier` issues and verifies `SignedCapability` to enforce authorization invariants cryptographically.
 
 ## 3. Findings & Resolution
 - **Test Infrastructure Stability**: Fixed async mismatches in `test_tenant_isolation.py`. Mock configurations were updated to match newly hardened constraints.
@@ -21,4 +21,4 @@ The system architecture was significantly refactored to enforce correct instanti
 - **Coverage**: System coverage has been maintained with new assertions explicitly added to address edge cases.
 
 ## 5. Next Steps
-The repository is fully remediated and designated PRODUCTION-READY.
+The repository is fully remediated and designated EVIDENCE-VALIDATED RESEARCH PROTOTYPE.

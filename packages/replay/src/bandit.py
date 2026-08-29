@@ -47,22 +47,25 @@ class ResourceAdmittedBCRBController(BaseScheduler):
     def _get_cost_statistics(self, arm: CandidateArm) -> tuple[float, float]:
         """
         Returns (mean_predicted_cost, uncertainty_margin) based on history.
-        Falls back to prior cost and 0 margin if no history exists.
+        Uses conservative priors for unseen arms and single samples.
         """
         history = self._cost_history.get(arm.arm_id, [])
+        floor_cost = 0.05
+        default_margin = 0.05
+
         if not history:
-            return arm.cost, 0.0
+            return max(arm.cost, floor_cost), default_margin
 
         # Filter out NaNs to ensure graceful handling of corrupted telemetry
         valid_history = [x for x in history if not math.isnan(x)]
         if not valid_history:
-            return arm.cost, 0.0
+            return max(arm.cost, floor_cost), default_margin
 
         n = len(valid_history)
         mean_cost = sum(valid_history) / n
 
         if n < 2:
-            return mean_cost, 0.0
+            return mean_cost, default_margin
 
         variance = sum((x - mean_cost) ** 2 for x in valid_history) / (n - 1)
         std_dev = math.sqrt(variance)
@@ -146,7 +149,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
         if math.isnan(reward):
             reward = 0.0
         if math.isnan(cost):
-            cost = 0.0  # Fallback to prevent poisoning remaining_budget
+            cost = 0.05  # Fallback conservative cost to prevent poisoning remaining_budget
 
         super().update(arm_id, reward, cost)
 

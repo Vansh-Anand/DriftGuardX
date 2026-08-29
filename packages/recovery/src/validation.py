@@ -3,7 +3,7 @@ DriftGuard-X v2 — Recovery Validation
 PRIVATE — All Rights Reserved.
 
 Real recovery validation pipeline:
-1. Verify signed AuthorizationCapability objects (not bare strings)
+1. Verify signed SignedCapability objects (not bare strings)
 2. Build a full ReplayEquivalenceEnvelope with the cut's actions as intervened variables
 3. Activate ExogenousStateController to freeze all external state
 4. Execute the recovery replay through SandboxedWorker
@@ -13,80 +13,23 @@ Real recovery validation pipeline:
 """
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any
 
+from packages.contracts.src.interfaces import RecoveryReplayExecutor
 from packages.contracts.src.recovery_models import (
     CausalRecoveryCut,
     RecoveryInvariant,
     RecoveryValidationResult,
+    ReplayContext,
     ReplayEquivalenceEnvelope,
-    SignedCapability,
+    SandboxOutcome,
 )
+from packages.memory.src.auth import AccessContext
 from packages.memory.src.capabilities import CapabilityVerifier
+from packages.recovery.src.replay_executor import SyntheticRecoveryReplayExecutor
 from packages.replay.src.divergence_validator import (
     DynamicCausalDivergenceValidator,
-    ExecutionSnapshot,
 )
-from packages.replay.src.exogenous_controller import ExogenousStateController
-from packages.replay.src.sandbox import SandboxedWorker
-
-
-def _run_controlled_replay(
-    cut: CausalRecoveryCut,
-    envelope: ReplayEquivalenceEnvelope,
-    original_spans: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], dict[str, float]]:
-    """
-    Executes a controlled replay with the recovery cut applied.
-    Returns (replay_spans, measured_metrics).
-
-    In the real implementation this invokes the full RAG pipeline through
-    SandboxedWorker with ExogenousStateController active.
-    For environments where the pipeline is not locally available, returns a
-    conservative simulation based on the cut's declared blast radius.
-    """
-    exogenous_vars = envelope.exogenous_variables
-
-    def _replay_fn(**kwargs: Any) -> dict[str, Any]:
-        """The function executed inside the sandbox."""
-        # Apply the recovery cut: mutate the intervened components
-        result_spans = list(original_spans)
-        for action in cut.selected_actions:
-            for i, span in enumerate(result_spans):
-                if span.get("component_type") == action.target_component:
-                    result_spans[i] = {
-                        **span,
-                        "output": {"status": "recovered", "action": action.action_type},
-                        "_intervened": True,
-                    }
-        return {
-            "spans": result_spans,
-            "regression_count": cut.regression_risk,
-            "blast_radius": cut.blast_radius,
-        }
-
-    try:
-        with ExogenousStateController.from_envelope_vars(exogenous_vars):
-            result = SandboxedWorker.run(
-                func=_replay_fn,
-                inputs={},
-                timeout_seconds=30,
-                trace_id=envelope.trace_id,
-            )
-    except Exception:  # noqa: BLE001
-        # Sandbox not available in all environments (e.g. Windows without resource module)
-        # Fall back to direct call — still protected by exogenous controller
-        with ExogenousStateController.from_envelope_vars(exogenous_vars):
-            result = _replay_fn()
-
-    replay_spans = result.get("spans", [])
-    metrics = {
-        "regression_count": float(result.get("regression_count", cut.regression_risk)),
-        "blast_radius": float(result.get("blast_radius", cut.blast_radius)),
-    }
-    return replay_spans, metrics
 
 
 class RecoveryValidator:
@@ -99,9 +42,11 @@ class RecoveryValidator:
         self,
         verifier: CapabilityVerifier | None = None,
         divergence_validator: DynamicCausalDivergenceValidator | None = None,
+        executor: RecoveryReplayExecutor | None = None,
     ) -> None:
         self.verifier = verifier or CapabilityVerifier()
         self.divergence_validator = divergence_validator or DynamicCausalDivergenceValidator()
+        self.executor = executor or SyntheticRecoveryReplayExecutor()
 
     def validate_cut(
         self,
@@ -109,7 +54,7 @@ class RecoveryValidator:
         invariants: list[RecoveryInvariant],
         trace_id: str,
         original_spans: list[dict[str, Any]] | None = None,
-        provided_capabilities: list[SignedCapability] | None = None,
+        access_context: AccessContext | None = None,
         exogenous_variables: dict[str, Any] | None = None,
     ) -> RecoveryValidationResult:
         """
@@ -122,31 +67,29 @@ class RecoveryValidator:
         6. Check invariants against measured metrics
         7. Determine canary eligibility
         """
-        provided_capabilities = provided_capabilities or []
+        if not access_context:
+            return RecoveryValidationResult(
+                recovery_cut=cut,
+                failure_resolved=False,
+                invariants=invariants,
+                invariants_satisfied=False,
+                divergence_report={"security": "No execution context provided."},
+                residual_risk=1.0,
+                eligible_for_canary=False,
+                reason="Unauthorized recovery action — access context missing.",
+            )
+
+        provided_capabilities = access_context.capabilities
+        provided_ids = {cap.capability_id for cap in provided_capabilities
+                       if hasattr(cap, "capability_id")}
+
         original_spans = original_spans or []
         divergences: dict[str, Any] = {}
         invariants_satisfied = True
         failure_resolved = True
         reason = "Validation passed."
 
-        # --- 1. Verify all signed capability objects ---
-        for cap in provided_capabilities:
-            if isinstance(cap, SignedCapability):
-                if not self.verifier.verify(cap, context_requester="system", context_tenant="system"):
-                    return RecoveryValidationResult(
-                        recovery_cut=cut,
-                        failure_resolved=False,
-                        invariants=invariants,
-                        invariants_satisfied=False,
-                        divergence_report={"security": f"Invalid or expired capability: {cap.capability_id}"},
-                        residual_risk=1.0,
-                        eligible_for_canary=False,
-                        reason="Unauthorized recovery action — capability verification failed.",
-                    )
-
-        # --- 2. Check required capabilities for each action (signed objects) ---
-        provided_ids = {cap.capability_id for cap in provided_capabilities
-                       if hasattr(cap, "capability_id")}
+        # --- 1 & 2. Verify all signed capabilities and check requirements ---
         for action in cut.selected_actions:
             if action.required_capability is not None:
                 cap = action.required_capability
@@ -159,7 +102,19 @@ class RecoveryValidator:
                         divergence_report={"security": f"Missing required capability: {cap.capability_id} for action {action.action_id}"},
                         residual_risk=1.0,
                         eligible_for_canary=False,
-                        reason="Unauthorized recovery action — required signed capability not provided.",
+                        reason="Unauthorized recovery action — required signed capability not provided in context.",
+                    )
+                # Verify cryptographic integrity + contextual authorization
+                if not self.verifier.verify(cap, access_context, required_action=action.action_type, required_resource=action.target_component):
+                    return RecoveryValidationResult(
+                        recovery_cut=cut,
+                        failure_resolved=False,
+                        invariants=invariants,
+                        invariants_satisfied=False,
+                        divergence_report={"security": f"Invalid, expired, or unauthorized capability: {cap.capability_id}"},
+                        residual_risk=1.0,
+                        eligible_for_canary=False,
+                        reason="Unauthorized recovery action — capability verification failed.",
                     )
 
         # --- 3. Check residual failure paths ---
@@ -202,8 +157,39 @@ class RecoveryValidator:
             )
 
         # --- 5. Execute controlled replay ---
+        import os
+        if os.environ.get("DGX_MODE") == "production" and getattr(self.executor, "__class__", None).__name__ == "SyntheticRecoveryReplayExecutor":
+             return RecoveryValidationResult(
+                recovery_cut=cut,
+                failure_resolved=False,
+                invariants=invariants,
+                invariants_satisfied=False,
+                divergence_report={"security": "Synthetic execution is forbidden in production."},
+                residual_risk=1.0,
+                eligible_for_canary=False,
+                reason="Sandbox executor unavailable.",
+            )
+
+        context = ReplayContext(
+            original_trace_id=trace_id,
+            original_spans=original_spans,
+        )
         try:
-            replay_spans, measured_metrics = _run_controlled_replay(cut, envelope, original_spans)
+            result = self.executor.replay(None, cut, envelope, context)
+            if result.outcome != SandboxOutcome.SUCCESS:
+                return RecoveryValidationResult(
+                    recovery_cut=cut,
+                    failure_resolved=False,
+                    invariants=invariants,
+                    invariants_satisfied=False,
+                    divergence_report={"error": f"Sandbox failed with outcome: {result.outcome.value}"},
+                    residual_risk=1.0,
+                    eligible_for_canary=False,
+                    reason=f"Controlled replay failed: {result.outcome.value}",
+                )
+
+            replay_spans = result.new_spans
+            measured_metrics = result.metrics
         except Exception as e:
             return RecoveryValidationResult(
                 recovery_cut=cut,
@@ -261,7 +247,7 @@ class RecoveryValidator:
     def validate(
         self,
         cut: CausalRecoveryCut,
-        provided_capabilities: list[SignedCapability] | None = None,
+        access_context: AccessContext | None = None,
     ) -> RecoveryValidationResult:
         """
         Orchestrator-compatible interface (minimal args).
@@ -272,5 +258,5 @@ class RecoveryValidator:
             cut=cut,
             invariants=[],
             trace_id=cut.recovery_id,
-            provided_capabilities=provided_capabilities,
+            access_context=access_context,
         )

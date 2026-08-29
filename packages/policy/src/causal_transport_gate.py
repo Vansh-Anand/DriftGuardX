@@ -49,17 +49,14 @@ def _graph_derived_relevance(
 
     hits = 0
     # Count component matches
-    for comp in footprint.required_invariant_components:
-        if variable.lower() in comp.lower() or comp.lower() in variable.lower():
-            hits += 1
+    if variable in footprint.required_invariant_components:
+        hits += 1
     # Count edge matches (edges are string IDs like "retriever->generator")
-    for edge in footprint.required_invariant_edges:
-        if variable.lower() in edge.lower():
-            hits += 1
+    if variable in footprint.required_invariant_edges:
+        hits += 1
     # Count policy condition matches
-    for policy_key in footprint.required_policy_conditions:
-        if variable.lower() in policy_key.lower():
-            hits += 1
+    if variable in footprint.required_policy_conditions:
+        hits += 1
 
     return min(1.0, hits / total_items)
 
@@ -81,24 +78,19 @@ def _evaluate_footprint_invariants(
 
     # 1. Check required invariant components
     for comp in footprint.required_invariant_components:
-        for var, diff in diff_vars.items():
-            if var.lower() in comp.lower() or comp.lower() in var.lower():
-                if diff.causal_relevance >= 0.8:
-                    violated.append(f"component:{comp}")
-                else:
-                    unknown.append(f"component:{comp}")
-                break
+        if comp in diff_vars:
+            diff = diff_vars[comp]
+            if diff.causal_relevance >= 0.8:
+                violated.append(f"component:{comp}")
+            else:
+                unknown.append(f"component:{comp}")
         else:
             preserved.append(f"component:{comp}")
 
     # 2. Check required invariant edges
     for edge in footprint.required_invariant_edges:
-        edge_affected = any(
-            edge_var.lower() in edge.lower() or edge.lower() in edge_var.lower()
-            for edge_var in diff_vars
-        )
-        if edge_affected:
-            unknown.append(f"edge:{edge}")
+        if edge in diff_vars:
+            violated.append(f"edge:{edge}")
         else:
             preserved.append(f"edge:{edge}")
 
@@ -245,9 +237,10 @@ class CausalTransportGate:
         # 6. Any detected difference not explicitly preserved → target validation required.
         # This prevents environment differences that the footprint doesn't specifically cover
         # from producing UNKNOWN when they should require target validation.
+        covered_vars = {c.split(':', 1)[1] for c in preserved + violated + unknown if ':' in c}
         uncovered_diff_vars = [
             d.variable for d in differences
-            if not any(d.variable in c for c in preserved + violated + unknown)
+            if d.variable not in covered_vars
         ]
         # Add uncovered differences to unknown conditions
         unknown.extend(uncovered_diff_vars)
@@ -291,17 +284,16 @@ class CausalTransportGate:
 
         if status == TransportStatus.TARGET_VALIDATION_REQUIRED:
             # Generate causal intervention experiments using the real planner
+            from packages.contracts.src.interfaces import ResourceContext
             from packages.contracts.src.recovery_models import (
                 CausalRecoveryCut,
-                FaultSource,
                 FailureTarget,
+                FaultSource,
                 OptimizationMethod,
             )
             from packages.replay.src.causal_experiment_planner import (
                 RiskLimitedSequentialCausalExperimentPlanner,
-                BlastRadiusEstimator,
             )
-            from packages.contracts.src.interfaces import ResourceContext
 
             planner = RiskLimitedSequentialCausalExperimentPlanner()
             # Build candidate experiments from unknown conditions
@@ -357,6 +349,9 @@ class CausalTransportGate:
                 "footprint_edges_checked": len(footprint.required_invariant_edges),
             },
             explanation=explanation,
+            footprint_hash=footprint.compute_hash(),
+            source_descriptor_signature=src.signature,
+            target_descriptor_signature=tgt.signature,
         )
         decision.decision_hash = decision.compute_hash()
         return decision

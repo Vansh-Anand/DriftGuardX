@@ -1,5 +1,6 @@
 import json
 import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -9,7 +10,7 @@ OUTPUT_DIR = "results/plots"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def parse_results(filepath):
-    with open(filepath, 'r') as f:
+    with open(filepath) as f:
         data = json.load(f)
     return data
 
@@ -32,7 +33,7 @@ def plot_benchmark_results(dataset_name, results):
             else:
                 accs.append(0)
         ax.bar(x + i*width - width*len(strategies)/2, accs, width, label=strategy)
-    
+
     ax.set_ylabel('Accuracy (Correct Root Cause)')
     ax.set_title(f'Recovery Accuracy by Strategy ({dataset_name})')
     ax.set_xticks(x)
@@ -54,7 +55,7 @@ def plot_benchmark_results(dataset_name, results):
             else:
                 costs.append(0)
         ax.bar(x + i*width - width*len(strategies)/2, costs, width, label=strategy)
-    
+
     ax.set_ylabel('Execution Cost ($)')
     ax.set_title(f'Recovery Cost by Strategy ({dataset_name})')
     ax.set_xticks(x)

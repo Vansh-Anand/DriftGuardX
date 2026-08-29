@@ -42,7 +42,6 @@ async def test_cross_tenant_access_denied(client: AsyncClient):
     # The user should be JIT created, but they won't have membership to MOCK_TENANT
     response = await client.get("/v1/runs", headers=headers)
     assert response.status_code in (401, 403)
-    assert True
 
 
 # Test 2: Invalid Tokens
@@ -92,7 +91,6 @@ async def test_missing_tenant_header(client: AsyncClient):
 
     response = await client.get("/v1/runs", headers=headers)
     assert response.status_code in (400, 401)
-    assert True
 
 # Test 5: Valid mock admin fallback
 @pytest.mark.asyncio

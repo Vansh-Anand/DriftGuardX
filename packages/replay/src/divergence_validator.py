@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from typing import Any
 
 from packages.contracts.src.interfaces import DivergenceReport
@@ -45,7 +44,7 @@ class ExecutionSnapshot:
         self._nodes: dict[str, NodeState] = nodes or {}
 
     @classmethod
-    def from_spans(cls, spans: list[dict[str, Any]]) -> "ExecutionSnapshot":
+    def from_spans(cls, spans: list[dict[str, Any]]) -> ExecutionSnapshot:
         nodes = {}
         for span in spans:
             node_id = span.get("span_id", span.get("node_id", ""))
@@ -58,7 +57,7 @@ class ExecutionSnapshot:
         return cls(nodes=nodes)
 
     @classmethod
-    def from_replay_result(cls, replay_result: dict[str, Any]) -> "ExecutionSnapshot":
+    def from_replay_result(cls, replay_result: dict[str, Any]) -> ExecutionSnapshot:
         spans = replay_result.get("spans", replay_result.get("trace", []))
         return cls.from_spans(spans)
 

@@ -124,7 +124,7 @@ class RootCauseBeliefModel:
         if s > 0:
             self.beliefs = {c: v / s for c, v in self.beliefs.items()}
 
-    def expected_information_gain(self, intervention_node: str, estimator: LikelihoodEstimator) -> float:
+    def expected_information_gain(self, intervention_node: str, estimator: LikelihoodEstimator) -> tuple[float, float]:
         """
         IG = H(Prior) - E[H(Posterior)]
         E[H(Posterior)] = sum_{O} P(O) * H(Posterior | O)
@@ -151,7 +151,7 @@ class RootCauseBeliefModel:
 
                 expected_h_post += p_o * h_post_o
 
-        return max(0.0, h_prior - expected_h_post)
+        return max(0.0, h_prior - expected_h_post), expected_h_post
 
 def calculate_graph_impact(graph_nodes: list[str], graph_edges: list[dict[str, str]], intervention_node: str) -> float:
     """

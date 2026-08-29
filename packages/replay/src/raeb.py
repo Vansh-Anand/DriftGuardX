@@ -22,6 +22,40 @@ from packages.replay.src.belief_model import (
 from packages.replay.src.time_authority import TrustedTimestampEnvelope, TrustedTimeVerifier
 
 
+def resolve_intervention_node(proposed_replay: ReplayEpisode, live_trace: TraceArtifact) -> str:
+    """
+    Strictly resolves the actual intervention node.
+    - Uses explicit component_id/target_component_id if present
+    - Maps swapped_component_type only when unambiguous
+    - Rejects ambiguity
+    - Rejects missing mapping
+    """
+    # 1. Explicit ID
+    comp_id = getattr(proposed_replay, "target_component_id", getattr(proposed_replay, "component_id", None))
+    if comp_id:
+        return comp_id
+
+    # 2. Map from swapped_component_type
+    swapped_type = getattr(proposed_replay, "swapped_component_type", None)
+    if hasattr(swapped_type, "value"):
+        swapped_type = swapped_type.value
+
+    if not hasattr(live_trace, "spans") or not live_trace.spans:
+        raise ValueError("Missing intervention mapping: trace has no spans to resolve swapped_component_type.")
+
+    matches = [
+        s.span_id for s in live_trace.spans
+        if getattr(s, "component_type", "") == swapped_type or (hasattr(getattr(s, "component_type", None), "value") and getattr(s, "component_type", None).value == swapped_type)
+    ]
+
+    if len(matches) == 1:
+        return matches[0]
+    elif len(matches) > 1:
+        raise ValueError(f"Ambiguous component identity: multiple spans match swapped_component_type '{swapped_type}'")
+    else:
+        raise ValueError(f"Missing intervention mapping: no spans match swapped_component_type '{swapped_type}'")
+
+
 class RAEBGateway:
     """
     Evaluates proposed counterfactual replays for admissibility as evidence.
@@ -39,7 +73,8 @@ class RAEBGateway:
         live_trace: TraceArtifact,
         proposed_replay: ReplayEpisode,
         belief_model: RootCauseBeliefModel | None = None,
-        trusted_timestamp: TrustedTimestampEnvelope | None = None
+        trusted_timestamp: TrustedTimestampEnvelope | None = None,
+        allow_uniform_prior: bool = False,
     ) -> RAEBEvaluation:
         """
         Evaluate if a proposed replay is admissible, allocating evidence budget.
@@ -78,24 +113,14 @@ class RAEBGateway:
 
         # 2. Determinism Score
         # 3. Dependency Impact Score (Calculated from DAG)
-        # Using trace span IDs as mock graph nodes if a real graph isn't supplied
-        graph_nodes = [s.span_id for s in live_trace.spans] if hasattr(live_trace, "spans") else ["mock_node"]
+        graph_nodes = [s.span_id for s in live_trace.spans] if hasattr(live_trace, "spans") and live_trace.spans else []
         graph_edges = []
         if hasattr(live_trace, "spans"):
             for s in live_trace.spans:
                 if s.parent_span_id:
                     graph_edges.append({"source_id": s.parent_span_id, "target_id": s.span_id})
 
-        component_id = getattr(proposed_replay, "component_id", None)
-        if component_id and hasattr(live_trace, "spans"):
-            # Find the span whose component_type matches the intervention target
-            intervention_node = next(
-                (s.span_id for s in live_trace.spans
-                 if getattr(s, "component_type", "") == component_id),
-                component_id  # fallback to component_id itself as node label
-            )
-        else:
-            intervention_node = component_id or "mock_node"
+        intervention_node = resolve_intervention_node(proposed_replay, live_trace)
 
         determinism = self.determinism_estimator.estimate(intervention_node)
 
@@ -125,8 +150,12 @@ class RAEBGateway:
 
         # Expected Information Gain calculation via Belief Model
         if belief_model is None:
+            if os.getenv("DGX_MODE") == "production" or not allow_uniform_prior:
+                raise ValueError("belief_model required in production/research-secure mode.")
             belief_model = RootCauseBeliefModel(components=graph_nodes)
-        expected_ig = belief_model.expected_information_gain(intervention_node, self.estimator)
+
+        expected_ig, expected_h_post = belief_model.expected_information_gain(intervention_node, self.estimator)
+        prior_entropy = belief_model.entropy()
 
         # We append a simple metadata tracking block
         estimator_name = self.estimator.__class__.__name__
@@ -143,5 +172,14 @@ class RAEBGateway:
             rejection_reason=rejection_reason
         )
         # Attach metadata explicitly per requirements
-        eval_result.ig_estimator_metadata = {"model": estimator_name, "raw_expected_ig": expected_ig}
+        eval_result.ig_estimator_metadata = {
+            "estimator": estimator_name,
+            "is_calibrated": False,  # Heuristic estimator is not calibrated
+            "prior_entropy": prior_entropy,
+            "expected_posterior_entropy": expected_h_post,
+            "raw_eig": expected_ig,
+            "determinism_multiplier": determinism,
+            "final_information_gain_estimate": info_gain,
+            "target_component_id": intervention_node,
+        }
         return eval_result

@@ -11,10 +11,11 @@ import hashlib
 import hmac
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
 from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow
 
@@ -23,6 +24,29 @@ class OptimizationMethod(str, enum.Enum):
     EXACT = "exact"
     APPROXIMATE = "approximate"
     HEURISTIC = "heuristic"
+
+
+class RecoveryActionType(str, enum.Enum):
+    ROLLBACK = "ROLLBACK"
+    REPLACE = "REPLACE"
+    REMOVE = "REMOVE"
+    ISOLATE = "ISOLATE"
+    RECONFIGURE = "RECONFIGURE"
+    RESTORE_SNAPSHOT = "RESTORE_SNAPSHOT"
+    REBUILD_INDEX = "REBUILD_INDEX"
+    CLEAR_MEMORY_PARTITION = "CLEAR_MEMORY_PARTITION"
+    PATCH_POLICY = "PATCH_POLICY"
+
+
+class SandboxOutcome(str, enum.Enum):
+    SUCCESS = "SUCCESS"
+    SANDBOX_UNAVAILABLE = "SANDBOX_UNAVAILABLE"
+    SANDBOX_TIMEOUT = "SANDBOX_TIMEOUT"
+    SANDBOX_POLICY_VIOLATION = "SANDBOX_POLICY_VIOLATION"
+    ACTION_UNSUPPORTED = "ACTION_UNSUPPORTED"
+    EXOGENOUS_CONTROL_FAILURE = "EXOGENOUS_CONTROL_FAILURE"
+    REPLAY_EXECUTION_FAILURE = "REPLAY_EXECUTION_FAILURE"
+    TRACE_CAPTURE_FAILURE = "TRACE_CAPTURE_FAILURE"
 
 
 class FailureTarget(DGXBaseModel):
@@ -50,7 +74,11 @@ class SignedCapability(DGXBaseModel):
     tenant_id: str
     action: str       # e.g. "COMPONENT_ROLLBACK", "QUARANTINE", "FORENSIC_READ"
     resource: str     # the specific component/resource being acted upon
+    issued_at: datetime = Field(default_factory=_utcnow)
     expires_at: datetime
+    issuer: str = "DriftGuard-X"
+    nonce: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    policy_version: str = "1.0"
     revoked: bool = False
     signature: str = ""
 
@@ -59,7 +87,7 @@ class RecoveryAction(DGXBaseModel):
     """A potential recovery action evaluated during causal cut optimization."""
     action_id: str = Field(default_factory=lambda: str(_new_uuid()))
     target_component: str
-    action_type: str  # Can map to RecoveryActionType
+    action_type: RecoveryActionType | str
     replacement: str | None = None
     change_cost: float = 0.0
     blast_radius: float = 0.0
@@ -223,3 +251,27 @@ class RecoveryValidationResult(DGXBaseModel):
     eligible_for_canary: bool = False
     reason: str = ""
     validated_at: datetime = Field(default_factory=_utcnow)
+
+
+class ReplayContext(DGXBaseModel):
+    """Context block provided to the RecoveryReplayExecutor."""
+    original_trace_id: str
+    original_spans: list[dict[str, Any]]
+    run_id: str | None = None
+    tenant_id: str | None = None
+    pipeline_id: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class RecoveryReplayResult(DGXBaseModel):
+    """The result of attempting to execute a recovery replay pipeline."""
+    outcome: SandboxOutcome
+    new_trace_id: str | None = None
+    new_spans: list[dict[str, Any]] = Field(default_factory=list)
+    new_state_snapshot: dict[str, Any] | None = None
+    target_failure_status: str | None = None
+    metrics: dict[str, float] = Field(default_factory=dict)
+    resource_usage: dict[str, float] = Field(default_factory=dict)
+    external_side_effects: list[dict[str, Any]] = Field(default_factory=list)
+    executor_metadata: dict[str, Any] = Field(default_factory=dict)
+    reproducibility_metadata: dict[str, Any] = Field(default_factory=dict)

@@ -3,9 +3,8 @@ Unit tests: EvidentiaryStoppingRule.
 Tests all stopping criteria: posterior confidence, margin, entropy convergence,
 information exhaustion, minimum evidence count, and resource limits.
 """
-import os
 import math
-import pytest
+import os
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
 

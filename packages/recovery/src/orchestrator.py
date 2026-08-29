@@ -34,12 +34,14 @@ from packages.contracts.src.interfaces import (
     TraceProvider,
     TransportabilityGate,
 )
-from packages.contracts.src.recovery_models import FailureTarget, SignedCapability
+from packages.contracts.src.recovery_models import FailureTarget
 from packages.contracts.src.transport_models import (
     CausalEnvironmentDescriptor,
     RecoveryMechanismFootprint,
 )
+from packages.memory.src.auth import AccessContext
 from packages.recovery.src.incident_state_machine import IncidentStateMachine
+from packages.replay.src.stopping_rule import StoppingOutcome
 
 
 class CausalRecoveryOrchestrator:
@@ -97,7 +99,7 @@ class CausalRecoveryOrchestrator:
         self,
         incident_state: IncidentState,
         failure_targets: list[FailureTarget],
-        capabilities: list[SignedCapability] | None = None,
+        access_context: AccessContext | None = None,
         budget_usd: float | None = None,
         time_budget_seconds: float | None = None,
     ) -> str:
@@ -109,7 +111,7 @@ class CausalRecoveryOrchestrator:
         determines that evidence is sufficient — no hard iteration cap.
         """
         machine = IncidentStateMachine(incident_state)
-        capabilities = capabilities or []
+        capabilities = access_context.capabilities if access_context else []
 
         # Resource context tracks budget across the experiment loop
         resource_context = ResourceContext(
@@ -176,7 +178,15 @@ class CausalRecoveryOrchestrator:
                 )
 
                 if experiment is None:
-                    break  # Budget exhausted or EIG too low
+                    # If planner returns None but stopping rule didn't trigger, we exhausted admissible experiments.
+                    # Re-evaluate stopping rule to get the final outcome.
+                    should_stop, stop_outcome, stop_reason = self.stopping_policy.is_sufficient(
+                        state=incident_state,
+                        resource_context=resource_context,
+                        belief_model=self.belief_model,
+                        remaining_candidates=[],  # Force empty to reflect exhaustion
+                    )
+                    break
 
                 # Confirm budget reservation
                 reservation = experiment.pop("_reservation", None)
@@ -223,21 +233,42 @@ class CausalRecoveryOrchestrator:
                 ]
                 all_replays.extend(replays)
 
-            # 5. Check if evidence is sufficient after loop
-            should_stop, stop_outcome, stop_reason = self.stopping_policy.is_sufficient(
-                state=incident_state,
-                resource_context=resource_context,
-                belief_model=self.belief_model,
-                remaining_candidates=remaining_candidates,
-            )
-            if not should_stop and not all_replays:
+            # Preserve explicit telemetry as requested
+            beliefs = self.belief_model.current_beliefs()
+            top_posterior = 0.0
+            margin = 0.0
+            if beliefs:
+                sorted_vals = sorted(beliefs.values(), reverse=True)
+                top_posterior = sorted_vals[0]
+                if len(sorted_vals) >= 2:
+                    margin = sorted_vals[0] - sorted_vals[1]
+
+            valid_replays = [r for r in all_replays if r.get("status") == "completed"]
+            invalid_replays = [r for r in all_replays if r.get("status") != "completed"]
+
+            incident_state.telemetry.update({
+                "stop_outcome": stop_outcome.value,
+                "stop_reason": stop_reason,
+                "top_posterior": top_posterior,
+                "posterior_margin": margin,
+                "entropy": self.belief_model.entropy(),
+                "replay_count": resource_context.replay_count,
+                "valid_replay_count": len(valid_replays),
+                "invalid_replay_count": len(invalid_replays),
+                "resource_state": {
+                    "budget_used_usd": resource_context.spent_usd,
+                    "elapsed_seconds": resource_context.elapsed_seconds,
+                }
+            })
+
+            if stop_outcome == StoppingOutcome.CONFIRMED:
+                machine.transition(IncidentStatus.EVIDENCE_SUFFICIENT, f"Evidence confirmed: {stop_reason}")
+            else:
                 machine.transition(
                     IncidentStatus.EVIDENCE_INSUFFICIENT,
-                    f"Posterior did not converge: {stop_reason}",
+                    f"Evidence insufficient. Outcome: {stop_outcome.value} - {stop_reason}"
                 )
                 return ""
-
-            machine.transition(IncidentStatus.EVIDENCE_SUFFICIENT, f"Evidence collected: {stop_reason}")
 
             # 6. Solve Minimum Causal Recovery Cut
             machine.transition(IncidentStatus.RECOVERY_PLANNING, "Solving for minimum causal cut.")
@@ -254,7 +285,7 @@ class CausalRecoveryOrchestrator:
                 invariants=envelope.invariants,
                 trace_id=envelope.trace_id,
                 original_spans=trace.get("spans", []),
-                provided_capabilities=capabilities,
+                access_context=access_context,
                 exogenous_variables=envelope.exogenous_variables,
             )
             if not val_result.invariants_satisfied:

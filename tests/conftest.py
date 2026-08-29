@@ -61,7 +61,7 @@ async def client(setup_test_db: None) -> AsyncGenerator[AsyncClient, None]:
             try:
                 yield session
                 await session.commit()
-            except Exception:
+            except (ValueError, RuntimeError, KeyError, TypeError, OSError):
                 await session.rollback()
                 raise
 

@@ -14,10 +14,8 @@ Usage (as context manager):
 from __future__ import annotations
 
 import random
-import time
 import unittest.mock as mock
-from collections.abc import Callable
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 # Optional heavy deps — imported lazily
@@ -35,7 +33,7 @@ class RNGController:
         self._seed = seed
         self._patches: list[mock.patch] = []  # type: ignore[type-arg]
 
-    def __enter__(self) -> "RNGController":
+    def __enter__(self) -> RNGController:
         random.seed(self._seed)
         if _HAS_NUMPY:
             np.random.seed(self._seed)
@@ -58,7 +56,7 @@ class TimeController:
         self._frozen_ts = self._frozen_dt.timestamp()
         self._patches: list[Any] = []
 
-    def __enter__(self) -> "TimeController":
+    def __enter__(self) -> TimeController:
         frozen_dt = self._frozen_dt
         frozen_ts = self._frozen_ts
 
@@ -111,7 +109,7 @@ class APIResponseController:
             f"ExogenousStateController: unregistered API call to '{url}' blocked in replay sandbox."
         )
 
-    def __enter__(self) -> "APIResponseController":
+    def __enter__(self) -> APIResponseController:
         stub_fn = self._make_stub_response
 
         def _get(url: str, **kwargs: Any) -> Any:
@@ -153,7 +151,7 @@ class DBSnapshotController:
         self._snapshot: dict[str, Any] = snapshot_data or {}
         self._patches: list[Any] = []
 
-    def __enter__(self) -> "DBSnapshotController":
+    def __enter__(self) -> DBSnapshotController:
         # Nothing to patch at Python level — enforcement happens via the
         # SandboxedWorker's network/file hooks which block live DB connections.
         # The snapshot data is injected into the replay context directly.
@@ -179,7 +177,7 @@ class LLMStubController:
         self._index += 1
         return response
 
-    def __enter__(self) -> "LLMStubController":
+    def __enter__(self) -> LLMStubController:
         stub_fn = self._next_stub
 
         # Patch OpenAI completions if available
@@ -193,7 +191,7 @@ class LLMStubController:
         for p in self._patches:
             try:
                 p.start()
-            except Exception:  # noqa: BLE001
+            except (ValueError, RuntimeError, KeyError, TypeError, OSError):
                 pass
         return self
 
@@ -201,7 +199,7 @@ class LLMStubController:
         for p in reversed(self._patches):
             try:
                 p.stop()
-            except Exception:  # noqa: BLE001
+            except (ValueError, RuntimeError, KeyError, TypeError, OSError):
                 pass
         self._patches.clear()
 
@@ -222,7 +220,7 @@ class ToolCallController:
             f"ExogenousStateController: unregistered tool call '{tool_name}' blocked in replay."
         )
 
-    def __enter__(self) -> "ToolCallController":
+    def __enter__(self) -> ToolCallController:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -241,7 +239,7 @@ class FeatureFlagController:
     def get(self, flag_name: str, default: Any = False) -> Any:
         return self._flags.get(flag_name, default)
 
-    def __enter__(self) -> "FeatureFlagController":
+    def __enter__(self) -> FeatureFlagController:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -277,7 +275,7 @@ class ExogenousStateController:
         self._active: list[Any] = []
 
     @classmethod
-    def from_envelope_vars(cls, exogenous_variables: dict[str, Any]) -> "ExogenousStateController":
+    def from_envelope_vars(cls, exogenous_variables: dict[str, Any]) -> ExogenousStateController:
         """Factory: build from ReplayEquivalenceEnvelope.exogenous_variables."""
         return cls(
             rng_seed=exogenous_variables.get("rng_seed", 42),
@@ -290,7 +288,7 @@ class ExogenousStateController:
             feature_flags=exogenous_variables.get("feature_flags", {}),
         )
 
-    def __enter__(self) -> "ExogenousStateController":
+    def __enter__(self) -> ExogenousStateController:
         self._active = [self._rng, self._api, self._db, self._llm, self._tools, self._flags]
         if self._time is not None:
             self._active.insert(1, self._time)

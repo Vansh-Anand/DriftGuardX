@@ -7,21 +7,13 @@ from datetime import UTC, datetime
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
 
-from packages.contracts.src.recovery_models import (
-    CausalRecoveryCut, FailureTarget, FaultSource, OptimizationMethod, ReplayEquivalenceEnvelope,
-)
 from packages.contracts.src.transport_models import (
     CausalEnvironmentDescriptor,
     RecoveryMechanismFootprint,
     StructuredCalibrationEvidence,
     TransportStatus,
 )
-from packages.contracts.src.interfaces import ResourceContext
 from packages.policy.src.causal_transport_gate import CausalTransportGate
-from packages.replay.src.causal_experiment_planner import (
-    RiskLimitedSequentialCausalExperimentPlanner,
-)
-
 
 SECRET_KEY = "test_secret_key"
 
@@ -221,3 +213,35 @@ def test_14_planner_generates_no_experiments_when_directly_transportable():
     decision = gate.evaluate_transportability(src, tgt, ft)
     assert decision.status == TransportStatus.DIRECTLY_TRANSPORTABLE
     assert len(decision.required_target_experiments) == 0
+
+
+def test_15_missing_required_edge():
+    gate = CausalTransportGate(SECRET_KEY)
+    src = _make_descriptor()
+    tgt = _make_descriptor(overrides={"causal_graph_hash": "graph_B"})
+    ft = _make_footprint()
+    ft.required_invariant_edges = ["causal_graph"]
+    decision = gate.evaluate_transportability(src, tgt, ft)
+    assert decision.status == TransportStatus.NOT_TRANSPORTABLE
+    assert any("edge:causal_graph" in c for c in decision.violated_conditions)
+
+
+def test_16_tampered_decision_evidence_changes_hash():
+    gate = CausalTransportGate(SECRET_KEY)
+    src = _make_descriptor()
+    tgt = _make_descriptor()
+    ft = _make_footprint()
+    decision1 = gate.evaluate_transportability(src, tgt, ft)
+    hash1 = decision1.decision_hash
+
+    # Tamper with the explanation
+    decision1.explanation = "Tampered explanation"
+    hash2 = decision1.compute_hash()
+
+    assert hash1 != hash2
+
+    # Tamper with footprint hash
+    decision1.footprint_hash = "fake_hash"
+    hash3 = decision1.compute_hash()
+    assert hash1 != hash3
+    assert hash2 != hash3

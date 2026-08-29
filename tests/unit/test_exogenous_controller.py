@@ -2,19 +2,19 @@
 Unit tests: Exogenous-State Controller.
 Tests RNG seeding, time freezing, API stubbing, LLM stubbing, feature flags, and tool stubs.
 """
-import random
 import os
+import random
+
 import pytest
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
 
 from packages.replay.src.exogenous_controller import (
-    ExogenousStateController,
-    RNGController,
-    TimeController,
     APIResponseController,
-    LLMStubController,
+    ExogenousStateController,
     FeatureFlagController,
+    LLMStubController,
+    RNGController,
     ToolCallController,
 )
 
@@ -39,7 +39,6 @@ class TestAPIResponseController:
     def test_registered_url_returns_stub(self):
         stubs = {"https://api.example.com/data": {"json": {"result": "stubbed"}, "status_code": 200}}
         with APIResponseController(stubs) as ctrl:
-            import httpx
             # When httpx.get is patched, calling it should return the stub
             # We test through the stub function directly
             response = ctrl._make_stub_response("https://api.example.com/data")

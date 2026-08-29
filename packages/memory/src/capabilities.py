@@ -15,6 +15,7 @@ import threading
 from datetime import UTC, datetime
 
 from packages.contracts.src.recovery_models import SignedCapability
+from packages.memory.src.auth import AccessContext
 
 
 class CapabilityRevocationStore:
@@ -33,7 +34,7 @@ class CapabilityRevocationStore:
 
     def _load_persisted(self) -> None:
         if os.path.exists(self._persist_path):
-            with open(self._persist_path, "r", encoding="utf-8") as f:
+            with open(self._persist_path, encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
                         self._revoked.add(line.strip())
@@ -46,6 +47,8 @@ class CapabilityRevocationStore:
 
     @classmethod
     def reset_for_test(cls) -> None:
+        if cls._instance and os.path.exists(cls._instance._persist_path):
+            os.remove(cls._instance._persist_path)
         cls._instance = None
 
     def revoke(self, capability_id: str) -> None:
@@ -87,7 +90,11 @@ class CapabilityVerifier:
             "tenant_id": cap.tenant_id,
             "action": cap.action,
             "resource": cap.resource,
+            "issued_at": cap.issued_at.isoformat(),
             "expires_at": cap.expires_at.isoformat(),
+            "issuer": cap.issuer,
+            "nonce": cap.nonce,
+            "policy_version": cap.policy_version,
         }
         return json.dumps(data, separators=(",", ":"), sort_keys=True).encode("utf-8")
 
@@ -96,28 +103,43 @@ class CapabilityVerifier:
         cap.signature = base64.b64encode(mac.digest()).decode("utf-8")
         return cap
 
-    def verify(self, cap: SignedCapability, context_requester: str, context_tenant: str) -> bool:
+    def verify(self, cap: SignedCapability, context: AccessContext, required_action: str, required_resource: str) -> bool:
         """
         Returns True iff:
         1. Context matches token bound requester/tenant
-        2. HMAC signature is valid
-        3. Capability has not expired
-        4. Capability has not been revoked
+        2. Action matches token bound action (and token action matches required)
+        3. Resource matches token bound resource (or token allows wildcard)
+        4. HMAC signature is valid
+        5. Capability has not expired
+        6. Capability has not been revoked
         """
-        if cap.requester_id != context_requester or cap.tenant_id != context_tenant:
+        if cap.requester_id != context.requester_id or cap.tenant_id != context.tenant_id:
+            print(f"DEBUG: req/tenant mismatch. cap: {cap.requester_id}/{cap.tenant_id} ctx: {context.requester_id}/{context.tenant_id}")
+            return False
+        if cap.action != required_action:
+            print(f"DEBUG: action mismatch. cap: {cap.action} req: {required_action}")
+            return False
+        if cap.resource != "*" and cap.resource != required_resource:
+            print(f"DEBUG: resource mismatch. cap: {cap.resource} req: {required_resource}")
             return False
         if not cap.signature:
+            print("DEBUG: missing sig")
             return False
         if datetime.now(UTC) > cap.expires_at:
+            print("DEBUG: expired")
             return False
         if self._revocation_store.is_revoked(cap.capability_id):
+            print("DEBUG: revoked")
             return False
 
         expected_mac = hmac.new(
             self.secret_key, self._canonical_bytes(cap), hashlib.sha256
         ).digest()
-        expected_signature = base64.b64encode(expected_mac).decode("utf-8")
-        return hmac.compare_digest(cap.signature, expected_signature)
+        actual_mac = base64.b64decode(cap.signature)
+        if not hmac.compare_digest(expected_mac, actual_mac):
+            print("DEBUG: sig mismatch")
+            return False
+        return True
 
     def revoke(self, capability_id: str) -> None:
         self._revocation_store.revoke(capability_id)

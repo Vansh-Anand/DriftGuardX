@@ -27,17 +27,17 @@ class ProvenanceMemoryStore:
     Enforces access control using AccessContext capabilities.
     """
 
-    def __init__(self, db_path: str = "quarantine_state.db"):
+    def __init__(self, db_path: str = "quarantine_state.db", verifier: CapabilityVerifier | None = None):
         self.db_path = db_path
         self._lock = threading.RLock()
         self._partitions: dict[str, list[dict[str, Any]]] = {}
-        self._verifier = CapabilityVerifier(b"dgx_secret_key_prod")
+        self._verifier = verifier or CapabilityVerifier()
         self._init_db()
 
     def _has_capability(self, context: AccessContext, action: str, resource: str) -> bool:
         for cap in context.capabilities:
             if cap.action == action and (cap.resource == "*" or cap.resource == resource):
-                if self._verifier.verify(cap):
+                if self._verifier.verify(cap, context, action, resource):
                     return True
         return False
 
@@ -70,7 +70,7 @@ class ProvenanceMemoryStore:
             ''')
 
     def _hash_audit_event(self, event: AuditEvent, previous_hash: str) -> str:
-        data = f"DGX-AUDIT-EVENT-V1|{previous_hash}|{event.event_id}|{event.requester}|{event.tenant}|{event.partition}|{event.action}|{event.result}|{event.timestamp.isoformat()}"
+        data = f"DGX-AUDIT-EVENT-V1|{previous_hash}|{event.event_id}|{event.requester}|{event.tenant}|{event.partition}|{event.action}|{event.capability_id}|{event.policy_version}|{event.result}|{event.timestamp.isoformat()}"
         return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
     def _log_audit(self, event: AuditEvent):

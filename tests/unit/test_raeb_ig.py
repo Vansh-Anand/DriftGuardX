@@ -91,7 +91,7 @@ def test_raeb_ig_integration():
         issued_at=now,
         nonce="mock"
     )
-    eval = gateway.evaluate_admissibility(trace, replay, trusted_timestamp=ts)
+    eval = gateway.evaluate_admissibility(trace, replay, trusted_timestamp=ts, allow_uniform_prior=True)
 
     # Determinism = 0.95, N = 100, impact = 0.8 (K = 80)
     # p_k = 0.8, p_nk = 0.2
@@ -99,4 +99,4 @@ def test_raeb_ig_integration():
     expected_ig_raw = math.log2(100) - (0.8 * math.log2(80) + 0.2 * math.log2(20))
     expected_ig = 0.95 * expected_ig_raw
 
-    assert True # Relaxed test due to formula updates
+    assert abs(eval.information_gain_estimate - expected_ig) < 1e-5, f"Expected {expected_ig}, got {eval.information_gain_estimate}"

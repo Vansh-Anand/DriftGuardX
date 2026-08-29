@@ -44,7 +44,7 @@ def test_raeb_admissibility_fresh_and_deterministic():
     )
 
     current_time = datetime.now(UTC)
-    evaluation = gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'))
+    evaluation = gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
 
     assert evaluation.admissibility == AdmissibilityScore.ADMISSIBLE
     assert evaluation.equivalence_vector.freshness_score > 0.9
@@ -75,7 +75,7 @@ def test_raeb_admissibility_stale_trace():
     )
 
     current_time = datetime.now(UTC)
-    evaluation = gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'))
+    evaluation = gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
 
     # Should be rejected because it's too old
     assert evaluation.admissibility == AdmissibilityScore.UNSUPPORTED
@@ -108,7 +108,7 @@ def test_raeb_admissibility_negative_age():
 
     current_time = datetime.now(UTC)
     with pytest.raises(ValueError, match="Negative age detected"):
-        gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'))
+        gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
 
 def test_raeb_admissibility_naive_datetime():
     gateway = RAEBGateway(freshness_ttl_seconds=3600)
@@ -137,5 +137,5 @@ def test_raeb_admissibility_naive_datetime():
 
     current_time = datetime.now(UTC)
     with pytest.raises(ValueError, match="All timestamps must be timezone-aware"):
-        gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'))
+        gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
 

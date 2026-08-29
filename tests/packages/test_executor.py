@@ -18,7 +18,7 @@ try:
     client = docker.from_env()
     client.ping()
     HAS_DOCKER = True
-except Exception:
+except (ValueError, RuntimeError, KeyError, TypeError, OSError):
     HAS_DOCKER = False
 
 pytestmark = pytest.mark.skipif(not HAS_DOCKER, reason="Docker is not running")

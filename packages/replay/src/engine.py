@@ -162,7 +162,7 @@ class MockMemoryReadV1(ComponentExecutor):
             entries = global_provenance_store.read(partition_id, context=context)
         except QuarantineViolationError:
             raise
-        except Exception:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             entries = []
         return {"memory_entries": entries, "memory_read_version": version.version_tag}
 
@@ -338,7 +338,7 @@ class ReplayEngine:
                 output = {}
                 error_type = "TimeoutError"
                 error_msg = "Execution exceeded hard timeout limit (30.0s)"
-            except Exception as e:
+            except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
                 output = {}
                 error_type = type(e).__name__
                 error_msg = str(e)

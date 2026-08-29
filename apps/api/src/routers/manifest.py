@@ -29,7 +29,7 @@ async def get_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get_db
     try:
         manifest_json = store.get_manifest(orm_manifest.manifest_hash)
         return {"manifest_hash": orm_manifest.manifest_hash, "payload": manifest_json}
-    except Exception:
+    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
         # Fallback to postgres payload if minio fails
         return {"manifest_hash": orm_manifest.manifest_hash, "payload": orm_manifest.payload}
 

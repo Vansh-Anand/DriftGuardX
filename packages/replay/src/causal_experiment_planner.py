@@ -11,10 +11,9 @@ Replaces the 0.8/0.2 hardcoded information-gain heuristic with:
 """
 from __future__ import annotations
 
-import math
-from typing import Any, Protocol
+from typing import Any
 
-from packages.contracts.src.interfaces import ResourceContext
+from packages.contracts.src.interfaces import ResourceContext, ResourceEstimate, ResourceMeasurement
 from packages.contracts.src.recovery_models import ReplayEquivalenceEnvelope
 from packages.replay.src.belief_model import (
     HeuristicLikelihoodEstimator,
@@ -22,31 +21,6 @@ from packages.replay.src.belief_model import (
     RootCauseBeliefModel,
     calculate_graph_impact,
 )
-
-
-class ResourceReservation:
-    """
-    Upfront budget reservation for a single experiment.
-    Must be committed (confirm()) or rolled back (release()) explicitly.
-    """
-
-    def __init__(self, context: ResourceContext, cost_usd: float) -> None:
-        self._context = context
-        self._cost = cost_usd
-        self._committed = False
-        self._released = False
-
-    def confirm(self) -> None:
-        """Commit the reservation — cost is permanently deducted."""
-        if not self._committed and not self._released:
-            self._committed = True
-
-    def release(self) -> None:
-        """Roll back the reservation — refund the reserved cost."""
-        if not self._committed and not self._released:
-            self._context.spent_usd -= self._cost
-            self._context.replay_count -= 1
-            self._released = True
 
 
 class BlastRadiusEstimator:
@@ -191,7 +165,7 @@ class RiskLimitedSequentialCausalExperimentPlanner:
             target_node = candidate.get("target_variable", candidate.get("node_id", cand_id))
 
             # Real EIG from belief model
-            eig = belief_model.expected_information_gain(target_node, self._likelihood_estimator)
+            eig, _ = belief_model.expected_information_gain(target_node, self._likelihood_estimator)
 
             # Blast radius from graph
             blast = self._blast_estimator.estimate(target_node)
@@ -231,8 +205,9 @@ class RiskLimitedSequentialCausalExperimentPlanner:
             return None
 
         # Attempt to reserve budget
-        reservation = ResourceReservation(resource_context, best.cost_usd)
-        if not resource_context.reserve(best.cost_usd):
+        estimate = ResourceEstimate(cost_usd=best.cost_usd, replay_count=1)
+        reservation = resource_context.reserve(estimate)
+        if not reservation:
             return None  # Budget would be exceeded
 
         # Mark as tested and attach metadata
@@ -246,7 +221,7 @@ class RiskLimitedSequentialCausalExperimentPlanner:
             "utility": best.utility,
             "blast_radius": best.blast_radius,
             "reserved_cost_usd": best.cost_usd,
-            "_reservation": reservation,  # caller must confirm() or release()
+            "_reservation": reservation,  # caller must commit() or release()
         }
 
     # ── Legacy compatibility method ──────────────────────────────────────────
@@ -277,7 +252,8 @@ class RiskLimitedSequentialCausalExperimentPlanner:
                 break
             reservation = exp.pop("_reservation", None)
             if reservation:
-                reservation.confirm()
+                measurement = ResourceMeasurement(cost_usd=reservation.estimate.cost_usd, replay_count=1)
+                reservation.commit(measurement)
             selected.append(exp)
 
         return selected

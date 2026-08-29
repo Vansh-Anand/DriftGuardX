@@ -67,7 +67,7 @@ class LocalFilesystemArtifactStore(ArtifactStore):
 
         try:
             return json.loads(data)
-        except Exception:
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             return data.decode(errors="replace")
 
 

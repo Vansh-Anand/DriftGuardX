@@ -125,8 +125,9 @@ def test_provenance_quarantine_end_to_end(caplog):
     # 7. Test authorized forensic access (log)
     import uuid
 
-    from packages.memory.src.capabilities import SignedCapability, CapabilityVerifier
-    verifier = CapabilityVerifier(b"dgx_secret_key_prod")
+    from packages.memory.src.capabilities import CapabilityVerifier, SignedCapability
+    secret = os.environ.get("DGX_CAPABILITY_SECRET", "test-secret-for-caps").encode("utf-8")
+    verifier = CapabilityVerifier(secret)
     cap = SignedCapability(capability_id=uuid.uuid4().hex, tenant_id=tenant_id, action="FORENSIC_READ", resource=partition_id, expires_at=datetime.now(UTC)+timedelta(minutes=5))
     cap = verifier.sign(cap)
     forensic_context = AccessContext(requester_id="forensic_auditor", tenant_id=tenant_id, expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
