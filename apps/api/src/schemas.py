@@ -4,11 +4,12 @@ DriftGuard-X v2 — API Schemas (request/response Pydantic models)
 Uses str for IDs (UUID-shaped strings stored as String(36) in SQLite/Postgres).
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -18,6 +19,7 @@ class APIBase(BaseModel):
 
 
 # ─── Run Schemas ───────────────────────────────────────────────────────────────
+
 
 class RunCreateRequest(APIBase):
     query: str = Field(min_length=1, max_length=4096, description="The RAG query to run")
@@ -58,6 +60,7 @@ class RunListResponse(APIBase):
 
 # ─── Span Schemas ─────────────────────────────────────────────────────────────
 
+
 class SpanResponse(APIBase):
     trace_id: str
     span_id: str
@@ -89,6 +92,7 @@ class TraceResponse(APIBase):
 
 # ─── Replay Schemas ───────────────────────────────────────────────────────────
 
+
 class ReplayCreateRequest(APIBase):
     swap_retriever_to_stable: bool = Field(
         default=True,
@@ -113,6 +117,7 @@ class ReplayResponse(APIBase):
     created_at: datetime
     completed_at: datetime | None
     is_synthetic: bool
+    evidence_kind: str
     manifest_id: uuid.UUID | None = None
     manifest_hash: str | None = None
     is_pinned: bool = False
@@ -120,15 +125,16 @@ class ReplayResponse(APIBase):
 
 # ─── Span Ingestion ───────────────────────────────────────────────────────────
 
+
 class SpanIngestItem(APIBase):
-    trace_id: str
-    span_id: str
-    parent_span_id: str | None = None
-    name: str
-    kind: str = "INTERNAL"
+    trace_id: str = Field(pattern=r"^[0-9a-fA-F]{32}$")
+    span_id: str = Field(pattern=r"^[0-9a-fA-F]{16}$")
+    parent_span_id: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{16}$")
+    name: str = Field(min_length=1, max_length=255)
+    kind: str = Field(default="INTERNAL", min_length=1, max_length=32)
     start_time: datetime
     end_time: datetime | None = None
-    status_code: str = "UNSET"
+    status_code: Literal["UNSET", "OK", "ERROR"] = "UNSET"
     attributes: dict[str, Any] = Field(default_factory=dict)
     run_id: uuid.UUID
     tenant_id: uuid.UUID
@@ -136,7 +142,7 @@ class SpanIngestItem(APIBase):
 
 
 class SpanIngestRequest(APIBase):
-    spans: list[SpanIngestItem] = Field(min_length=1)
+    spans: list[SpanIngestItem] = Field(min_length=1, max_length=1000)
 
 
 class SpanIngestResponse(APIBase):
@@ -146,6 +152,7 @@ class SpanIngestResponse(APIBase):
 
 
 # ─── Health ───────────────────────────────────────────────────────────────────
+
 
 class HealthResponse(APIBase):
     status: str

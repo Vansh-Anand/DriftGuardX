@@ -25,7 +25,7 @@ function LiveClock({ label, offset }: { label: string; offset: number }) {
   }, [offset]);
 
   return (
-    <span className="font-mono text-xs tracking-widest text-[#0a0a0a]">
+    <span className="font-mono text-[9px] tracking-widest text-[#8eb1a5]">
       {label} {time}
     </span>
   );
@@ -42,14 +42,23 @@ export function Navbar() {
     e.preventDefault();
     if (!email) return;
     setIsLoggingIn(true);
-    await login(email);
-    setIsLoggingIn(false);
-    setLoginOpen(false);
-    toast({
-      title: 'Logged in successfully',
-      description: `Welcome back, ${email.split('@')[0]}!`,
-      variant: 'success'
-    });
+    try {
+      await login(email);
+      setLoginOpen(false);
+      toast({
+        title: 'Logged in successfully',
+        description: `Welcome back, ${email.split('@')[0]}!`,
+        variant: 'success'
+      });
+    } catch (error) {
+      toast({
+        title: 'Login unavailable',
+        description: error instanceof Error ? error.message : 'Authentication failed.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const handleLogout = () => {
@@ -59,33 +68,35 @@ export function Navbar() {
 
   return (
     <>
-      {/* 2xA Style flat top bar */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-[#ECEAE2] border-b border-[#0a0a0a]">
-        <div className="flex items-center justify-between h-12 px-6">
+      <header className="fixed top-0 left-0 w-full z-50 border-b border-[#b7ffe5]/10 bg-[#07110f]/92 text-[#eafff7] backdrop-blur-xl">
+        <div className="flex items-center justify-between h-12 px-4 md:px-6">
           {/* Left: Logo */}
-          <Link href="/" className="font-mono text-xs font-bold tracking-[0.15em] uppercase text-[#0a0a0a]">
-            DriftGuard-X
+          <Link href="/" className="group flex items-center gap-2 font-mono text-xs font-bold tracking-[0.15em] uppercase text-[#eafff7]">
+            <span className="relative grid h-5 w-5 place-items-center rounded-full border border-[#7cf7d4]/40">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#7cf7d4] signal-dot" />
+            </span>
+            <span>DriftGuard<span className="text-[#7cf7d4]">·X</span></span>
           </Link>
 
           {/* Center: Live clocks like 2xA */}
-          <div className="hidden md:flex items-center gap-12">
+          <div className="hidden xl:flex items-center gap-10 opacity-55">
             <LiveClock label="NYC(US)" offset={-4} />
             <LiveClock label="LON(UK)" offset={1} />
             <LiveClock label="IST(IN)" offset={5.5} />
           </div>
 
           {/* Right: Nav links */}
-          <nav className="flex items-center gap-8">
-            <Link href="/dashboard" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+          <nav className="flex items-center gap-3 md:gap-6">
+            <Link href="/dashboard" className="font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
               Console
             </Link>
-            <Link href="/reports" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+            <Link href="/reports" className="hidden sm:block font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
               Reports
             </Link>
-            <Link href="/security" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+            <Link href="/security" className="hidden md:block font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
               Security
             </Link>
-            <Link href="/experiments" className="font-mono text-xs tracking-widest uppercase hover:opacity-60 transition-opacity link-underline">
+            <Link href="/experiments" className="hidden lg:block font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
               Experiments
             </Link>
 
@@ -94,7 +105,7 @@ export function Navbar() {
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger className="outline-none">
-                  <Avatar className="w-7 h-7 border border-[#0a0a0a]">
+                  <Avatar className="w-7 h-7 border border-[#7cf7d4]/30">
                     <AvatarImage src={user.avatarUrl} />
                     <AvatarFallback className="bg-[#0a0a0a] text-[#ECEAE2] text-[10px] font-mono">
                       {user.name.substring(0, 2).toUpperCase()}
@@ -116,7 +127,7 @@ export function Navbar() {
             ) : (
               <button
                 onClick={() => setLoginOpen(true)}
-                className="font-mono text-xs tracking-widest uppercase border border-[#0a0a0a] px-4 py-1.5 hover:bg-[#0a0a0a] hover:text-[#ECEAE2] transition-colors"
+                className="rounded-full border border-[#7cf7d4]/35 bg-[#7cf7d4]/5 px-4 py-1.5 font-mono text-[10px] tracking-widest uppercase text-[#7cf7d4] hover:bg-[#7cf7d4] hover:text-[#07110f] transition-colors"
               >
                 Sign In
               </button>

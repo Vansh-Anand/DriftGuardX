@@ -11,10 +11,12 @@ Real recovery validation pipeline:
 6. Evaluate all RecoveryInvariant objects against measured replay metrics
 7. Only set eligible_for_canary=True when all of the above pass
 """
+
 from __future__ import annotations
 
 from typing import Any
 
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.contracts.src.interfaces import RecoveryReplayExecutor
 from packages.contracts.src.recovery_models import (
     CausalRecoveryCut,
@@ -56,6 +58,7 @@ class RecoveryValidator:
         original_spans: list[dict[str, Any]] | None = None,
         access_context: AccessContext | None = None,
         exogenous_variables: dict[str, Any] | None = None,
+        provided_capabilities: list[Any] | None = None,
     ) -> RecoveryValidationResult:
         """
         Full validation pipeline:
@@ -67,7 +70,7 @@ class RecoveryValidator:
         6. Check invariants against measured metrics
         7. Determine canary eligibility
         """
-        if not access_context:
+        if access_context is None and provided_capabilities is None:
             return RecoveryValidationResult(
                 recovery_cut=cut,
                 failure_resolved=False,
@@ -79,9 +82,14 @@ class RecoveryValidator:
                 reason="Unauthorized recovery action — access context missing.",
             )
 
-        provided_capabilities = access_context.capabilities
-        provided_ids = {cap.capability_id for cap in provided_capabilities
-                       if hasattr(cap, "capability_id")}
+        effective_capabilities = (
+            access_context.capabilities
+            if access_context is not None
+            else provided_capabilities or []
+        )
+        provided_ids = {
+            cap.capability_id for cap in effective_capabilities if hasattr(cap, "capability_id")
+        }
 
         original_spans = original_spans or []
         divergences: dict[str, Any] = {}
@@ -99,19 +107,41 @@ class RecoveryValidator:
                         failure_resolved=False,
                         invariants=invariants,
                         invariants_satisfied=False,
-                        divergence_report={"security": f"Missing required capability: {cap.capability_id} for action {action.action_id}"},
+                        divergence_report={
+                            "security": f"Missing required capability: {cap.capability_id} for action {action.action_id}"
+                        },
                         residual_risk=1.0,
                         eligible_for_canary=False,
                         reason="Unauthorized recovery action — required signed capability not provided in context.",
                     )
-                # Verify cryptographic integrity + contextual authorization
-                if not self.verifier.verify(cap, access_context, required_action=action.action_type, required_resource=action.target_component):
+                if access_context is None:
                     return RecoveryValidationResult(
                         recovery_cut=cut,
                         failure_resolved=False,
                         invariants=invariants,
                         invariants_satisfied=False,
-                        divergence_report={"security": f"Invalid, expired, or unauthorized capability: {cap.capability_id}"},
+                        divergence_report={
+                            "security": "Signed capabilities require an access context."
+                        },
+                        residual_risk=1.0,
+                        eligible_for_canary=False,
+                        reason="Unauthorized recovery action — access context missing.",
+                    )
+                # Verify cryptographic integrity + contextual authorization
+                if not self.verifier.verify(
+                    cap,
+                    access_context,
+                    required_action=action.action_type,
+                    required_resource=action.target_component,
+                ):
+                    return RecoveryValidationResult(
+                        recovery_cut=cut,
+                        failure_resolved=False,
+                        invariants=invariants,
+                        invariants_satisfied=False,
+                        divergence_report={
+                            "security": f"Invalid, expired, or unauthorized capability: {cap.capability_id}"
+                        },
                         residual_risk=1.0,
                         eligible_for_canary=False,
                         reason="Unauthorized recovery action — capability verification failed.",
@@ -127,6 +157,7 @@ class RecoveryValidator:
         # Frozen: all non-intervened components from original spans
         frozen_vars: dict[str, str] = {}
         from packages.replay.src.divergence_validator import _stable_hash
+
         for span in original_spans:
             node_id = span.get("span_id", span.get("node_id", ""))
             component = span.get("component_type", "")
@@ -150,7 +181,9 @@ class RecoveryValidator:
                 failure_resolved=False,
                 invariants=invariants,
                 invariants_satisfied=False,
-                divergence_report={"security": "Envelope integrity check failed — possible tampering."},
+                divergence_report={
+                    "security": "Envelope integrity check failed — possible tampering."
+                },
                 residual_risk=1.0,
                 eligible_for_canary=False,
                 reason="Envelope hash mismatch.",
@@ -158,8 +191,11 @@ class RecoveryValidator:
 
         # --- 5. Execute controlled replay ---
         import os
-        if os.environ.get("DGX_MODE") == "production" and getattr(self.executor, "__class__", None).__name__ == "SyntheticRecoveryReplayExecutor":
-             return RecoveryValidationResult(
+
+        if os.environ.get("DGX_MODE") == "production" and isinstance(
+            self.executor, SyntheticRecoveryReplayExecutor
+        ):
+            return RecoveryValidationResult(
                 recovery_cut=cut,
                 failure_resolved=False,
                 invariants=invariants,
@@ -177,15 +213,17 @@ class RecoveryValidator:
         try:
             result = self.executor.replay(None, cut, envelope, context)
             if result.outcome != SandboxOutcome.SUCCESS:
+                outcome = str(result.outcome)
                 return RecoveryValidationResult(
                     recovery_cut=cut,
                     failure_resolved=False,
                     invariants=invariants,
                     invariants_satisfied=False,
-                    divergence_report={"error": f"Sandbox failed with outcome: {result.outcome.value}"},
+                    divergence_report={"error": f"Sandbox failed with outcome: {outcome}"},
                     residual_risk=1.0,
                     eligible_for_canary=False,
-                    reason=f"Controlled replay failed: {result.outcome.value}",
+                    reason=f"Controlled replay failed: {outcome}",
+                    evidence_kind=RecoveryEvidenceKind(result.evidence_kind),
                 )
 
             replay_spans = result.new_spans
@@ -231,7 +269,19 @@ class RecoveryValidator:
                 )
                 reason = "Preservation invariant violated by measured replay metrics."
 
-        eligible = failure_resolved and invariants_satisfied and div_report.valid
+        eligible = (
+            failure_resolved
+            and invariants_satisfied
+            and div_report.valid
+            and result.evidence_kind != RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+        )
+        if (
+            result.evidence_kind == RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+            and reason == "Validation passed."
+        ):
+            reason = (
+                "Synthetic simulation passed; controlled replay is required for canary eligibility."
+            )
 
         return RecoveryValidationResult(
             recovery_cut=cut,
@@ -242,6 +292,7 @@ class RecoveryValidator:
             residual_risk=residual_risk,
             eligible_for_canary=eligible,
             reason=reason,
+            evidence_kind=RecoveryEvidenceKind(result.evidence_kind),
         )
 
     def validate(

@@ -1,7 +1,11 @@
 """
 DriftGuard-X v2 — E2E tests for Adversarial Provenance Quarantine.
 """
-from datetime import UTC
+
+import logging
+import os
+import uuid
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -16,6 +20,7 @@ def test_quarantine_provenance_partition_action_exists():
     assert "partition_id" in action_def.required_params
     assert "document_set" in action_def.optional_params
 
+
 def test_recovery_proposal_validation_for_quarantine():
     proposal = RecoveryProposal(
         action_type=RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION,
@@ -24,14 +29,12 @@ def test_recovery_proposal_validation_for_quarantine():
         run_id=str(uuid4()),
         diagnosis_id=str(uuid4()),
         requester_id="system",
-        params={
-            "partition_id": "test_partition",
-            "document_set": "kb-v2"
-        }
+        params={"partition_id": "test_partition", "document_set": "kb-v2"},
     )
 
     errors = proposal.validate_params()
     assert len(errors) == 0
+
 
 def test_recovery_proposal_missing_partition_id():
     proposal = RecoveryProposal(
@@ -41,9 +44,7 @@ def test_recovery_proposal_missing_partition_id():
         run_id=str(uuid4()),
         diagnosis_id=str(uuid4()),
         requester_id="system",
-        params={
-            "document_set": "kb-v2"
-        }
+        params={"document_set": "kb-v2"},
     )
 
     errors = proposal.validate_params()
@@ -52,10 +53,6 @@ def test_recovery_proposal_missing_partition_id():
 
 
 def test_provenance_quarantine_end_to_end(caplog):
-    import logging
-    import uuid
-    from datetime import datetime, timedelta
-
     from packages.contracts.src.models import ComponentType, ComponentVersion, ComponentVersionState
     from packages.memory.src.auth import AccessContext
     from packages.memory.src.store import QuarantineViolationError, global_provenance_store
@@ -74,7 +71,7 @@ def test_provenance_quarantine_end_to_end(caplog):
     context = AccessContext(
         requester_id="test_user",
         tenant_id=tenant_id,
-        expires_at=datetime.now(UTC) + timedelta(hours=1)
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
 
     # 1. Create data
@@ -87,6 +84,7 @@ def test_provenance_quarantine_end_to_end(caplog):
     # 3. Quarantine
     executor = LocalDevExecutor(CapsuleRegistry())
     from packages.recovery.src.actions import ExecutionMode
+
     proposal = RecoveryProposal(
         action_type=RecoveryActionType.QUARANTINE_PROVENANCE_PARTITION,
         tenant_id=tenant_id,
@@ -95,7 +93,7 @@ def test_provenance_quarantine_end_to_end(caplog):
         diagnosis_id="diag",
         requester_id="admin",
         execution_mode=ExecutionMode.APPROVED,
-        params={"partition_id": partition_id}
+        params={"partition_id": partition_id},
     )
     res = executor.execute(proposal)
     assert res.success is True
@@ -112,7 +110,7 @@ def test_provenance_quarantine_end_to_end(caplog):
         version_tag="v1",
         state=ComponentVersionState.STABLE,
         config_hash="x",
-        description=""
+        description="",
     )
 
     with pytest.raises(QuarantineViolationError):
@@ -120,17 +118,30 @@ def test_provenance_quarantine_end_to_end(caplog):
 
     # 6. Test cached access (deny)
     with pytest.raises(QuarantineViolationError):
-        reader.execute({"partition_id": partition_id, "tenant_id": tenant_id, "cached": True}, version=version)
+        reader.execute(
+            {"partition_id": partition_id, "tenant_id": tenant_id, "cached": True}, version=version
+        )
 
     # 7. Test authorized forensic access (log)
-    import uuid
-
     from packages.memory.src.capabilities import CapabilityVerifier, SignedCapability
+
     secret = os.environ.get("DGX_CAPABILITY_SECRET", "test-secret-for-caps").encode("utf-8")
     verifier = CapabilityVerifier(secret)
-    cap = SignedCapability(capability_id=uuid.uuid4().hex, tenant_id=tenant_id, action="FORENSIC_READ", resource=partition_id, expires_at=datetime.now(UTC)+timedelta(minutes=5))
+    cap = SignedCapability(
+        capability_id=uuid.uuid4().hex,
+        requester_id="forensic_auditor",
+        tenant_id=tenant_id,
+        action="FORENSIC_READ",
+        resource=partition_id,
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+    )
     cap = verifier.sign(cap)
-    forensic_context = AccessContext(requester_id="forensic_auditor", tenant_id=tenant_id, expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
+    forensic_context = AccessContext(
+        requester_id="forensic_auditor",
+        tenant_id=tenant_id,
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+        capabilities=[cap],
+    )
     entries_forensic = global_provenance_store.read(partition_id, context=forensic_context)
     assert len(entries_forensic) == 1
 

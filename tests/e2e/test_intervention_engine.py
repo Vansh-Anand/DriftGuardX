@@ -22,11 +22,9 @@ def test_candidate_generation():
         root_cause_component=ComponentType.RETRIEVER,
         claims=[
             DiagnosisClaim(
-                claim_id="1",
-                description="Retriever failure",
-                status=DiagnosisClaimStatus.INFERRED
+                claim_id="1", description="Retriever failure", status=DiagnosisClaimStatus.INFERRED
             )
-        ]
+        ],
     )
 
     candidates = CandidateGenerator.generate(diag)
@@ -34,6 +32,7 @@ def test_candidate_generation():
     assert len(candidates) > 0
     assert candidates[0].target_component_type == ComponentType.RETRIEVER
     assert candidates[0].requires_human_approval is not None
+
 
 @pytest.mark.asyncio
 async def test_replay_planner_concurrency_and_timeout():
@@ -44,7 +43,7 @@ async def test_replay_planner_concurrency_and_timeout():
         run_id=UUID(int=99),
         tenant_id=UUID(int=1),
         root_cause_component=ComponentType.GENERATOR,
-        claims=[]
+        claims=[],
     )
     candidates = CandidateGenerator.generate(diag)
     print(f"Candidates generated: {len(candidates)}")
@@ -56,6 +55,10 @@ async def test_replay_planner_concurrency_and_timeout():
     assert len(episodes) > 0
     for ep in episodes:
         assert isinstance(ep, ReplayEpisode)
+        assert ep.status == ReplayStatus.INVALID
+        assert ep.invalid_reason == "No replay executor configured"
+        assert ep.reliability_improvement is None
+
 
 def test_pareto_scorer():
     ep1 = ReplayEpisode(
@@ -67,7 +70,7 @@ def test_pareto_scorer():
         replay_version_id=UUID(int=1),
         original_version_tag="v1",
         replay_version_tag="v2",
-        replay_reliability_score=0.90 # Best score
+        replay_reliability_score=0.90,  # Best score
     )
 
     ep2 = ReplayEpisode(
@@ -79,7 +82,7 @@ def test_pareto_scorer():
         replay_version_id=UUID(int=2),
         original_version_tag="v1",
         replay_version_tag="v3",
-        replay_reliability_score=0.80 # Dominated by ep1
+        replay_reliability_score=0.80,  # Dominated by ep1
     )
 
     ep_invalid = ReplayEpisode(
@@ -91,7 +94,7 @@ def test_pareto_scorer():
         original_version_id=UUID(int=0),
         replay_version_id=UUID(int=3),
         original_version_tag="v1",
-        replay_version_tag="v4"
+        replay_version_tag="v4",
     )
 
     scorer = ParetoScorer()

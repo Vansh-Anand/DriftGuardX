@@ -16,12 +16,21 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
       containers:
       - name: worker
-        image: ghcr.io/driftguardx/worker@sha256:f1a2d9b2f6b8b0e7a2b9e8b7d6a5f4c3b2a1e0f9d8c7b6a5f4e3d2c1b0a9f8e7
+        # Non-deployable promotion placeholder. CI must replace the zero digest.
+        image: ghcr.io/vansh-anand/driftguardx-worker@sha256:0000000000000000000000000000000000000000000000000000000000000000
         imagePullPolicy: IfNotPresent
-        command: ["arq", "apps.worker.main.WorkerSettings"]
+        command: ["arq", "apps.worker.src.worker.WorkerSettings"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
         envFrom:
         - secretRef:
             name: driftguard-secrets
@@ -32,4 +41,26 @@ spec:
           limits:
             cpu: "1000m"
             memory: "1Gi"
-        # No HTTP endpoints typically on standard ARQ worker unless exposing metrics
+        startupProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import os; from redis import Redis; assert Redis.from_url(os.environ['REDIS_URL'], socket_connect_timeout=2).ping()"
+          failureThreshold: 30
+          periodSeconds: 2
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import os; from redis import Redis; assert Redis.from_url(os.environ['REDIS_URL'], socket_connect_timeout=2).ping()"
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command: ["python", "-c", "import os; os.kill(1, 0)"]
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3

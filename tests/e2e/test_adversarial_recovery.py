@@ -1,4 +1,4 @@
-
+from datetime import UTC, datetime, timedelta
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.recovery_models import FailureTarget
 from packages.contracts.src.transport_models import TransportStatus
@@ -20,6 +20,15 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
+from packages.memory.src.auth import AccessContext
+
+
+def _access_context() -> AccessContext:
+    return AccessContext(
+        requester_id="adversarial-test-operator",
+        tenant_id="test-tenant",
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+    )
 
 
 def build_orchestrator(**overrides):
@@ -49,7 +58,7 @@ def test_adversarial_replay_attack():
     orch = build_orchestrator(divergence_validator=MockDivergenceValidator(valid=False))
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
     assert not cert
     assert state.status == IncidentStatus.EVIDENCE_INSUFFICIENT
 
@@ -59,7 +68,7 @@ def test_adversarial_planner_attack_nan():
     orch = build_orchestrator(experiment_planner=MockExperimentPlanner(experiments=[]), stopping_policy=MockStoppingPolicy(sufficient=False))
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
     assert not cert
     assert state.status == IncidentStatus.EVIDENCE_INSUFFICIENT
 
@@ -69,7 +78,7 @@ def test_adversarial_stopping_attack():
     orch = build_orchestrator(stopping_policy=MockStoppingPolicy(sufficient=False))
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
     assert not cert
     assert state.status == IncidentStatus.EVIDENCE_INSUFFICIENT
 
@@ -91,7 +100,8 @@ def test_adversarial_transport_attack_forged():
         unknown_conditions=[],
         required_target_experiments=[],
         confidence_metadata={},
-        explanation="Forged signature detected."
+        explanation="Forged signature detected.",
+        footprint_hash="forged-footprint-hash",
     )
     orch = build_orchestrator(transport_gate=MockTransportabilityGate(decision))
 

@@ -11,8 +11,12 @@ Executes a version-pinned replay of a prior run:
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
+import json
+import multiprocessing
+import time
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
@@ -28,6 +32,7 @@ from packages.contracts.src.models import (
     SpanRecord,
     TraceArtifact,
 )
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.evaluation.src.reliability import (
     aggregate_reliability_score,
     compute_reliability_delta,
@@ -36,6 +41,7 @@ from packages.evaluation.src.reliability import (
 from packages.trace_sdk.src.tracer import TraceContext, hash_payload
 
 # ─── Version Registry ─────────────────────────────────────────────────────────
+
 
 class VersionRegistry:
     """
@@ -66,6 +72,7 @@ class VersionRegistry:
 
 # ─── Component Executor Interface ─────────────────────────────────────────────
 
+
 class ComponentExecutor:
     """
     Interface for executing a pipeline component.
@@ -82,17 +89,177 @@ class ComponentExecutor:
         raise NotImplementedError
 
 
+def _component_process_entry(
+    connection: Any,
+    executor: ComponentExecutor,
+    inputs: dict[str, Any],
+    version: ComponentVersion,
+    seed: int,
+    max_output_bytes: int,
+    max_memory_mb: int,
+) -> None:
+    """Child-process entrypoint; never executes untrusted replay code in the API process."""
+    try:
+        try:
+            import resource
+
+            memory_bytes = max_memory_mb * 1024 * 1024
+            resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+            resource.setrlimit(resource.RLIMIT_CPU, (30, 30))
+        except (ImportError, AttributeError, OSError, ValueError):
+            # Windows has no resource module. The parent still enforces a killable
+            # wall-clock boundary and an inter-process output-size boundary.
+            pass
+
+        output = executor.execute(inputs, version=version, seed=seed)
+
+        # Stream JSON in bounded frames. This avoids materializing a second,
+        # unbounded serialized copy and lets the parent enforce the byte budget
+        # before deserializing any result.
+        encoder = json.JSONEncoder(ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+        emitted = 0
+        for text_chunk in encoder.iterencode(output):
+            encoded = text_chunk.encode("utf-8")
+            for offset in range(0, len(encoded), 64 * 1024):
+                chunk = encoded[offset : offset + 64 * 1024]
+                emitted += len(chunk)
+                if emitted > max_output_bytes:
+                    raise MemoryError("Component output exceeded resource bounds")
+                connection.send_bytes(b"D" + chunk)
+        connection.send_bytes(b"E")
+    except BaseException as exc:  # child boundary must report all failures to parent
+        error_payload = json.dumps(
+            {"error_type": type(exc).__name__, "message": str(exc)},
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            connection.send_bytes(b"X" + error_payload[:4096])
+        except (BrokenPipeError, EOFError, OSError):
+            pass
+    finally:
+        connection.close()
+
+
+def _execute_component_isolated(
+    executor: ComponentExecutor,
+    inputs: dict[str, Any],
+    *,
+    version: ComponentVersion,
+    seed: int,
+    timeout_seconds: float = 30.0,
+    max_output_bytes: int = 5_000_000,
+    max_memory_mb: int = 512,
+) -> dict[str, Any]:
+    """Execute in a killable process and return only bounded, serialized output."""
+    context = multiprocessing.get_context("spawn")
+    parent_connection, child_connection = context.Pipe(duplex=False)
+    process = context.Process(
+        target=_component_process_entry,
+        args=(
+            child_connection,
+            executor,
+            inputs,
+            version,
+            seed,
+            max_output_bytes,
+            max_memory_mb,
+        ),
+    )
+    process.start()
+    child_connection.close()
+    deadline = time.monotonic() + timeout_seconds
+    payload = bytearray()
+    result: dict[str, Any] | None = None
+    try:
+        try:
+            import psutil
+        except ImportError:
+            monitored_process = None
+        else:
+            try:
+                monitored_process = psutil.Process(process.pid)
+            except psutil.Error:
+                monitored_process = None
+
+        while time.monotonic() < deadline:
+            if monitored_process is not None:
+                try:
+                    if monitored_process.memory_info().rss > max_memory_mb * 1024 * 1024:
+                        raise MemoryError(
+                            f"Execution exceeded hard memory limit ({max_memory_mb} MiB)"
+                        )
+                except psutil.NoSuchProcess:
+                    monitored_process = None
+
+            if parent_connection.poll(0.02):
+                frame = parent_connection.recv_bytes(maxlength=64 * 1024 + 4097)
+                frame_type, frame_payload = frame[:1], frame[1:]
+                if frame_type == b"D":
+                    if len(payload) + len(frame_payload) > max_output_bytes:
+                        raise MemoryError("Component output exceeded resource bounds")
+                    payload.extend(frame_payload)
+                elif frame_type == b"E":
+                    decoded = json.loads(payload)
+                    if not isinstance(decoded, dict):
+                        raise TypeError("Component executor output must be a dictionary")
+                    result = decoded
+                    break
+                elif frame_type == b"X":
+                    error = json.loads(frame_payload)
+                    error_type = error.get("error_type", "RuntimeError")
+                    message = error.get("message", "Component execution failed")
+                    if error_type == "MemoryError":
+                        raise MemoryError(message)
+                    raise RuntimeError(f"{error_type}: {message}")
+                else:
+                    raise RuntimeError("Replay child emitted an invalid output frame")
+            elif not process.is_alive():
+                raise RuntimeError(
+                    f"Replay child exited without a result (exit code {process.exitcode})"
+                )
+        else:
+            raise TimeoutError(f"Execution exceeded hard timeout limit ({timeout_seconds:.1f}s)")
+    finally:
+        parent_connection.close()
+        if process.is_alive():
+            process.terminate()
+            process.join(timeout=2.0)
+            if process.is_alive():
+                process.kill()
+        process.join(timeout=2.0)
+
+    if result is None:
+        raise RuntimeError("Replay child produced no result")
+    return result
+
+
 # ─── Mock Component Executors (Prompt 01) ─────────────────────────────────────
+
+MOCK_RAG_CORPUS_VERSION_ID = "mock-rag-corpus-v1"
+MOCK_RAG_EMBEDDING_MODEL_VERSION = "no-embedding-deterministic-v1"
+MOCK_RETRIEVER_V1_DOCUMENT_IDS = ("doc-001", "doc-002")
+
 
 class MockRetrieverV1(ComponentExecutor):
     """Stable retriever — returns fresh, accurate documents."""
 
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         query = inputs.get("query", "")
         return {
             "documents": [
-                {"id": "doc-001", "text": f"[FRESH] Accurate document for: {query}", "score": 0.92},
-                {"id": "doc-002", "text": f"[FRESH] Supporting document for: {query}", "score": 0.87},
+                {
+                    "id": MOCK_RETRIEVER_V1_DOCUMENT_IDS[0],
+                    "text": f"[FRESH] Accurate document for: {query}",
+                    "score": 0.92,
+                },
+                {
+                    "id": MOCK_RETRIEVER_V1_DOCUMENT_IDS[1],
+                    "text": f"[FRESH] Supporting document for: {query}",
+                    "score": 0.87,
+                },
             ],
             "retriever_version": version.version_tag,
             "is_stale": False,
@@ -106,12 +273,22 @@ class MockRetrieverV2Experimental(ComponentExecutor):
     This is the component that triggers the golden demo reliability failure.
     """
 
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         query = inputs.get("query", "")
         return {
             "documents": [
-                {"id": "doc-old-001", "text": f"[STALE-2021] Outdated document for: {query}", "score": 0.61},
-                {"id": "doc-old-002", "text": f"[STALE-2020] Deprecated content for: {query}", "score": 0.55},
+                {
+                    "id": "doc-old-001",
+                    "text": f"[STALE-2021] Outdated document for: {query}",
+                    "score": 0.61,
+                },
+                {
+                    "id": "doc-old-002",
+                    "text": f"[STALE-2020] Deprecated content for: {query}",
+                    "score": 0.55,
+                },
             ],
             "retriever_version": version.version_tag,
             "is_stale": True,
@@ -120,7 +297,9 @@ class MockRetrieverV2Experimental(ComponentExecutor):
 
 
 class MockRerankerV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         docs = inputs.get("documents", [])
         # Deterministic sort by score desc
         sorted_docs = sorted(docs, key=lambda d: d.get("score", 0), reverse=True)
@@ -128,7 +307,9 @@ class MockRerankerV1(ComponentExecutor):
 
 
 class MockGeneratorV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         docs = inputs.get("ranked_documents", [])
         query = inputs.get("query", "")
         context = " | ".join(d.get("text", "") for d in docs[:2])
@@ -144,7 +325,9 @@ class MockGeneratorV1(ComponentExecutor):
 
 
 class MockMemoryReadV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         partition_id = inputs.get("partition_id", "default_partition")
         requester_role = inputs.get("requester_role", "agent")
         tenant_id = inputs.get("tenant_id", "default_tenant")
@@ -156,7 +339,7 @@ class MockMemoryReadV1(ComponentExecutor):
         context = AccessContext(
             tenant_id=str(tenant_id),
             requester_id=str(requester_role),
-            expires_at=datetime.now(UTC) + timedelta(minutes=5)
+            expires_at=datetime.now(UTC) + timedelta(minutes=5),
         )
         try:
             entries = global_provenance_store.read(partition_id, context=context)
@@ -168,23 +351,39 @@ class MockMemoryReadV1(ComponentExecutor):
 
 
 class MockMemoryWriteV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         # Never mutates persistent state in prototype
-        return {"written": False, "reason": "memory_write disabled in prototype", "memory_write_version": version.version_tag}
+        return {
+            "written": False,
+            "reason": "memory_write disabled in prototype",
+            "memory_write_version": version.version_tag,
+        }
 
 
 class MockToolCallV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         return {"tool_result": None, "tool_called": False, "tool_call_version": version.version_tag}
 
 
 class MockPolicyCheckV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
-        return {"policy_result": "allow", "policy_rule": "ALLOW_SYNTHETIC_READ", "policy_check_version": version.version_tag}
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
+        return {
+            "policy_result": "allow",
+            "policy_rule": "ALLOW_SYNTHETIC_READ",
+            "policy_check_version": version.version_tag,
+        }
 
 
 class MockFinalResponseV1(ComponentExecutor):
-    def execute(self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42) -> dict[str, Any]:
+    def execute(
+        self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
+    ) -> dict[str, Any]:
         return {
             "final_response": inputs.get("response", ""),
             "faithfulness_score": inputs.get("faithfulness_score", 0.5),
@@ -216,6 +415,7 @@ def get_executor(component_type: ComponentType, version_tag: str) -> ComponentEx
 
 
 # ─── Replay Engine ────────────────────────────────────────────────────────────
+
 
 class ReplayEngine:
     """
@@ -321,24 +521,22 @@ class ReplayEngine:
             # Time and execute with strict timeout enforcement
             start = datetime.now(UTC)
             try:
-                import concurrent.futures
-
-                # Execute with a strict 30-second bounded timeout to prevent Replay DoS
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tp:
-                    future = tp.submit(executor.execute, current_inputs, version=cv, seed=seed)
-                    output = future.result(timeout=30.0)
-
-                # Enforce payload size limit (e.g., 5MB roughly 5_000_000 chars of string repr)
-                if len(str(output)) > 5_000_000:
-                    raise MemoryError("Component output exceeded resource bounds")
+                output = _execute_component_isolated(
+                    executor,
+                    current_inputs,
+                    version=cv,
+                    seed=seed,
+                    timeout_seconds=30.0,
+                    max_output_bytes=5_000_000,
+                )
 
                 error_type = None
                 error_msg = None
-            except concurrent.futures.TimeoutError:
+            except TimeoutError:
                 output = {}
                 error_type = "TimeoutError"
                 error_msg = "Execution exceeded hard timeout limit (30.0s)"
-            except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
+            except (MemoryError, ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
                 output = {}
                 error_type = type(e).__name__
                 error_msg = str(e)
@@ -384,8 +582,8 @@ class ReplayEngine:
         # Finish root span
         root_builder._end_time = datetime.now(UTC)
         root_builder._latency_ms = (
-            (root_builder._end_time - root_builder._start_time).total_seconds() * 1000
-        )
+            root_builder._end_time - root_builder._start_time
+        ).total_seconds() * 1000
         root_builder._status_code = "OK"
         root_span = root_builder.build()
         all_spans.insert(0, root_span)
@@ -430,6 +628,11 @@ class ReplayEngine:
             seed=seed,
             completed_at=datetime.now(UTC),
             is_synthetic=original_run.is_synthetic,
+            evidence_kind=(
+                RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+                if original_run.is_synthetic
+                else RecoveryEvidenceKind.CONTROLLED_REPLAY
+            ),
             status=ReplayStatus.COMPLETED,
             manifest_id=manifest.id,
             is_pinned=True,

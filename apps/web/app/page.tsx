@@ -46,7 +46,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="w-full pt-12">
+    <div className="w-full">
 
       {/* ── HERO ── */}
       <section className="min-h-[90vh] flex flex-col border-b border-[#0a0a0a]">
@@ -55,7 +55,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-[1fr_auto_auto] border-b border-[#0a0a0a] px-8 py-3 items-center">
           <span className="font-mono text-xs text-[#888] uppercase tracking-[0.15em]">On Reliability as a Way of Thinking</span>
           <span className="font-mono text-xs text-[#888] uppercase tracking-[0.15em] hidden md:block">Agentic RAG</span>
-          <span className="font-mono text-xs text-[#888] uppercase tracking-[0.15em] pl-8 hidden md:block">Patent-Ready</span>
+          <span className="font-mono text-xs text-[#888] uppercase tracking-[0.15em] pl-8 hidden md:block">Invention Candidate</span>
         </div>
 
         {/* Main hero area */}
@@ -123,8 +123,8 @@ quarantine_check tenant=T_111 partition=T_222_data role=agent DENIED
             </div>
             {/* Yellow accent box */}
             <div className="absolute bottom-10 right-10 bg-[#E8FF00] px-6 py-4">
-              <span className="font-mono text-xs text-[#0a0a0a] font-bold uppercase tracking-widest block">247 Tests Passing</span>
-              <span className="font-mono text-xs text-[#0a0a0a]/60 uppercase tracking-wider">Full Suite ✓</span>
+              <span className="font-mono text-xs text-[#0a0a0a] font-bold uppercase tracking-widest block">CI Verification</span>
+              <span className="font-mono text-xs text-[#0a0a0a]/60 uppercase tracking-wider">Run the verified suite</span>
             </div>
           </div>
         </div>
@@ -181,9 +181,9 @@ quarantine_check tenant=T_111 partition=T_222_data role=agent DENIED
 
         <div className="grid grid-cols-1 md:grid-cols-3">
           <div className="border-r border-[#0a0a0a] p-12 flex flex-col gap-2">
-            <span className="font-sans font-bold text-7xl md:text-9xl leading-none tracking-tighter">247</span>
-            <span className="font-mono text-xs text-[#888] tracking-widest uppercase mt-4">Tests Passing</span>
-            <span className="font-mono text-xs text-[#888]">Unit · Integration · E2E · Security</span>
+            <span className="font-sans font-bold text-7xl md:text-9xl leading-none tracking-tighter">CI</span>
+            <span className="font-mono text-xs text-[#888] tracking-widest uppercase mt-4">Verification Required</span>
+            <span className="font-mono text-xs text-[#888]">Unit · Integration · Contract · Security</span>
           </div>
           <div className="border-r border-[#0a0a0a] p-12 flex flex-col gap-2">
             <span className="font-sans font-bold text-7xl md:text-9xl leading-none tracking-tighter">20</span>

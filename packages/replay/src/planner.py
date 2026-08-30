@@ -2,9 +2,13 @@
 DriftGuard-X v2 — Replay Planner
 PRIVATE — All Rights Reserved.
 """
+
 import asyncio
+from collections.abc import Awaitable, Callable
 
 from packages.contracts.src.models import ComponentType, Intervention, ReplayEpisode, ReplayStatus
+
+ReplayWorker = Callable[[Intervention], Awaitable[ReplayEpisode]]
 
 
 class ReplayPlanner:
@@ -12,11 +16,17 @@ class ReplayPlanner:
     Plans and schedules counterfactual replays for candidate interventions.
     """
 
-    def __init__(self, max_concurrency: int = 5, timeout_sec: int = 30):
+    def __init__(
+        self,
+        max_concurrency: int = 5,
+        timeout_sec: int = 30,
+        worker: ReplayWorker | None = None,
+    ) -> None:
         self.semaphore = asyncio.Semaphore(max_concurrency)
         self.timeout_sec = timeout_sec
+        self._worker = worker
         self.budget_exhausted = False
-        self._seen_signatures = set()
+        self._seen_signatures: set[str] = set()
 
     async def execute_exhaustive(self, candidates: list[Intervention]) -> list[ReplayEpisode]:
         """
@@ -55,38 +65,13 @@ class ReplayPlanner:
                 return self._create_invalid(candidate, "Budget Exhausted")
 
             try:
-                # asyncio.wait_for wraps the worker execution
-                return await asyncio.wait_for(self._worker_stub(candidate), timeout=self.timeout_sec)
+                if self._worker is None:
+                    return self._create_invalid(candidate, "No replay executor configured")
+                return await asyncio.wait_for(self._worker(candidate), timeout=self.timeout_sec)
             except TimeoutError:
                 return self._create_invalid(candidate, "Timeout")
             except Exception as e:
                 return self._create_invalid(candidate, f"Error: {e!s}")
-
-    async def _worker_stub(self, candidate: Intervention) -> ReplayEpisode:
-        """
-        Stub for the actual sandbox worker.
-        """
-        await asyncio.sleep(0.1)  # simulate work
-
-        # Simulate invalidity due to missing artifact
-        if candidate.to_version_tag == "missing":
-            return self._create_invalid(candidate, "Missing Artifact")
-
-        episode = ReplayEpisode(
-            tenant_id=candidate.tenant_id,
-            run_id=candidate.run_id,
-            status=ReplayStatus.COMPLETED,
-            swapped_component_type=ComponentType(candidate.target_component_type),
-            original_version_id=candidate.from_version_id,
-            replay_version_id=candidate.to_version_id,
-            original_version_tag=candidate.from_version_tag,
-            replay_version_tag=candidate.to_version_tag,
-            # Mocking a slight reliability improvement
-            original_reliability_score=0.80,
-            replay_reliability_score=0.90,
-            reliability_improvement=0.10
-        )
-        return episode
 
     def _create_invalid(self, candidate: Intervention, reason: str) -> ReplayEpisode:
         return ReplayEpisode(
@@ -98,5 +83,5 @@ class ReplayPlanner:
             original_version_id=candidate.from_version_id,
             replay_version_id=candidate.to_version_id,
             original_version_tag=candidate.from_version_tag,
-            replay_version_tag=candidate.to_version_tag
+            replay_version_tag=candidate.to_version_tag,
         )

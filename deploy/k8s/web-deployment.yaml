@@ -17,10 +17,18 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: web
-        image: ghcr.io/driftguardx/web@sha256:d8a2d9b2f6b8b0e7a2b9e8b7d6a5f4c3b2a1e0f9d8c7b6a5f4e3d2c1b0a9f8e7
+        # Non-deployable promotion placeholder. CI must replace the zero digest.
+        image: ghcr.io/vansh-anand/driftguardx-web@sha256:0000000000000000000000000000000000000000000000000000000000000000
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
         ports:
         - containerPort: 3000
         resources:

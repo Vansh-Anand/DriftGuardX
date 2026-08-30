@@ -83,7 +83,7 @@ export default function ReplayLabPage() {
               {[
                 ['01', 'Seed-Pinned', 'Replay uses a fixed random seed to ensure deterministic component selection and ordering across trial runs.'],
                 ['02', 'Budget-Bounded', 'The BCRB Scheduler enforces a hard $10.00 compute budget. Trials are halted when the budget is exhausted.'],
-                ['03', 'Timeout-Enforced', 'Every replay execution is wrapped in a 30.0s hard timeout via ThreadPoolExecutor to prevent resource exhaustion.'],
+                ['03', 'Process-Isolated', 'Every replay crosses a killable process or container boundary with incremental time, memory, and output enforcement.'],
                 ['04', 'Policy-Gated', 'All replay actions are subject to pre-execution policy checks before any state mutations occur.'],
               ].map(([num, title, desc]) => (
                 <div key={num} className="border-t border-[#0a0a0a]/10 pt-4 grid grid-cols-[30px_1fr] gap-3">

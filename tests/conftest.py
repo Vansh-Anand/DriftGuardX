@@ -12,8 +12,19 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-# Force SQLite for tests
+# Preserve a CI-provided live database for the explicit service smoke test,
+# while keeping application fixtures hermetic and fast.
+os.environ.setdefault("DGX_SERVICE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
+# Force SQLite for application-level tests.
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ.setdefault(
+    "DGX_CAPABILITY_SECRET",
+    "driftguardx-test-capability-secret-32-bytes-minimum",
+)
+os.environ.setdefault(
+    "DGX_TRANSPORT_KEY",
+    "driftguardx-test-transport-secret-32-bytes-minimum",
+)
 
 from apps.api.src.database import Base, get_db
 from apps.api.src.main import app

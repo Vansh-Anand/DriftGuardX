@@ -47,8 +47,6 @@ class DeterminismEstimator:
 
     def record_observation(self, component_id: str, output_hash: str) -> None:
         """Record an output hash for a component run."""
-        last_hash_key = f"_last_{component_id}"
-        last = self._stable_counts.get(last_hash_key)  # type: ignore[arg-type]
         self._run_counts[component_id] = self._run_counts.get(component_id, 0) + 1
         # We store last hash as a special key to avoid a separate dict
         if not hasattr(self, '_last_hashes'):

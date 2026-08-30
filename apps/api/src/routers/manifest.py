@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import get_db
+from apps.api.src.dependencies import get_current_tenant
 from apps.api.src.models_ingestion import CorpusVersionORM
 from apps.api.src.models_manifest import ManifestORM
 from packages.contracts.src.models import ReplayStateManifest
@@ -13,14 +14,22 @@ from packages.rag_pipeline.src.adapters.manifest_store import ManifestStore
 
 router = APIRouter(prefix="/manifests", tags=["Manifests"])
 
+
 class VerificationResponse(BaseModel):
     is_valid: bool
     missing_dependencies: list[str]
     message: str
 
+
 @router.get("/{manifest_id}")
-async def get_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ManifestORM).filter_by(id=manifest_id))
+async def get_manifest(
+    manifest_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
+):
+    result = await db.execute(
+        select(ManifestORM).where(ManifestORM.id == manifest_id, ManifestORM.tenant_id == tenant.id)
+    )
     orm_manifest = result.scalar_one_or_none()
     if not orm_manifest:
         raise HTTPException(status_code=404, detail="Manifest not found")
@@ -35,8 +44,14 @@ async def get_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get_db
 
 
 @router.get("/{manifest_id}/verify", response_model=VerificationResponse)
-async def verify_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ManifestORM).filter_by(id=manifest_id))
+async def verify_manifest(
+    manifest_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    tenant=Depends(get_current_tenant),
+):
+    result = await db.execute(
+        select(ManifestORM).where(ManifestORM.id == manifest_id, ManifestORM.tenant_id == tenant.id)
+    )
     orm_manifest = result.scalar_one_or_none()
     if not orm_manifest:
         raise HTTPException(status_code=404, detail="Manifest not found")
@@ -61,13 +76,17 @@ async def verify_manifest(manifest_id: uuid.UUID, db: AsyncSession = Depends(get
     # Hash check
     computed_hash = manifest.compute_hash()
     if computed_hash != manifest.manifest_hash:
-        missing_deps.append(f"hash_mismatch: computed {computed_hash} != stored {manifest.manifest_hash}")
+        missing_deps.append(
+            f"hash_mismatch: computed {computed_hash} != stored {manifest.manifest_hash}"
+        )
 
     is_valid = len(missing_deps) == 0
-    message = "Manifest dependencies verified." if is_valid else "Manifest dependencies failed verification."
+    message = (
+        "Manifest dependencies verified."
+        if is_valid
+        else "Manifest dependencies failed verification."
+    )
 
     return VerificationResponse(
-        is_valid=is_valid,
-        missing_dependencies=missing_deps,
-        message=message
+        is_valid=is_valid, missing_dependencies=missing_deps, message=message
     )

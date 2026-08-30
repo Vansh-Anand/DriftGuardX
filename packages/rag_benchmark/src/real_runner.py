@@ -32,7 +32,7 @@ SCIFACT_EPISODES = [
         relevant_chunk_ids=["chunk_1"],
         difficulty="medium",
         corpus_version_id="scifact-v1",
-        ground_truth_root_cause=None
+        ground_truth_root_cause=None,
     ),
     EvaluationEpisode(
         query="What is the purpose of the ReplayStateManifest?",
@@ -40,16 +40,17 @@ SCIFACT_EPISODES = [
         relevant_chunk_ids=["chunk_2"],
         difficulty="hard",
         corpus_version_id="scifact-v1",
-        ground_truth_root_cause=None
-    )
+        ground_truth_root_cause=None,
+    ),
 ]
 
 # Create fake corpus chunks for the Retriever to "find"
 MOCK_CORPUS = {
     "chunk_1": "DriftGuard-X cryptographically binds traces to recovery capsules using the Recovery Eligibility Certificate to prevent state-stale execution.",
     "chunk_2": "The ReplayStateManifest is generated during the real run to freeze all dependency versions, prompt hashes, and random seeds for reproducible sandboxing.",
-    "chunk_3": "A fallback model is triggered when the primary API provider returns a 500 error."
+    "chunk_3": "A fallback model is triggered when the primary API provider returns a 500 error.",
 }
+
 
 class MockRetrievedChunk:
     def __init__(self, chunk_id, document_id, score):
@@ -58,6 +59,7 @@ class MockRetrievedChunk:
         self.score = score
         self.text_content = ""
         self.metadata = {}
+
 
 class MockHybridRetriever(RetrieverAdapter):
     def __init__(self):
@@ -74,20 +76,26 @@ class MockHybridRetriever(RetrieverAdapter):
             res.append(MockRetrievedChunk(chunk_id="chunk_3", document_id="doc_3", score=0.4))
         return res
 
+
 class MockLLMAdapter(LLMAdapter):
     def __init__(self, model_name="mock"):
         self.model_name = model_name
 
     async def generate(self, prompt: str, context: list) -> dict:
-        ans = "I DONT KNOW" if "ALWAYS RESPOND" in prompt else "Yes, DriftGuard-X uses a Recovery Eligibility Certificate"
+        ans = (
+            "I DONT KNOW"
+            if "ALWAYS RESPOND" in prompt
+            else "Yes, DriftGuard-X uses a Recovery Eligibility Certificate"
+        )
         return {
             "text": ans,
             "tokens_input": 10,
             "tokens_output": 10,
             "latency_ms": 100,
             "cost_usd": 0.0,
-            "model_metadata": {"model": self.model_name, "provider": "mock"}
+            "model_metadata": {"model": self.model_name, "provider": "mock"},
         }
+
 
 class LocalArtifactStore:
     def __init__(self, dir_path: str):
@@ -96,6 +104,7 @@ class LocalArtifactStore:
     async def save_trace(self, run_id: str, trace_data: dict[str, Any]) -> None:
         # Mock artifact store
         pass
+
 
 async def run_real_benchmark():
     print("Initializing Benchmark Engine...")
@@ -110,7 +119,7 @@ async def run_real_benchmark():
         llm=llm,
         prompt_template="Question: {query}",
         artifact_store=artifact_store,
-        top_k=2
+        top_k=2,
     )
 
     # 2. Initialize Evaluators & Trackers
@@ -127,7 +136,7 @@ async def run_real_benchmark():
         "ucb": UCBScheduler(),
         "bcrb_current": BCRBSchedulerWrapper(total_budget=0.2),
         "detector_only": DetectorOnlyScheduler(),
-        "graph_only": GraphOnlyScheduler()
+        "graph_only": GraphOnlyScheduler(),
     }
 
     faults = [
@@ -142,7 +151,7 @@ async def run_real_benchmark():
         (FaultType.TOOL_SCHEMA_MISMATCH, "TOOL_MISMATCH_FAILURE"),
         (FaultType.POLICY_CHANGE, "POLICY_VIOLATION_FAILURE"),
         (FaultType.MEMORY_CONTAMINATION, "MEMORY_CONTAMINATION_FAILURE"),
-        (FaultType.DB_FAILURE, "DB_FAILURE")
+        (FaultType.DB_FAILURE, "DB_FAILURE"),
     ]
 
     candidates = [gt for _, gt in faults]
@@ -150,8 +159,13 @@ async def run_real_benchmark():
 
     num_trials = 30
 
-    print(f"Running benchmark grid: {len(faults)} faults x {len(schedulers)} schedulers x {num_trials} trials...")
-    print("WARNING: All data below is REAL-SYSTEM DATA (mocked integrations in local harness).")
+    print(
+        f"Running benchmark grid: {len(faults)} faults x {len(schedulers)} schedulers x {num_trials} trials..."
+    )
+    print(
+        "EVIDENCE: CONTROLLED SYNTHETIC HARNESS — mocked integrations; "
+        "not production or real-system replay evidence."
+    )
 
     results = {}
 
@@ -178,7 +192,7 @@ async def run_real_benchmark():
                         query=SCIFACT_EPISODES[0].query,
                         corpus_version_id=SCIFACT_EPISODES[0].corpus_version_id,
                         run_id=run_id,
-                        tenant_id=tenant_id
+                        tenant_id=tenant_id,
                     )
                     latency = (time.time() - start_time) * 1000
                 except Exception as e:
@@ -213,11 +227,10 @@ async def run_real_benchmark():
                             elif hasattr(scheduler, "update"):
                                 scheduler.update(next_cand, False)
                 else:
-                    predicted_cause = random.choice(candidates) # Mocking imperfect detection
+                    predicted_cause = random.choice(candidates)  # Mocking imperfect detection
 
                 rca_metrics = metrics_engine.calculate_rca_metrics(
-                    [predicted_cause] if predicted_cause else [],
-                    [gt_root_cause]
+                    [predicted_cause] if predicted_cause else [], [gt_root_cause]
                 )
 
                 injector.reset()
@@ -237,24 +250,33 @@ async def run_real_benchmark():
             ci_rec = 1.96 * (std_rec / math.sqrt(num_trials))
 
             results[(fault_id, scheduler_name)] = {
-                "acc": mean_acc, "acc_ci": ci_acc,
-                "cost": mean_rec_cost, "cost_ci": ci_rec,
-                "succ": statistics.mean(successes)
+                "acc": mean_acc,
+                "acc_ci": ci_acc,
+                "cost": mean_rec_cost,
+                "cost_ci": ci_rec,
+                "succ": statistics.mean(successes),
             }
 
             tracker.log_episode(
                 episode_data={"fault": fault_id, "scheduler": scheduler_name},
-                metrics={"acc": mean_acc, "cost": mean_rec_cost, "succ": statistics.mean(successes)},
-                run_id="summary"
+                metrics={
+                    "acc": mean_acc,
+                    "cost": mean_rec_cost,
+                    "succ": statistics.mean(successes),
+                },
+                run_id="summary",
             )
 
-    print("\n--- Benchmark Final Report [REAL-SYSTEM DATA] ---")
-    print(f"{'Fault Type':<30} | {'Scheduler':<15} | {'RCA Acc':<15} | {'Rec Cost':<15} | {'Succ Rate':<10}")
+    print("\n--- Benchmark Final Report [CONTROLLED SYNTHETIC EVIDENCE] ---")
+    print(
+        f"{'Fault Type':<30} | {'Scheduler':<15} | {'RCA Acc':<15} | {'Rec Cost':<15} | {'Succ Rate':<10}"
+    )
     print("-" * 95)
     for (f, s), r in results.items():
         acc_str = f"{r['acc']:.2f} ± {r['acc_ci']:.2f}"
         cost_str = f"{r['cost']:.3f} ± {r['cost_ci']:.3f}"
         print(f"{f:<30} | {s:<15} | {acc_str:<15} | {cost_str:<15} | {r['succ']:.2f}")
+
 
 if __name__ == "__main__":
     asyncio.run(run_real_benchmark())

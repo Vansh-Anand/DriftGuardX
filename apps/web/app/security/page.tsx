@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, Lock, Activity, Database, AlertOctagon, Terminal, Server, Key, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import buildMetadata from "@/src/generated/build-metadata.json";
 
 export default function SecurityDashboard() {
   const [activeTab, setActiveTab] = useState<"verifier" | "isolation" | "dag" | "replay">("verifier");
@@ -40,15 +41,15 @@ export default function SecurityDashboard() {
             <h1 className="text-4xl font-bold tracking-tight text-white">Security & Hardening</h1>
           </div>
           <p className="text-slate-400 text-lg max-w-2xl">
-            Patent-Ready Defenses: Cryptographic integrity, bounds enforcement, deterministic verification, and cross-tenant memory isolation.
+            Candidate Technical Defenses: Cryptographic integrity, bounds enforcement, deterministic verification, and cross-tenant memory isolation.
           </p>
         </div>
         <div className="flex gap-2">
           <Badge variant="certified" className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1">
-            System Hardened
+            Internal Gates Passed
           </Badge>
           <Badge variant="outline" className="border-slate-700 text-slate-400 px-3 py-1">
-            v2.0.0-beta
+            v{buildMetadata.version}
           </Badge>
         </div>
       </div>
@@ -237,7 +238,7 @@ export default function SecurityDashboard() {
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-white mb-2">Counterfactual Replay Bounds</h2>
                   <p className="text-slate-400">
-                    The Counterfactual Replay Engine now wraps component execution in a strict thread pool with hard timeouts (30.0s) and payload size limits (5MB) to prevent adversarial resource exhaustion during simulation.
+                    Replay execution crosses a killable process or container boundary with incremental wall-time, resident-memory, and serialized-output enforcement before parent-process materialization.
                   </p>
                 </div>
                 
@@ -245,7 +246,7 @@ export default function SecurityDashboard() {
                   
                   <div className="bg-black border border-slate-800 rounded-xl p-6 shadow-2xl relative overflow-hidden">
                     <div className="flex justify-between items-center mb-6">
-                      <span className="font-mono text-sm text-blue-400">Replay Thread Pool (1 Worker)</span>
+                      <span className="font-mono text-sm text-blue-400">Isolated Replay Process</span>
                       <Badge variant="outline" className={replayStatus === 'running' ? 'border-blue-500 text-blue-400' : 'border-red-500 text-red-400'}>
                         {replayStatus === 'running' ? 'EXECUTING' : 'TERMINATED'}
                       </Badge>
@@ -277,7 +278,7 @@ export default function SecurityDashboard() {
                         {replayStatus === 'timeout' && (
                           <div className="text-red-400 font-bold mt-2">
                             [30.0s] CRITICAL: concurrent.futures.TimeoutError<br/>
-                            Execution exceeded hard timeout limit (30.0s). Thread forcefully terminated to prevent resource exhaustion.
+                            Execution exceeded the hard timeout. The isolated process was terminated before its result could be materialized.
                           </div>
                         )}
                       </div>

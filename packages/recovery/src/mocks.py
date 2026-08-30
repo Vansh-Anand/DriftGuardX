@@ -21,6 +21,7 @@ from packages.contracts.src.interfaces import (
     RecoveryCutSolver,
     RecoveryValidator,
     ReplayExecutor,
+    ResourceEstimate,
     ResourceContext,
     StoppingPolicy,
     TraceProvider,
@@ -119,17 +120,16 @@ class MockExperimentPlanner(ExperimentPlanner):
             exp = {**self._experiments[self._index], "envelope_id": envelope.trace_id}
             self._index += 1
         else:
-            untested = [c for c in candidates
-                       if c.get("candidate_id", "") not in
-                       {str(i) for i in range(self._index)}]
-            if not untested:
+            if self._index >= len(candidates):
                 return None
-            exp = {**untested[0], "envelope_id": envelope.trace_id}
+            exp = {**candidates[self._index], "envelope_id": envelope.trace_id}
             self._index += 1
 
         cost = float(exp.get("estimated_cost_usd", 0.05))
-        if not resource_context.reserve(cost):
+        reservation = resource_context.reserve(ResourceEstimate(cost_usd=cost))
+        if not reservation:
             return None
+        exp["_reservation"] = reservation
 
         self.replays_executed += 1
         self.tokens_used += 1500
@@ -144,7 +144,10 @@ class MockReplayExecutor(ReplayExecutor):
     def execute_replays(self, experiments: list[dict[str, Any]]) -> list[dict[str, Any]]:
         self.replays_executed += len(experiments)
         self.tokens_used += len(experiments) * 1500
-        return [{"spans": [], "replay_spans": [], "original_spans": [], **e} for e in experiments]
+        return [
+            {"status": "completed", "spans": [], "replay_spans": [], "original_spans": [], **e}
+            for e in experiments
+        ]
 
 
 class MockDivergenceValidator(DivergenceValidator):
@@ -258,7 +261,7 @@ class MockRecoveryValidator(RecoveryValidator):
         trace_id: str,
         original_spans: list[Any],
         access_context: AccessContext,
-        exogenous_variables: list[Any] | None = None,
+        exogenous_variables: dict[str, Any] | None = None,
     ) -> RecoveryValidationResult:
         return self.result
 
@@ -293,6 +296,7 @@ class MockTransportabilityGate(TransportabilityGate):
             required_target_experiments=[],
             confidence_metadata={},
             explanation="OK",
+            footprint_hash="mock-footprint-hash",
         )
 
     def evaluate(

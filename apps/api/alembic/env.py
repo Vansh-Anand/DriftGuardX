@@ -7,14 +7,25 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+from typing import Any
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import all ORM models so Alembic can detect them
-from apps.api.src.models import Base
+# Alembic is commonly launched from ``apps/api`` while the application uses
+# repo-root namespace packages (``apps.*`` and ``packages.*``). Bootstrap the
+# immutable repository/application root from this file's location so local,
+# container, Kubernetes, and CI entrypoints resolve imports identically.
+APPLICATION_ROOT = Path(__file__).resolve().parents[3]
+if str(APPLICATION_ROOT) not in sys.path:
+    sys.path.insert(0, str(APPLICATION_ROOT))
+
+from apps.api.src.models import Base  # noqa: E402
 
 # Alembic config object
 config = context.config

@@ -30,6 +30,7 @@ async def test_replay_manifest_generation(client: AsyncClient):
     assert replay_data["manifest_id"] is not None
     assert replay_data["manifest_hash"] is not None
     assert replay_data["is_pinned"] is True
+    assert replay_data["evidence_kind"] == "synthetic_simulation"
 
     # 4. Fetch the replay directly to ensure it was persisted correctly
     replay_id = replay_data["id"]
@@ -40,3 +41,4 @@ async def test_replay_manifest_generation(client: AsyncClient):
     assert get_data["manifest_id"] == replay_data["manifest_id"]
     assert get_data["manifest_hash"] == replay_data["manifest_hash"]
     assert get_data["is_pinned"] is True
+    assert get_data["evidence_kind"] == "synthetic_simulation"

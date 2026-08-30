@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — GAT API Integration Tests
 """
+
 from __future__ import annotations
 
 import pytest
@@ -21,6 +22,8 @@ async def test_gat_status_endpoint(client: AsyncClient) -> None:
 
 async def test_gat_trace_evaluation_endpoint(client: AsyncClient) -> None:
     """POST /v1/detectors/gat/trace evaluates trace spans via GAT."""
+    pytest.importorskip("torch")
+    pytest.importorskip("torch_geometric")
     payload = {
         "trace_id": "test-trace-1",
         "spans": [
@@ -61,6 +64,7 @@ async def test_gat_trace_evaluation_endpoint(client: AsyncClient) -> None:
 async def test_gat_evaluate_run_404_for_unknown_run(client: AsyncClient) -> None:
     """POST /v1/detectors/gat/evaluate-run/{random_id} returns 404 if no spans exist."""
     import uuid
+
     random_id = str(uuid.uuid4())
     resp = await client.post(f"/v1/detectors/gat/evaluate-run/{random_id}")
     assert resp.status_code == 404

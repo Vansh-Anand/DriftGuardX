@@ -11,6 +11,7 @@ Usage (as context manager):
     with controller:
         result = replay_function()
 """
+
 from __future__ import annotations
 
 import random
@@ -21,6 +22,7 @@ from typing import Any
 # Optional heavy deps — imported lazily
 try:
     import numpy as np
+
     _HAS_NUMPY = True
 except ImportError:
     _HAS_NUMPY = False
@@ -31,7 +33,7 @@ class RNGController:
 
     def __init__(self, seed: int = 42) -> None:
         self._seed = seed
-        self._patches: list[mock.patch] = []  # type: ignore[type-arg]
+        self._patches: list[Any] = []
 
     def __enter__(self) -> RNGController:
         random.seed(self._seed)
@@ -46,7 +48,8 @@ class RNGController:
 class TimeController:
     """
     Freezes time-related calls to a specific frozen_time value.
-    Patches: datetime.now, datetime.utcnow, time.time, time.monotonic
+    Patches wall-clock time. It deliberately does not patch time.monotonic,
+    because timeout and scheduling infrastructure must continue to advance.
     """
 
     def __init__(self, frozen_time_iso: str) -> None:
@@ -57,14 +60,10 @@ class TimeController:
         self._patches: list[Any] = []
 
     def __enter__(self) -> TimeController:
-        frozen_dt = self._frozen_dt
         frozen_ts = self._frozen_ts
 
         # Patch time.time
         self._patches.append(mock.patch("time.time", return_value=frozen_ts))
-        # Patch time.monotonic (returns same frozen value)
-        self._patches.append(mock.patch("time.monotonic", return_value=frozen_ts))
-
         for p in self._patches:
             p.start()
         return self
@@ -180,19 +179,19 @@ class LLMStubController:
     def __enter__(self) -> LLMStubController:
         stub_fn = self._next_stub
 
-        # Patch OpenAI completions if available
-        try:
-            self._patches.append(
-                mock.patch("openai.chat.completions.create", side_effect=stub_fn)
-            )
-        except AttributeError:
-            pass
-
-        for p in self._patches:
+        # Patch resource classes, not the module-level client proxy. Resolving
+        # openai.chat would instantiate a client and require credentials.
+        for target in (
+            "openai.resources.chat.completions.Completions.create",
+            "openai.resources.chat.completions.AsyncCompletions.create",
+        ):
             try:
-                p.start()
-            except (ValueError, RuntimeError, KeyError, TypeError, OSError):
-                pass
+                patcher = mock.patch(target, side_effect=stub_fn)
+                patcher.start()
+                self._patches.append(patcher)
+            except (AttributeError, ImportError, ValueError, RuntimeError):
+                continue
+
         return self
 
     def __exit__(self, *args: Any) -> None:

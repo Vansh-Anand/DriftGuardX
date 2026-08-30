@@ -1,53 +1,57 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import ReactFlow, { 
   MiniMap, 
   Controls, 
   Background, 
   useNodesState, 
   useEdgesState,
-  MarkerType
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { fetchGraphSnapshot } from '@/lib/api';
 
-// Placeholder for full layout algorithm (e.g. dagre)
-const initialNodes = [
-  { id: '1', position: { x: 0, y: 0 }, data: { label: 'Query (v1.2)' }, style: { backgroundColor: '#3b82f6', color: 'white' } },
-  { id: '2', position: { x: -100, y: 100 }, data: { label: 'Retriever (v2.0)' }, style: { backgroundColor: '#10b981', color: 'white' } },
-  { id: '3', position: { x: 100, y: 100 }, data: { label: 'Model (gpt-4)' }, style: { backgroundColor: '#8b5cf6', color: 'white' } },
-];
+const nodeColor: Record<string, string> = {
+  query: '#3b82f6',
+  request: '#3b82f6',
+  retriever: '#10b981',
+  model: '#8b5cf6',
+};
 
-const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2', label: 'control_flow', markerEnd: { type: MarkerType.ArrowClosed } },
-  { id: 'e2-3', source: '2', target: '3', label: 'data_dependency', markerEnd: { type: MarkerType.ArrowClosed } },
-];
+interface GraphNodeData {
+  label: string;
+}
 
 export default function GraphExplorer({ params }: { params: { run_id: string } }) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real app, tenantId is from context
-    const tenantId = '00000000-0000-0000-0000-000000000000';
-    
-    // Simulate fetch from API
-    fetch(`http://localhost:8000/v1/graph/snapshot/${tenantId}/${params.run_id}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Graph not found or API unavailable');
-        return res.json();
-      })
+    fetchGraphSnapshot(params.run_id)
       .then(data => {
-        // Map data to React Flow nodes/edges here...
+        setNodes(data.nodes.map((node, index) => ({
+          id: node.id,
+          position: { x: (index % 4) * 240, y: Math.floor(index / 4) * 140 },
+          data: { label: node.label },
+          style: { backgroundColor: nodeColor[node.type] ?? '#374151', color: 'white' },
+        })));
+        setEdges(data.edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          label: edge.label || edge.type,
+          markerEnd: { type: MarkerType.ArrowClosed },
+        })));
         setLoading(false);
       })
-      .catch(err => {
-        console.warn("Using placeholder graph data due to:", err.message);
+      .catch((err: Error) => {
+        setError(err.message);
         setLoading(false);
       });
-  }, [params.run_id]);
+  }, [params.run_id, setEdges, setNodes]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-zinc-950 text-white font-mono">
@@ -64,6 +68,11 @@ export default function GraphExplorer({ params }: { params: { run_id: string } }
       </div>
 
       <div className="w-full flex-grow relative" style={{ height: 'calc(100vh - 73px)' }}>
+        {loading && <div className="p-8 text-sm text-gray-400">Loading authenticated graph…</div>}
+        {error && <div className="p-8 text-sm text-red-300">Graph unavailable: {error}</div>}
+        {!loading && !error && nodes.length === 0 && (
+          <div className="p-8 text-sm text-gray-400">This run has no graph snapshot.</div>
+        )}
         <ReactFlow
           nodes={nodes}
           edges={edges}

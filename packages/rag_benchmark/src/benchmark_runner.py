@@ -3,6 +3,7 @@ import os
 import uuid
 
 from packages.evaluation.src.verifier import DeterministicVerifier
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.rag_benchmark.src.fault_injector import FaultInjector
 from packages.rag_benchmark.src.rag_pipeline import RAGPipeline
 
@@ -17,7 +18,7 @@ CORPUS = [
     "Root cause analysis is critical for prompt and model faults.",
     "Always verify the tool outputs using deterministic bounds.",
     "A recovery eligibility certificate cryptographically binds traces.",
-    "Never leak classified information in the output."
+    "Never leak classified information in the output.",
 ]
 
 QUERIES = [
@@ -25,8 +26,9 @@ QUERIES = [
     "Why is root cause analysis important?",
     "How to verify tool outputs?",
     "What does the recovery eligibility certificate do?",
-    "What should you never do with classified information?"
+    "What should you never do with classified information?",
 ]
+
 
 def run_benchmark():
     pipeline = RAGPipeline(CORPUS)
@@ -34,8 +36,10 @@ def run_benchmark():
     verifier = DeterministicVerifier()
 
     results = {
+        "evidence_kind": RecoveryEvidenceKind.SYNTHETIC_SIMULATION.value,
+        "evidence_notice": "Fault-injection simulation; not production replay evidence.",
         "golden_runs": [],
-        "faulty_runs": []
+        "faulty_runs": [],
     }
 
     print("--- Running Golden Dataset ---")
@@ -47,13 +51,15 @@ def run_benchmark():
         trace_ctx = out["trace_ctx"]
         spans = [s.to_dict() if hasattr(s, "to_dict") else s for s in trace_ctx.get_spans()]
 
-        results["golden_runs"].append({
-            "query": q,
-            "response": out["output"]["response"],
-            "is_safe": out["output"]["is_safe"],
-            "spans_count": len(spans),
-            "latency": sum([s.latency_ms or 0 for s in trace_ctx.get_spans()])
-        })
+        results["golden_runs"].append(
+            {
+                "query": q,
+                "response": out["output"]["response"],
+                "is_safe": out["output"]["is_safe"],
+                "spans_count": len(spans),
+                "latency": sum([s.latency_ms or 0 for s in trace_ctx.get_spans()]),
+            }
+        )
 
     print("--- Running Fault Injection ---")
 
@@ -69,14 +75,16 @@ def run_benchmark():
         # Verify
         is_valid = verifier.verify_no_forbidden_words(out["output"]["response"], ["fault"])
 
-        results["faulty_runs"].append({
-            "fault_type": "prompt_hallucination",
-            "query": q,
-            "response": out["output"]["response"],
-            "is_safe": out["output"]["is_safe"],
-            "verifier_passed": is_valid,
-            "latency": sum([s.latency_ms or 0 for s in trace_ctx.get_spans()])
-        })
+        results["faulty_runs"].append(
+            {
+                "fault_type": "prompt_hallucination",
+                "query": q,
+                "response": out["output"]["response"],
+                "is_safe": out["output"]["is_safe"],
+                "verifier_passed": is_valid,
+                "latency": sum([s.latency_ms or 0 for s in trace_ctx.get_spans()]),
+            }
+        )
 
     injector.reset(CORPUS)
 
@@ -89,13 +97,15 @@ def run_benchmark():
         trace_ctx = out["trace_ctx"]
         spans = trace_ctx.get_spans()
 
-        results["faulty_runs"].append({
-            "fault_type": "policy_leak",
-            "query": q,
-            "response": out["output"]["response"],
-            "is_safe": out["output"]["is_safe"],
-            "latency": sum([s.latency_ms or 0 for s in trace_ctx.get_spans()])
-        })
+        results["faulty_runs"].append(
+            {
+                "fault_type": "policy_leak",
+                "query": q,
+                "response": out["output"]["response"],
+                "is_safe": out["output"]["is_safe"],
+                "latency": sum([s.latency_ms or 0 for s in trace_ctx.get_spans()]),
+            }
+        )
 
     injector.reset(CORPUS)
 
@@ -107,6 +117,7 @@ def run_benchmark():
 
     print(f"Benchmark finished. Results saved to {res_path}")
     return results
+
 
 if __name__ == "__main__":
     run_benchmark()

@@ -73,7 +73,11 @@ def _mock_cert():
 
 import packages.recovery.src.engine as engine_module
 
-engine_module.verify_signature = lambda *args: True
+
+@pytest.fixture(autouse=True)
+def _accept_mock_rec_signatures(monkeypatch):
+    """Scope the mock verifier to this module's individual tests."""
+    monkeypatch.setattr(engine_module, "verify_signature", lambda *args: True)
 
 def _make_executor() -> tuple[LocalDevExecutor, CapsuleRegistry]:
     reg = CapsuleRegistry()

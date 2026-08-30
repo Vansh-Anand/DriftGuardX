@@ -101,7 +101,7 @@ class CutOptimizer:
         # Filter out actions that don't hit any paths
         useful_actions = [a for a in self.available_actions if action_coverage[a.action_id]]
 
-        best_combo: Optional[tuple[RecoveryAction, ...]] = None
+        best_combo: tuple[RecoveryAction, ...] | None = None
         best_cost = float('inf')
 
         # Check if we should use exact branch-and-bound/combinations or greedy heuristic
@@ -156,9 +156,9 @@ class CutOptimizer:
                 best_combo = tuple(selected_actions)
 
         # Build output
-        selected_list = list(best_combo) if best_combo else []
-        blocked = []
-        residual = []
+        selected_list: list[RecoveryAction] = list(best_combo) if best_combo else []
+        blocked: list[list[str]] = []
+        residual: list[list[str]] = []
 
         if selected_list:
             blocked = paths

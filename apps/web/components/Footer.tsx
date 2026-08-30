@@ -1,4 +1,5 @@
 import Link from "next/link";
+import buildMetadata from "@/src/generated/build-metadata.json";
 
 const MARQUEE_WORDS = [
   "TRACE FABRIC",
@@ -44,10 +45,12 @@ export function Footer() {
           <div className="border-r border-[#0a0a0a] p-8 flex flex-col justify-between min-h-[200px]">
             <div>
               <span className="font-mono text-xs tracking-[0.2em] uppercase font-bold block mb-2">DriftGuard-X</span>
-              <span className="font-mono text-xs text-[#888] block">Patent-Ready</span>
+              <span className="font-mono text-xs text-[#888] block">Research Candidate</span>
               <span className="font-mono text-xs text-[#888] block">Agentic RAG Reliability</span>
             </div>
-            <span className="font-mono text-xs text-[#888]">v2.0.0-beta</span>
+            <span className="font-mono text-xs text-[#888]">
+              v{buildMetadata.version} · {buildMetadata.verification}
+            </span>
           </div>
 
           {/* Col 2: Build */}

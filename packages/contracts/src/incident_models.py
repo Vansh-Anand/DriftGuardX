@@ -5,6 +5,8 @@ PRIVATE — All Rights Reserved.
 import enum
 from typing import Any
 
+from pydantic import Field
+
 from packages.contracts.src.models import DGXBaseModel, _new_uuid
 
 
@@ -26,7 +28,7 @@ class IncidentStatus(str, enum.Enum):
 
 class IncidentState(DGXBaseModel):
     """Persists diagnostic and recovery state for an incident."""
-    incident_id: str = _new_uuid()
+    incident_id: str = Field(default_factory=lambda: str(_new_uuid()))
     status: IncidentStatus = IncidentStatus.OBSERVING
 
     root_cause_posterior: dict[str, float] = {}

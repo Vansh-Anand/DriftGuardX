@@ -9,6 +9,7 @@ from packages.trace_sdk.src.tracer import TraceContext
 
 # ─── Dummy Vector Store ────────────────────────────────────────────────────────
 
+
 class DummyRetriever:
     def __init__(self, corpus: list[str]):
         self.corpus = corpus
@@ -19,7 +20,9 @@ class DummyRetriever:
         np.random.seed(len(text))
         return np.random.randn(64)
 
-    def retrieve(self, query: str, top_k: int = 3, trace_ctx: TraceContext | None = None) -> list[str]:
+    def retrieve(
+        self, query: str, top_k: int = 3, trace_ctx: TraceContext | None = None
+    ) -> list[str]:
         builder = None
         if trace_ctx:
             builder = trace_ctx.start_span("retrieve", kind=SpanKind.CLIENT)
@@ -51,11 +54,14 @@ class DummyRetriever:
 
 # ─── Dummy LLM ────────────────────────────────────────────────────────────────
 
+
 class DummyLLM:
     def __init__(self, model_name: str = "mock-gpt-4o"):
         self.model_name = model_name
 
-    def generate(self, prompt: str, temperature: float = 0.7, trace_ctx: TraceContext | None = None) -> str:
+    def generate(
+        self, prompt: str, temperature: float = 0.7, trace_ctx: TraceContext | None = None
+    ) -> str:
         builder = None
         if trace_ctx:
             builder = trace_ctx.start_span("llm_generate", kind=SpanKind.CLIENT)
@@ -70,12 +76,20 @@ class DummyLLM:
 
         # Simple keyword matching to simulate generation
         response = "I don't have enough information to answer that."
-        if "hello" in prompt.lower():
+        if "stale_corpus_failure" in prompt.lower():
+            response = "STALE_CORPUS_FAILURE"
+        elif "ignore all previous instructions" in prompt.lower():
+            response = "PROMPT_REGRESSION_FAILURE"
+        elif "i am poisoned" in prompt.lower():
+            response = "I am poisoned"
+        elif "hello" in prompt.lower():
             response = "Hello! I am a simulated RAG pipeline."
         elif "drift" in prompt.lower():
             response = "DriftGuard-X monitors the behavior of agentic systems."
         else:
-            response = f"Based on the context, I synthesized {len(prompt.split())} words of information."
+            response = (
+                f"Based on the context, I synthesized {len(prompt.split())} words of information."
+            )
 
         if builder:
             builder.set_attribute("response_length", len(response))
@@ -86,6 +100,7 @@ class DummyLLM:
 
 
 # ─── Dummy Policy Enforcer ────────────────────────────────────────────────────
+
 
 class DummyPolicyEnforcer:
     def check(self, prompt: str, response: str, trace_ctx: TraceContext | None = None) -> bool:
@@ -110,10 +125,12 @@ class DummyPolicyEnforcer:
 
 # ─── Full RAG Pipeline ────────────────────────────────────────────────────────
 
+
 class RAGPipeline:
     """
     A controlled local RAG pipeline for benchmarking.
     """
+
     def __init__(
         self,
         corpus: list[str],
@@ -128,17 +145,14 @@ class RAGPipeline:
         self.temperature = temperature
         self.system_prompt = system_prompt
         self.version_tag = "v1"
+        self.active_fault_component: str | None = None
 
     def run(self, query: str, run_id: str | None = None) -> dict[str, Any]:
         run_id_val = uuid.UUID(run_id) if run_id else uuid.uuid4()
         tenant_id = uuid.UUID(int=0)
         pipeline_id = uuid.UUID(int=0)
 
-        trace_ctx = TraceContext(
-            tenant_id=tenant_id,
-            pipeline_id=pipeline_id,
-            run_id=run_id_val
-        )
+        trace_ctx = TraceContext(tenant_id=tenant_id, pipeline_id=pipeline_id, run_id=run_id_val)
 
         root_builder = trace_ctx.start_span("rag_pipeline_run", kind=SpanKind.SERVER)
         root_builder.set_component(ComponentType.AGENT, uuid.UUID(int=4), self.version_tag)
@@ -175,16 +189,14 @@ class RAGPipeline:
             "query": query,
             "response": response,
             "is_safe": is_safe,
-            "run_id": str(run_id_val)
+            "run_id": str(run_id_val),
         }
         root_builder.set_output(output)
         root_builder.finish()
         trace_ctx.record_span(root_builder.build())
 
-        return {
-            "output": output,
-            "trace_ctx": trace_ctx
-        }
+        return {"output": output, "trace_ctx": trace_ctx}
+
 
 # ─── Real Async RAG Pipeline ──────────────────────────────────────────────────
 
@@ -196,6 +208,7 @@ class RealRAGPipeline:
     """
     A real, asynchronous RAG pipeline connecting to Postgres and OpenAI.
     """
+
     def __init__(
         self,
         db_session,
@@ -223,9 +236,7 @@ class RealRAGPipeline:
         pipeline_id = uuid.UUID(int=1)
 
         trace_ctx = TraceContext(
-            tenant_id=self.tenant_id,
-            pipeline_id=pipeline_id,
-            run_id=run_id_val
+            tenant_id=self.tenant_id, pipeline_id=pipeline_id, run_id=run_id_val
         )
 
         root_builder = trace_ctx.start_span("rag_pipeline_run", kind=SpanKind.SERVER)
@@ -267,13 +278,10 @@ class RealRAGPipeline:
             "is_safe": is_safe,
             "run_id": str(run_id_val),
             "cost_usd": llm_output.get("cost_usd", 0),
-            "latency_ms": llm_output.get("latency_ms", 0)
+            "latency_ms": llm_output.get("latency_ms", 0),
         }
         root_builder.set_output(output)
         root_builder.finish()
         trace_ctx.record_span(root_builder.build())
 
-        return {
-            "output": output,
-            "trace_ctx": trace_ctx
-        }
+        return {"output": output, "trace_ctx": trace_ctx}

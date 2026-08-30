@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 In-memory async job queue for graph builds, evaluations, and replays.
 Provides state exposure and cancellation semantics.
 """
+
 import asyncio
 import enum
 import time
@@ -21,27 +22,40 @@ class JobStatus(str, enum.Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
+
 @dataclass
 class Job:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     task_type: str = "generic"
+    tenant_id: str = ""
     status: JobStatus = JobStatus.PENDING
     result: Any = None
-    error: str = None
+    error: str | None = None
     created_at: float = field(default_factory=time.time)
-    started_at: float = None
-    completed_at: float = None
-    _task: asyncio.Task = None
+    started_at: float | None = None
+    completed_at: float | None = None
+    _task: asyncio.Task[Any] | None = None
+
 
 class JobOrchestrator:
-    def __init__(self):
+    def __init__(self) -> None:
         self.jobs: dict[str, Job] = {}
 
-    def submit_job(self, task_type: str, coro_func: Callable[..., Coroutine], *args, **kwargs) -> str:
-        job = Job(task_type=task_type)
+    def submit_job(
+        self,
+        task_type: str,
+        coro_func: Callable[..., Coroutine[Any, Any, Any]],
+        *args: Any,
+        tenant_id: str,
+        **kwargs: Any,
+    ) -> str:
+        """Submit a tenant-owned job; identifiers alone never grant access."""
+        if not tenant_id:
+            raise ValueError("tenant_id is required for every background job")
+        job = Job(task_type=task_type, tenant_id=tenant_id)
         self.jobs[job.id] = job
 
-        async def wrapper():
+        async def wrapper() -> None:
             job.status = JobStatus.RUNNING
             job.started_at = time.time()
             try:
@@ -63,9 +77,9 @@ class JobOrchestrator:
         job._task = task
         return job.id
 
-    def get_job_status(self, job_id: str) -> dict:
+    def get_job_status(self, job_id: str, *, tenant_id: str) -> dict[str, Any] | None:
         job = self.jobs.get(job_id)
-        if not job:
+        if not job or job.tenant_id != tenant_id:
             return None
         return {
             "id": job.id,
@@ -78,9 +92,13 @@ class JobOrchestrator:
             "completed_at": job.completed_at,
         }
 
-    def cancel_job(self, job_id: str) -> bool:
+    def cancel_job(self, job_id: str, *, tenant_id: str) -> bool:
         job = self.jobs.get(job_id)
-        if not job or job.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
+        if (
+            not job
+            or job.tenant_id != tenant_id
+            or job.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
+        ):
             return False
 
         if job._task:
@@ -88,6 +106,7 @@ class JobOrchestrator:
             job.status = JobStatus.CANCELLED
             return True
         return False
+
 
 # Global orchestrator for the prototype
 orchestrator = JobOrchestrator()

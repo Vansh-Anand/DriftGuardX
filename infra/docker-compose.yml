@@ -1,4 +1,3 @@
-version: "3.9"
 
 # DriftGuard-X v2 — Docker Compose Full Stack
 # Usage: docker compose -f infra/docker-compose.yml up --build
@@ -67,9 +66,13 @@ services:
       REDIS_URL: redis://redis:6379/0
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       APP_ENV: production
+      ENVIRONMENT: prod
+      DGX_MODE: production
     ports:
       - "8000:8000"
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -78,10 +81,27 @@ services:
       - ../apps/api:/app/apps/api:ro
       - ../packages:/app/packages:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=3)"]
       interval: 15s
       timeout: 10s
       retries: 5
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: "no"
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://driftguardx:${POSTGRES_PASSWORD:-devpassword123}@postgres:5432/driftguardx
+      DGX_MODE: production
+      APP_ENV: production
+      ENVIRONMENT: prod
+    command: ["alembic", "-c", "/app/apps/api/alembic.ini", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # ─── Worker (ARQ) ───────────────────────────────────────────────────────────
   worker:
@@ -95,7 +115,11 @@ services:
       DATABASE_URL: postgresql+asyncpg://driftguardx:${POSTGRES_PASSWORD:-devpassword123}@postgres:5432/driftguardx
       REDIS_URL: redis://redis:6379/0
       APP_ENV: production
+      ENVIRONMENT: prod
+      DGX_MODE: production
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -104,12 +128,15 @@ services:
   # ─── Web Console (Next.js) ──────────────────────────────────────────────────
   web:
     build:
-      context: ../apps/web
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_DEMO_MODE: "false"
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
-      NEXT_PUBLIC_DEMO_MODE: "true"
+      NEXT_PUBLIC_DEMO_MODE: "false"
     ports:
       - "3000:3000"
     depends_on:

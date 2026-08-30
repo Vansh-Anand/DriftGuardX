@@ -1,10 +1,14 @@
 """
 Unit tests for GATTraceDetector and SymptomRegistry GAT integration.
 """
+
 import os
 from uuid import uuid4
 
 import pytest
+
+pytest.importorskip("torch")
+pytest.importorskip("torch_geometric")
 
 from packages.detectors.src.gat_inference import DriftGuardX_GAT, GATTraceDetector
 from packages.detectors.src.registry import SymptomRegistry
@@ -42,9 +46,27 @@ def test_detector_loads_weights_if_available(detector, model_path):
 def test_detector_clean_trace_inference(detector):
     """Verify inference on a healthy distributed trace."""
     clean_trace = [
-        {"span_id": "root", "parent_id": None, "duration_ms": 50.0, "operation_name": "GET /api/v1/user", "is_error": False},
-        {"span_id": "auth", "parent_id": "root", "duration_ms": 10.0, "operation_name": "ts-auth-service.check", "is_error": False},
-        {"span_id": "db", "parent_id": "root", "duration_ms": 30.0, "operation_name": "ts-user-service.db_query", "is_error": False},
+        {
+            "span_id": "root",
+            "parent_id": None,
+            "duration_ms": 50.0,
+            "operation_name": "GET /api/v1/user",
+            "is_error": False,
+        },
+        {
+            "span_id": "auth",
+            "parent_id": "root",
+            "duration_ms": 10.0,
+            "operation_name": "ts-auth-service.check",
+            "is_error": False,
+        },
+        {
+            "span_id": "db",
+            "parent_id": "root",
+            "duration_ms": 30.0,
+            "operation_name": "ts-user-service.db_query",
+            "is_error": False,
+        },
     ]
     result = detector.detect_trace_anomaly(clean_trace)
     assert "is_fault" in result
@@ -57,9 +79,27 @@ def test_detector_clean_trace_inference(detector):
 def test_detector_faulty_trace_localization(detector):
     """Verify root cause localization on a trace containing bottlenecks."""
     faulty_trace = [
-        {"span_id": "root", "parent_id": None, "duration_ms": 5000.0, "operation_name": "POST /order", "is_error": True},
-        {"span_id": "child1", "parent_id": "root", "duration_ms": 4900.0, "operation_name": "ts-payment-service.pay", "is_error": True},
-        {"span_id": "child2", "parent_id": "root", "duration_ms": 20.0, "operation_name": "ts-notification-service.send", "is_error": False},
+        {
+            "span_id": "root",
+            "parent_id": None,
+            "duration_ms": 5000.0,
+            "operation_name": "POST /order",
+            "is_error": True,
+        },
+        {
+            "span_id": "child1",
+            "parent_id": "root",
+            "duration_ms": 4900.0,
+            "operation_name": "ts-payment-service.pay",
+            "is_error": True,
+        },
+        {
+            "span_id": "child2",
+            "parent_id": "root",
+            "duration_ms": 20.0,
+            "operation_name": "ts-notification-service.send",
+            "is_error": False,
+        },
     ]
     result = detector.detect_trace_anomaly(faulty_trace)
     assert len(result["root_cause_candidates"]) > 0
@@ -75,8 +115,20 @@ def test_symptom_registry_gat_integration(detector):
     run_id = uuid4()
 
     faulty_trace = [
-        {"span_id": "root", "parent_id": None, "duration_ms": 5000.0, "operation_name": "POST /order", "is_error": True},
-        {"span_id": "pay", "parent_id": "root", "duration_ms": 4900.0, "operation_name": "ts-payment.pay", "is_error": True},
+        {
+            "span_id": "root",
+            "parent_id": None,
+            "duration_ms": 5000.0,
+            "operation_name": "POST /order",
+            "is_error": True,
+        },
+        {
+            "span_id": "pay",
+            "parent_id": "root",
+            "duration_ms": 4900.0,
+            "operation_name": "ts-payment.pay",
+            "is_error": True,
+        },
     ]
     result = detector.detect_trace_anomaly(faulty_trace)
 

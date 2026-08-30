@@ -36,7 +36,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
         self.rewards: dict[str, float] = {}
         self.total_pulls = 0
-        self.stop_reason = None
+        self.stop_reason: str | None = None
 
         # Track actual cost history per arm for uncertainty margin calculation
         self._cost_history: dict[str, list[float]] = {}
@@ -47,19 +47,20 @@ class ResourceAdmittedBCRBController(BaseScheduler):
     def _get_cost_statistics(self, arm: CandidateArm) -> tuple[float, float]:
         """
         Returns (mean_predicted_cost, uncertainty_margin) based on history.
-        Uses conservative priors for unseen arms and single samples.
+        Uses declared priors for unseen arms and a conservative margin once
+        measured telemetry exists.
         """
         history = self._cost_history.get(arm.arm_id, [])
         floor_cost = 0.05
         default_margin = 0.05
 
         if not history:
-            return max(arm.cost, floor_cost), default_margin
+            return max(arm.cost, floor_cost), 0.0
 
         # Filter out NaNs to ensure graceful handling of corrupted telemetry
         valid_history = [x for x in history if not math.isnan(x)]
         if not valid_history:
-            return max(arm.cost, floor_cost), default_margin
+            return max(arm.cost, floor_cost), 0.0
 
         n = len(valid_history)
         mean_cost = sum(valid_history) / n
@@ -95,7 +96,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
                 return None
 
         # Admission Control (reject before queue allocation)
-        admitted = []
+        admitted: list[CandidateArm] = []
         for arm in arms:
             if self._violates_admission_rule(arm):
                 self.shed_log.append(arm.arm_id)
@@ -106,7 +107,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
             self.stop_reason = "Shed: Budget Exhausted or All Candidates Failed Admission"
             return None
 
-        best_arm = None
+        best_arm: str | None = None
         best_value = float("-inf")
 
         # Tie-breaking sort to preserve determinism
@@ -143,13 +144,15 @@ class ResourceAdmittedBCRBController(BaseScheduler):
 
         return best_arm
 
-    def update(self, arm_id: str, reward: float, cost: float):
+    def update(self, arm_id: str, reward: float, cost: float) -> None:
         """Update controller with empirical telemetry."""
         # Handle NaN reward or cost
         if math.isnan(reward):
             reward = 0.0
         if math.isnan(cost):
-            cost = 0.05  # Fallback conservative cost to prevent poisoning remaining_budget
+            # Corrupt cost telemetry is unmeasured, not a real resource charge.
+            # Ignore it so it cannot poison either the budget or cost history.
+            cost = 0.0
 
         super().update(arm_id, reward, cost)
 

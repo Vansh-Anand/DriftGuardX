@@ -1,61 +1,37 @@
-# DriftGuard-X: Technical Effect Evaluation
+# DriftGuard-X: Evidence-Bounded Technical Effect Evaluation
 
-This document outlines the measurable technical effects of the newly implemented Causal Recovery mechanisms compared against legacy baselines (Exhaustive, Random, and BCRB). The data was gathered via the end-to-end multi-profile benchmarking harness.
+Verification date: 2026-08-30
 
-## 1. Metric: Causal Replay Overhead Reduction
+All measurements in this document are `synthetic_simulation` evidence. They do not establish production effectiveness, real-world causal identification, or universal safety guarantees.
 
-The core computational cost of incident recovery in an LLM agentic system is bound by the number of replay simulations (and therefore the prompt token overhead) required to isolate the failure target.
+## Evaluated harness
 
-**Testing Profile Results (averaged across 10 scenarios, N=5 iterations per scenario):**
-* **Baseline Exhaustive**: 21 replays per incident, 31,500 token overhead.
-* **Baseline Random**: 11 replays per incident, 16,500 token overhead.
-* **Legacy BCRB**: 6 replays per incident, 9,000 token overhead.
-* **New Causal Experiment Planner**: 3 replays per incident, 4,500 token overhead.
+The seeded causal benchmark uses SciFact test-query text with a deterministic in-process RAG simulation, seven injected fault classes, nineteen candidate components (seven faults plus twelve distractors), five strategies, three sampled queries per fault, and a fixed seed of 42. The corpus, component failures, interventions, costs, and oracle are controlled simulations. No live LLM provider, production trace, or real vector index is used.
 
-### Technical Effect:
-- The `RiskLimitedSequentialCausalExperimentPlanner` reduces replay volume by **85.7%** against the exhaustive baseline and **50.0%** against the legacy BCRB implementation.
-- Recovery token budget footprint drops from ~31k down to ~4.5k per incident, drastically improving the throughput limits of the recovery engine.
+The separate deterministic regression harness produced 25 golden executions and 35 injected-fault executions. It is a correctness regression artifact, not comparative-effectiveness evidence.
 
-## 2. Metric: Success Rate of Minimum Recovery Cut
+## Final aggregate results
 
-The recovery engine must resolve the failure via the smallest technically acceptable set of changes. A sub-optimal solver forces the system to replace the entire pipeline, maximizing the "blast radius" (the number of unmodified invariants needlessly interrupted).
+| Strategy | Confirmed localization accuracy | Localization accuracy | Confirmation rate | Observed mitigation rate | False-confirmation rate | Mean replays | Mean simulated cost |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Causal planner | 0.952 | 1.000 | 0.952 | 1.000 | 0.000 | 17.143 | $0.857 |
+| Exhaustive | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 | 9.381 | $0.469 |
+| Random | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 | 12.810 | $0.640 |
+| Fixed order | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 | 9.381 | $0.469 |
+| Current BCRB | 0.571 | 0.571 | 0.571 | 0.571 | 0.000 | 11.714 | $0.586 |
 
-**Testing Profile Results:**
-* **Baseline Exhaustive (Full rollback)**: Blast radius = 5 (all nodes reset).
-* **Legacy BCRB**: Blast radius = 3-4 (reverts the causal sub-graph).
-* **New Causal Cut Solver**: Blast radius = 0. Modifies *only* the specific root-cause node evaluated by the posterior belief.
+The benchmark now counts a baseline result as correct only when the intervention both mitigates the fault and targets the injected ground-truth component. It reports posterior confirmation separately from observed mitigation and retains per-trial observations. Wrong-component interventions are regression-tested not to clear a fault marker.
 
-### Technical Effect:
-- Successfully localizes failure with a 100% success rate (`success_rate: 1.0` in all benchmark trials).
-- Isolates multi-cause incidents and external API anomalies flawlessly. The resulting recovery payload minimizes external side-effects, guaranteeing that unaffected subsystems remain preserved.
+## Supported technical conclusions
 
-## 3. Metric: Replay Envelope Security & False Positives
+- The process-bound simulation localized all injected root causes at the top of its posterior across these 21 causal-planner trials, but one trial stopped without evidentiary confirmation; confirmed accuracy was therefore 0.952 rather than 1.0.
+- No strategy produced a false confirmation in this small deterministic run.
+- The causal planner did not demonstrate a replay or cost advantage. Exhaustive and fixed-order search were materially cheaper under this harness's uniform prior and deterministic single-fault design.
+- All strategies had the same aggregate modeled blast-radius value (1.9); this run does not support a blast-radius reduction claim.
+- Process-bound replay tests demonstrate killability and incremental memory/output enforcement for the tested implementations. Docker isolation remains unexecuted locally because the Docker daemon was unavailable.
 
-**Adversarial and Property Tests Results (`test_property_recovery.py`, `test_adversarial_recovery.py`):**
-* The `DivergenceValidator` detects exogenously mutated environments perfectly, immediately short-circuiting the replay iteration and transitioning the machine to `EVIDENCE_INSUFFICIENT` if the envelope diverges from the initial trace.
-* Malicious transport attempts (e.g. Forged Provenance) are strictly rejected by the `CausalTransportGate` ensuring a `NOT_TRANSPORTABLE` policy block.
+## Unsupported claims
 
-### Technical Effect:
-- **Zero False Positives**: The Envelope mathematical bounds restrict trace deviations to purely relevant causal paths. Unrelated state changes are scrubbed via standard Divergence Validators.
+These results do not support claims of real-world cost reduction, production isolation, zero false positives, optimality, flawless multi-cause recovery, superiority over exhaustive search, or performance on real RAG systems. Establishing such effects requires preregistered criteria, larger independent datasets, calibrated priors, real controlled replay evidence, uncertainty analysis, and external review.
 
-## 4. Metric: Performance on Real World Benchmarks (SCIFACT)
-
-We also ran the system against the real-world dataset `SCIFACT` (BEIR evaluation subset using genuine RAG pipelines and OpenAI models). 
-When tested with actual document corpora and query generation loops:
-
-**Testing Profile Results (scifact, split: test):**
-* **Baseline Random**: 100% Success Rate | Mean Recovery Cost = $0.113
-* **Legacy BCRB**: 13.3% Success Rate | Mean Recovery Cost = $0.010 (Budget exhausted early due to inefficiency)
-* **New Causal Experiment Planner**: 100% Success Rate | Mean Recovery Cost = $0.060
-
-**Testing Profile Results (nfcorpus, split: test):**
-* **Baseline Random**: 100% Success Rate | Mean Recovery Cost = $0.076
-* **Legacy BCRB**: 13.3% Success Rate | Mean Recovery Cost = $0.010 (Budget exhausted early due to inefficiency)
-* **New Causal Experiment Planner**: 100% Success Rate | Mean Recovery Cost = $0.060
-
-### Technical Effect:
-- On real RAG execution traces containing factual retrieval regressions and model drift, the **Causal Planner retains a 100% success rate** across multiple datasets (`scifact` and `nfcorpus`) while the legacy BCRB system catastrophically fails (13% success).
-- The planner reduces the average monetary cost of recovery exploration by **47%** on `scifact` and by **21%** on `nfcorpus` compared to random exhaustive searches.
-
-## Conclusion
-The Causal Recovery Architecture replaces the heuristic-based BCRB system with a rigorous, mathematically-backed Directed Acyclic Graph (DAG) planner. It successfully proves a **50-85% performance optimization** in replay execution on synthetics and a **47% recovery cost reduction** on real-world datasets, while maintaining perfect isolation limits through minimum causal cuts.
+The exact source state, frozen dependencies, commands, seeds, and result files are bound by the active content-addressed experiment manifest under `releases/2.0.0-rc.1/`.

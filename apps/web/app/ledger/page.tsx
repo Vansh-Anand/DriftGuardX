@@ -12,6 +12,7 @@ const certs = [
     domain_prefix: '0x01',
     status: 'verified',
     tenant: 'T_111',
+    evidence_kind: 'synthetic_simulation',
   },
   {
     id: 'cert_9f8e7d6c',
@@ -21,6 +22,7 @@ const certs = [
     domain_prefix: '0x01',
     status: 'verified',
     tenant: 'T_222',
+    evidence_kind: 'controlled_replay',
   },
   {
     id: 'cert_5c4d3e2f',
@@ -30,6 +32,7 @@ const certs = [
     domain_prefix: '0x00',
     status: 'verified',
     tenant: 'T_111',
+    evidence_kind: 'production_canary',
   },
 ];
 
@@ -65,17 +68,18 @@ export default function LedgerPage() {
         {/* Certificate table */}
         <div className="border border-[#0a0a0a]">
           {/* Header */}
-          <div className="grid grid-cols-[120px_150px_1fr_200px_70px_80px] border-b border-[#0a0a0a] bg-[#0a0a0a] text-[#ECEAE2]">
-            {['Cert ID', 'Timestamp', 'Action', 'Hash (SHA-256)', 'Domain', 'Status'].map(h => (
+          <div className="grid grid-cols-[120px_150px_1fr_170px_150px_70px_80px] border-b border-[#0a0a0a] bg-[#0a0a0a] text-[#ECEAE2]">
+            {['Cert ID', 'Timestamp', 'Action', 'Hash (SHA-256)', 'Evidence', 'Domain', 'Status'].map(h => (
               <div key={h} className="font-mono text-[10px] tracking-[0.1em] uppercase px-4 py-3">{h}</div>
             ))}
           </div>
           {certs.map((cert, i) => (
-            <div key={cert.id} className={`grid grid-cols-[120px_150px_1fr_200px_70px_80px] items-start ${i > 0 ? 'border-t border-[#0a0a0a]/10' : ''} hover:bg-[#0a0a0a]/5 transition-colors`}>
+            <div key={cert.id} className={`grid grid-cols-[120px_150px_1fr_170px_150px_70px_80px] items-start ${i > 0 ? 'border-t border-[#0a0a0a]/10' : ''} hover:bg-[#0a0a0a]/5 transition-colors`}>
               <div className="px-4 py-4 font-mono text-[10px] text-[#0a0a0a] break-all">{cert.id}</div>
               <div className="px-4 py-4 font-mono text-[10px] text-[#888]">{format(new Date(cert.timestamp), 'MMM d, HH:mm:ss')}</div>
               <div className="px-4 py-4 font-mono text-xs font-medium text-[#0a0a0a]">{cert.action}</div>
               <div className="px-4 py-4 font-mono text-[10px] text-[#888] truncate" title={cert.hash}>{cert.hash.substring(0, 24)}...</div>
+              <div className="px-4 py-4 font-mono text-[10px] uppercase text-amber-700">{cert.evidence_kind.replaceAll('_', ' ')}</div>
               <div className="px-4 py-4 font-mono text-[10px] text-[#888]">{cert.domain_prefix}</div>
               <div className="px-4 py-4">
                 <span className={`font-mono text-[10px] border px-2 py-0.5 uppercase tracking-wider ${cert.status === 'verified' ? 'border-[#0a0a0a] text-[#0a0a0a]' : 'border-red-500 text-red-600'}`}>
@@ -88,6 +92,7 @@ export default function LedgerPage() {
 
         <div className="mt-6 font-mono text-[10px] text-[#888] border border-[#0a0a0a]/20 px-4 py-3">
           Merkle root computed with domain separation: LEAF_DOMAIN=0x00, INTERNAL_DOMAIN=0x01. Deterministic JSON canonicalization. Append-only log.
+          Synthetic certificates attest integrity only and never authorize production execution.
         </div>
       </div>
     </PageLayout>

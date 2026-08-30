@@ -123,19 +123,10 @@ async def test_replay_endpoint_full_flow(client: AsyncClient) -> None:
 
 @pytest.mark.integration
 async def test_non_synthetic_run_replay_blocked(client: AsyncClient) -> None:
-    """Replay of a non-synthetic run must be blocked (requires human approval)."""
-    # Create a non-synthetic run
+    """The mock API must not label a deterministic simulation as real evidence."""
     run_resp = await client.post(
         "/v1/runs",
         json={"query": "non-synthetic", "use_experimental_retriever": True, "seed": 42, "is_synthetic": False},
     )
-    assert run_resp.status_code == 201
-    run_id = run_resp.json()["id"]
-
-    # Replay should be blocked
-    replay_resp = await client.post(
-        f"/v1/runs/{run_id}/replays",
-        json={"swap_retriever_to_stable": True, "seed": 42},
-    )
-    assert replay_resp.status_code == 400
-    assert "human approval" in replay_resp.json()["detail"].lower() or "synthetic" in replay_resp.json()["detail"].lower()
+    assert run_resp.status_code == 400
+    assert "non-synthetic" in run_resp.json()["detail"].lower()

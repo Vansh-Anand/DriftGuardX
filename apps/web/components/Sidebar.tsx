@@ -7,6 +7,7 @@ import {
   ShieldCheck, ShieldAlert, Key, TestTube, HeartPulse 
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import buildMetadata from '@/src/generated/build-metadata.json'
 
 const navItems = [
   { name: 'Overview', href: '/', icon: Activity },
@@ -59,7 +60,7 @@ export function Sidebar() {
         </nav>
       </div>
       <div className="p-4 border-t border-zinc-800 text-xs text-zinc-500">
-        v2.0.0-beta.1 <br/>
+        v{buildMetadata.version} <br/>
         <span 
           className="text-blue-500 font-semibold mt-1 inline-block cursor-pointer hover:text-blue-400 transition-colors"
           onClick={() => {

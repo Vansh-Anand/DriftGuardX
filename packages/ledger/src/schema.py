@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 Defines the RecoveryCertificate schema and deterministic serialization.
 Byte-for-byte exact hashing is required across all Python versions.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -13,11 +14,15 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-DOMAIN_SEPARATOR = "DriftGuardX-Recovery-Cert-V1"
+from packages.contracts.src.evidence import RecoveryEvidenceKind
+
+DOMAIN_SEPARATOR = "DriftGuardX-Recovery-Cert-V2"
+
 
 @dataclass
 class RecoveryCertificate:
     """Canonical recovery certificate schema."""
+
     # Identity & Linkage
     cert_id: str
     tenant_id: str
@@ -47,6 +52,7 @@ class RecoveryCertificate:
     # Ledger specific
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     previous_cert_hash: str = "GENESIS"
+    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
 
     # Authentication (Set during signing, excluded from payload hash)
     signature: str | None = None
@@ -66,15 +72,11 @@ class RecoveryCertificate:
         Deterministic JSON serialization for hashing/signing.
         Includes schema version and domain separator.
         """
-        payload = {
-            "domain": DOMAIN_SEPARATOR,
-            "version": "1.0",
-            "data": self._canonical_dict()
-        }
+        payload = {"domain": DOMAIN_SEPARATOR, "version": "2.0", "data": self._canonical_dict()}
         # Separators=(',', ':') removes whitespace
         # sort_keys=True ensures key ordering is deterministic
-        json_str = json.dumps(payload, separators=(',', ':'), sort_keys=True, ensure_ascii=True)
-        return json_str.encode('utf-8')
+        json_str = json.dumps(payload, separators=(",", ":"), sort_keys=True, ensure_ascii=True)
+        return json_str.encode("utf-8")
 
     def compute_hash(self) -> str:
         """Compute the SHA-256 hash of the canonical bytes."""

@@ -1,7 +1,8 @@
-.PHONY: help install install-dev env migrate seed lint typecheck format test test-unit test-integration test-e2e test-security golden-demo build-api build-web up down logs clean
+.PHONY: help install install-dev lock lock-check env migrate seed lint typecheck format test test-unit test-integration test-e2e test-security golden-demo build-api build-web up down logs clean
 
 PYTHON := python3
 PIP := pip
+UV := uv
 API_DIR := apps/api
 WEB_DIR := apps/web
 
@@ -12,13 +13,18 @@ help: ## Show this help
 env: ## Copy .env.example to .env (will not overwrite)
 	@if [ ! -f .env ]; then cp .env.example .env && echo "Created .env — fill in secrets before use"; else echo ".env already exists"; fi
 
-install: ## Install production Python deps
-	$(PIP) install -r requirements.txt
+install: ## Install production Python deps from the frozen lock
+	$(UV) sync --frozen --extra infra
 
-install-dev: ## Install all Python deps (including dev/test)
-	$(PIP) install -r requirements.txt -r requirements-dev.txt
-	cd $(API_DIR) && pip install -e .
+install-dev: ## Install test/tooling deps from the frozen lock
+	$(UV) sync --frozen --extra dev --extra infra
 
+lock: ## Refresh uv.lock and the hash-locked requirements export
+	$(UV) lock
+	$(UV) export --frozen --extra dev --extra infra --no-emit-project --no-annotate --output-file requirements.lock
+
+lock-check: ## Verify the committed dependency lock is current
+	$(UV) lock --check
 install-web: ## Install Node.js deps for the web console
 	cd $(WEB_DIR) && npm install
 

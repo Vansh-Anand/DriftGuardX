@@ -1,4 +1,6 @@
-# DriftGuard-X v2 — Complete Project Report
+# DriftGuard-X v2 — Historical Design and Project Report
+
+> Evidence notice (2026-08-30): this broad design report contains historical prototype targets and simulated results. It is not the release evidence record. Quantitative, production-readiness, safety, and patent statements are superseded by `releases/2.0.0-rc.1/RELEASE_EVIDENCE.md`, the active immutable experiment manifest, and `docs/INVENTION_DISCLOSURE.md`.
 
 **Classification:** Private — All Rights Reserved  
 **Version:** 2.1.0  
@@ -43,7 +45,7 @@
 - **Cybersecurity firewall capability** that detects topological attack patterns (e.g., Memory → Tool exfiltration) in the agent trajectory.
 - **Multi-agent coordination** with cross-agent blame attribution and inter-agent communication edge tracking.
 - **Live GAT Detector API** exposing `/v1/detectors/gat/trace` and `/v1/detectors/gat/evaluate-run/{run_id}` for real-time fault classification and root-cause localization over ingested telemetry.
-- **Patent-ready documentation package** with 16 formal USPTO-formatted claims across System, Method, and CRM claim sets with numbered FIG. 1–7 patent drawing descriptions.
+- **Counsel-oriented invention draft package** with 16 preliminary claim concepts across System, Method, and CRM sets and numbered FIG. 1–7 drawing descriptions; novelty and patentability are not established.
 
 As of release **v2.1.0**, the system has:
 - **193 passing tests** (100% pass rate) across unit, integration, contract, security, E2E, and load categories.
@@ -204,7 +206,7 @@ DriftGuard-X implements a **closed loop** across eight logical phases:
 
 | Component | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Styling | Tailwind CSS |
 | Charts | Recharts |
 | Language | TypeScript / TSX |
@@ -681,7 +683,7 @@ The engine implements the **Do-operator** from causal inference: it sets exactly
 6. Collect output hashes at each step and compute the new `reliability_vector`.
 7. Return a `ReplayEpisode` with `reliability_delta = replay_vector - original_vector`.
 
-**Safety guarantees:**
+**Tested safety invariants (not universal guarantees):**
 - The engine **never calls external services** in development mode.
 - All mock executors are deterministic given the same seed.
 - The `ReplayEpisode` is a read-only record — production state is never mutated.
@@ -1061,7 +1063,7 @@ The worker uses **ARQ** (Asyncio Redis Queue) for:
 | `sign_certificate` | 10–100ms | High (blocks ledger append) |
 | `verify_ledger_chain` | 1–60s | Low (scheduled) |
 
-### 7.3 Web Console — Next.js 14 Dashboard
+### 7.3 Web Console — Next.js 16 Dashboard
 
 **14 pages with Truthful UI:**
 
@@ -1712,21 +1714,21 @@ HPA on CPU utilization > 70%.
 
 ## 17. Deployment Readiness Audit
 
-### Green Light (Production-Ready Components)
+### Prototype Components Passing Repository Tests
 
 | Component | Readiness | Notes |
 |---|---|---|
-| Pydantic v2 data contracts | ✅ Production-grade | 617 lines, strict mode, tested |
-| Ed25519 cryptographic signing | ✅ Production-grade | Full verify + chain tests |
-| Append-only ledger | ✅ Production-grade | Tamper detection tested |
-| Policy engine (default-deny) | ✅ Production-grade | Hierarchical, 2-person control |
+| Pydantic v2 data contracts | Tested prototype | Strict runtime schemas and focused tests |
+| Ed25519 cryptographic signing | Tested prototype | Local verify and chain tests; production key management pending |
+| Append-only ledger | Tested prototype | Tamper detection tested; external durable storage review pending |
+| Policy engine (default-deny) | Tested prototype | Hierarchical policy behavior covered by tests |
 | Statistical bounds & calibration | ✅ Publication-grade | Bootstrap, Bonferroni, Hoeffding |
 | Docker Compose stack | ✅ Functional | 5 services with healthchecks |
 | Alembic migrations | ✅ Defined | Schema version-controlled |
 | Multi-tenant isolation | ✅ Implemented | tenant_id on all queries |
 | PII redaction | ✅ Implemented | Key + regex patterns |
 | Test suite (193 tests, 100% passing) | ✅ Comprehensive | Chaos, security, load, GAT included |
-| Trained GAT model weights | ✅ Production-grade | ~83% train / ~80% test accuracy on TrainTicket dataset |
+| Trained GAT model weights | Experimental artifact | Historical TrainTicket split result; independent validation pending |
 | GAT Detector REST API | ✅ Integrated | /v1/detectors/gat/* endpoints, mounted and tested |
 
 ### Yellow Light (Needs Work Before Production)
@@ -1927,7 +1929,7 @@ DriftGuard-X v2.1 represents a genuinely novel platform addressing the unsolved 
 | Data model definitions | 25+ Pydantic models, 11 ORM tables |
 | Statistical algorithms | 6 (EWMA, z-score, PSI, KS, JSD, CUSUM) + 3 bound types (Hoeffding, Bootstrap, Conformal) |
 | Lines of production code | ~20,000+ |
-| Patent-ready claims | **16 formal USPTO claims drafted** (System, Method, CRM + 13 dependent) |
+| Preliminary claim draft | **16 counsel-review claim concepts** (System, Method, CRM + 13 dependent); patentability not established |
 | GAT model training | ~83% train accuracy / ~80% test accuracy on 76 TrainTicket fault injection archives |
 
 ### Honest Assessment
@@ -1951,4 +1953,3 @@ The patent filing opportunity is substantial — **16 novel mechanisms are imple
 *Repository: `https://github.com/Vansh-Anand/DriftGuardX`*  
 *Version: 2.1.0 | Report Date: 2026-08-01*  
 *Estimated length: ~14,000 words (~70 equivalent pages at 200 words/page)*
-

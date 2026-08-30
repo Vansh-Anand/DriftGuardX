@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Asynchronous Redundant Copying (ARC) Isolator
 Dynamically routes destructive tool calls to a quarantined data sink.
 """
+
 import os
 import socket
 import subprocess
@@ -13,16 +14,14 @@ class HardwareDataSink:
     """
     Simulates an isolated hardware partition for quarantined execution payloads.
     """
+
     def __init__(self):
         self._quarantine: list[dict[str, Any]] = []
         self._lock = threading.Lock()
 
     def commit(self, action_type: str, payload: dict[str, Any]):
         with self._lock:
-            self._quarantine.append({
-                "type": action_type,
-                "payload": payload
-            })
+            self._quarantine.append({"type": action_type, "payload": payload})
 
     def get_all(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -32,8 +31,10 @@ class HardwareDataSink:
         with self._lock:
             self._quarantine.clear()
 
+
 # Global hardware sink simulation
 data_sink = HardwareDataSink()
+
 
 class MockSocket:
     def __init__(self, family, type, proto):
@@ -51,7 +52,7 @@ class MockSocket:
 
     def recv(self, bufsize):
         # Synthetic loopback data
-        return b"HTTP/1.1 200 OK\r\n\r\n{\"mock\": \"arc_isolated_response\"}"
+        return b'HTTP/1.1 200 OK\r\n\r\n{"mock": "arc_isolated_response"}'
 
     def close(self):
         pass
@@ -62,18 +63,20 @@ class MockSocket:
     def __exit__(self, *args):
         self.close()
 
+
 class ARCIsolator:
     """
     Monkey-patches high-risk OS modules to securely isolate execution payloads
     and provide synthetic loopback responses.
     """
+
     def __init__(self):
         self.original_system = os.system
         self.original_run = subprocess.run
         self.original_socket = socket.socket
         self.is_active = False
 
-    def enable(self):
+    def enable(self) -> None:
         if self.is_active:
             return
 
@@ -83,8 +86,12 @@ class ARCIsolator:
             return 0
 
         def mock_run(*popenargs, **kwargs):
-            data_sink.commit("SHELL_EXEC", {"event": "subprocess.run", "args": popenargs, "kwargs": kwargs})
-            return subprocess.CompletedProcess(args=popenargs, returncode=0, stdout=b"ARC Mock Output\n", stderr=b"")
+            data_sink.commit(
+                "SHELL_EXEC", {"event": "subprocess.run", "args": popenargs, "kwargs": kwargs}
+            )
+            return subprocess.CompletedProcess(
+                args=popenargs, returncode=0, stdout=b"ARC Mock Output\n", stderr=b""
+            )
 
         def mock_socket_init(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None):
             return MockSocket(family, type, proto)
@@ -95,12 +102,13 @@ class ARCIsolator:
 
         self.is_active = True
 
-    def disable(self):
+    def disable(self) -> None:
         if not self.is_active:
             return
         os.system = self.original_system
         subprocess.run = self.original_run
         socket.socket = self.original_socket
         self.is_active = False
+
 
 arc_isolator = ARCIsolator()

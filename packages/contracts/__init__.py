@@ -26,6 +26,7 @@ from packages.contracts.src.models import (
     Tenant,
     TraceArtifact,
 )
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 
 __all__ = [
     "AgentPipeline",
@@ -38,6 +39,7 @@ __all__ = [
     "Intervention",
     "InterventionType",
     "RecoveryCertificate",
+    "RecoveryEvidenceKind",
     "RepairDecision",
     "RepairDecisionStatus",
     "ReplayEpisode",

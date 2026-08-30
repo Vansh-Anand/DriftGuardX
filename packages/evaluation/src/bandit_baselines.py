@@ -21,7 +21,7 @@ class BaseScheduler:
     def select_arm(self, arms: list[CandidateArm]) -> str | None:
         raise NotImplementedError
 
-    def update(self, arm_id: str, reward: float, cost: float):
+    def update(self, arm_id: str, reward: float, cost: float) -> None:
         self.remaining_budget -= cost
         self.pulls[arm_id] = self.pulls.get(arm_id, 0) + 1
 
@@ -64,7 +64,7 @@ class StandardUCBScheduler(BaseScheduler):
         # Tie-breaking sort
         eligible.sort(key=lambda x: x.arm_id)
 
-        best_arm = None
+        best_arm: str | None = None
         best_value = float("-inf")
 
         for arm in eligible:
@@ -81,7 +81,7 @@ class StandardUCBScheduler(BaseScheduler):
 
         return best_arm
 
-    def update(self, arm_id: str, reward: float, cost: float):
+    def update(self, arm_id: str, reward: float, cost: float) -> None:
         super().update(arm_id, reward, cost)
         self.rewards[arm_id] = self.rewards.get(arm_id, 0.0) + reward
         self.total_pulls += 1

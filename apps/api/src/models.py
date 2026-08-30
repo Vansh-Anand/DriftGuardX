@@ -258,7 +258,7 @@ class SpanRecordORM(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     trace_id: Mapped[str] = mapped_column(String(32), nullable=False)
-    span_id: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
+    span_id: Mapped[str] = mapped_column(String(16), nullable=False)
     parent_span_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
     run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
@@ -292,6 +292,7 @@ class SpanRecordORM(Base):
     redaction_json: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
 
     __table_args__ = (
+        UniqueConstraint("tenant_id", "span_id", name="uq_span_records_tenant_span"),
         Index("ix_span_records_run_id", "run_id"),
         Index("ix_span_records_trace_id", "trace_id"),
         Index("ix_span_records_tenant_id", "tenant_id"),

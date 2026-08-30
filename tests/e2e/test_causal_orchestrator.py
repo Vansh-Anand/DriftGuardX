@@ -3,6 +3,8 @@ DriftGuard-X v2 — End-to-End Orchestrator Tests
 PRIVATE — All Rights Reserved.
 """
 
+from datetime import UTC, datetime, timedelta
+
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.recovery_models import FailureTarget, RecoveryValidationResult
 from packages.contracts.src.transport_models import TransportStatus
@@ -24,6 +26,15 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
+from packages.memory.src.auth import AccessContext
+
+
+def _access_context() -> AccessContext:
+    return AccessContext(
+        requester_id="test-operator",
+        tenant_id="test-tenant",
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+    )
 
 
 def build_orchestrator(**overrides):
@@ -54,7 +65,7 @@ def test_scenario_a_bad_retriever():
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high", evidence={"wrong_answer": True})]
 
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
     if not cert:
         print("Telemetry logs:", state.telemetry)
     assert cert.startswith("cert_")
@@ -68,7 +79,7 @@ def test_scenario_b_poisoned_memory():
         belief_model=MockBeliefModel({"memory": 0.99})
     )
     state = IncidentState()
-    cert = orch.process_incident(state, [])
+    cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert.startswith("cert_")
     assert state.status == IncidentStatus.CLOSED
 
@@ -80,7 +91,7 @@ def test_scenario_c_wrong_prompt():
         belief_model=MockBeliefModel({"prompt": 0.99})
     )
     state = IncidentState()
-    cert = orch.process_incident(state, [])
+    cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert.startswith("cert_")
     assert state.status == IncidentStatus.CLOSED
 
@@ -91,7 +102,7 @@ def test_scenario_d_external_api_drift():
         recovery_solver=MockRecoveryCutSolver(cut=None)
     )
     state = IncidentState()
-    cert = orch.process_incident(state, [])
+    cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert == ""
     assert state.status == IncidentStatus.RECOVERY_REJECTED
 
@@ -115,7 +126,7 @@ def test_scenario_e_tool_schema_mismatch():
         recovery_validator=MockRecoveryValidator(result=invalid_res)
     )
     state = IncidentState()
-    cert = orch.process_incident(state, [])
+    cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert == ""
     assert state.status == IncidentStatus.RECOVERY_REJECTED
 
@@ -125,7 +136,7 @@ def test_scenario_f_cross_environment_transport_denied():
     # First get the recovery certificate from a successful run
     orch = build_orchestrator()
     state = IncidentState()
-    cert = orch.process_incident(state, [])
+    cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert.startswith("cert_")
 
     # Now try to transport it with a mock gate that rejects cross-environment
@@ -144,7 +155,8 @@ def test_scenario_f_cross_environment_transport_denied():
         unknown_conditions=[],
         required_target_experiments=[],
         confidence_metadata={},
-        explanation="Denied"
+        explanation="Denied",
+        footprint_hash="cross-environment-footprint-hash",
     )
     orch.transport_gate = MockTransportabilityGate(decision)
 

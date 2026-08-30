@@ -6,6 +6,7 @@ the Minimum Causal Recovery Cut, and the full ReplayEquivalenceEnvelope state mo
 
 PRIVATE — All Rights Reserved.
 """
+
 import enum
 import hashlib
 import hmac
@@ -17,6 +18,7 @@ from typing import Any
 
 from pydantic import Field, model_validator
 
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow
 
 
@@ -51,14 +53,16 @@ class SandboxOutcome(str, enum.Enum):
 
 class FailureTarget(DGXBaseModel):
     """Identifies a node where a failure was observed."""
+
     node_id: str
     failure_type: str  # e.g. "incorrect final answer", "policy violation", "retrieval failure"
-    severity: str      # e.g. "high", "critical", "medium"
+    severity: str  # e.g. "high", "critical", "medium"
     evidence: dict[str, Any] = Field(default_factory=dict)
 
 
 class FaultSource(DGXBaseModel):
     """A suspected root cause with an associated probability."""
+
     node_id: str
     probability: float = Field(ge=0.0, le=1.0)
 
@@ -69,11 +73,12 @@ class SignedCapability(DGXBaseModel):
     Replaces bare strings for recovery action authorization.
     Bound to: requester + tenant + resource + action tuple.
     """
+
     capability_id: str = Field(default_factory=lambda: str(_new_uuid()))
     requester_id: str
     tenant_id: str
-    action: str       # e.g. "COMPONENT_ROLLBACK", "QUARANTINE", "FORENSIC_READ"
-    resource: str     # the specific component/resource being acted upon
+    action: str  # e.g. "COMPONENT_ROLLBACK", "QUARANTINE", "FORENSIC_READ"
+    resource: str  # the specific component/resource being acted upon
     issued_at: datetime = Field(default_factory=_utcnow)
     expires_at: datetime
     issuer: str = "DriftGuard-X"
@@ -85,6 +90,7 @@ class SignedCapability(DGXBaseModel):
 
 class RecoveryAction(DGXBaseModel):
     """A potential recovery action evaluated during causal cut optimization."""
+
     action_id: str = Field(default_factory=lambda: str(_new_uuid()))
     target_component: str
     action_type: RecoveryActionType | str
@@ -101,6 +107,7 @@ class RecoveryAction(DGXBaseModel):
 
 class CausalRecoveryCut(DGXBaseModel):
     """The computed recovery cut to resolve the failure."""
+
     recovery_id: str = Field(default_factory=lambda: str(_new_uuid()))
     fault_sources: list[FaultSource]
     failure_targets: list[FailureTarget]
@@ -122,6 +129,7 @@ class CausalRecoveryCut(DGXBaseModel):
 
 class RecoveryInvariant(DGXBaseModel):
     """A property that must remain preserved despite the recovery cut."""
+
     invariant_id: str = Field(default_factory=lambda: str(_new_uuid()))
     scope: str
     metric: str
@@ -147,6 +155,7 @@ class ReplayEquivalenceEnvelope(DGXBaseModel):
     - trusted_time_binding: TrustedTimestampEnvelope id used at original trace time
     - envelope_hash: HMAC-SHA256 over all fields — computed and verified before replay begins
     """
+
     trace_id: str
     recovery_cut: CausalRecoveryCut
     invariants: list[RecoveryInvariant]
@@ -155,35 +164,34 @@ class ReplayEquivalenceEnvelope(DGXBaseModel):
     snapshot_hash: str = ""
     frozen_variables: dict[str, str] = Field(
         default_factory=dict,
-        description="variable_name -> expected SHA-256 hash. Any change is a violation."
+        description="variable_name -> expected SHA-256 hash. Any change is a violation.",
     )
     intervened_variables: list[str] = Field(
         default_factory=list,
-        description="Component IDs being mutated. Their state change is expected."
+        description="Component IDs being mutated. Their state change is expected.",
     )
     exogenous_variables: dict[str, Any] = Field(
         default_factory=dict,
-        description="Controlled stubs: rng_seed, frozen_time_iso, api_stubs, db_snapshot_id, llm_stub, tool_stubs, feature_flags"
+        description="Controlled stubs: rng_seed, frozen_time_iso, api_stubs, db_snapshot_id, llm_stub, tool_stubs, feature_flags",
     )
     allowed_causal_descendants: list[str] = Field(
         default_factory=list,
-        description="Node IDs whose state may legitimately diverge due to the intervention."
+        description="Node IDs whose state may legitimately diverge due to the intervention.",
     )
     forbidden_divergence_nodes: list[str] = Field(
         default_factory=list,
-        description="Any divergence in these nodes terminates the replay immediately."
+        description="Any divergence in these nodes terminates the replay immediately.",
     )
     constraints: dict[str, Any] = Field(
         default_factory=dict,
-        description="Per-variable tolerance: {var: {'type': 'numeric_delta'|'exact', 'threshold': float}}"
+        description="Per-variable tolerance: {var: {'type': 'numeric_delta'|'exact', 'threshold': float}}",
     )
     policy_binding: str | None = Field(
         default=None,
-        description="Hash of the policy document in effect when the original trace was recorded."
+        description="Hash of the policy document in effect when the original trace was recorded.",
     )
     trusted_time_binding: str | None = Field(
-        default=None,
-        description="ID of the TrustedTimestampEnvelope used at original trace time."
+        default=None, description="ID of the TrustedTimestampEnvelope used at original trace time."
     )
     sandbox_config: dict[str, Any] = Field(default_factory=lambda: {"isolation_level": "strict"})
     schema_version: str = "2.0"
@@ -204,29 +212,28 @@ class ReplayEquivalenceEnvelope(DGXBaseModel):
         # Serialize invariants deterministically
         serialized_invariants = [inv.model_dump(mode="json") for inv in self.invariants]
 
-        payload = json.dumps({
-            "trace_id": self.trace_id,
-            "snapshot_hash": self.snapshot_hash,
-            "frozen_variables": self.frozen_variables,
-            "intervened_variables": sorted(self.intervened_variables),
-            "exogenous_variables": self.exogenous_variables,
-            "allowed_causal_descendants": sorted(self.allowed_causal_descendants),
-            "forbidden_divergence_nodes": sorted(self.forbidden_divergence_nodes),
-            "constraints": self.constraints,
-            "invariants": serialized_invariants,
-            "sandbox_config": self.sandbox_config,
-            "graph_hash": self.graph_hash,
-            "schema_version": self.schema_version,
-            "policy_binding": self.policy_binding,
-            "trusted_time_binding": self.trusted_time_binding,
-            "recovery_id": self.recovery_cut.recovery_id,
-        }, sort_keys=True)
+        payload = json.dumps(
+            {
+                "trace_id": self.trace_id,
+                "snapshot_hash": self.snapshot_hash,
+                "frozen_variables": self.frozen_variables,
+                "intervened_variables": sorted(self.intervened_variables),
+                "exogenous_variables": self.exogenous_variables,
+                "allowed_causal_descendants": sorted(self.allowed_causal_descendants),
+                "forbidden_divergence_nodes": sorted(self.forbidden_divergence_nodes),
+                "constraints": self.constraints,
+                "invariants": serialized_invariants,
+                "sandbox_config": self.sandbox_config,
+                "graph_hash": self.graph_hash,
+                "schema_version": self.schema_version,
+                "policy_binding": self.policy_binding,
+                "trusted_time_binding": self.trusted_time_binding,
+                "recovery_id": self.recovery_cut.recovery_id,
+            },
+            sort_keys=True,
+        )
 
-        mac = hmac.new(
-            secret.encode("utf-8"),
-            payload.encode("utf-8"),
-            hashlib.sha256
-        ).hexdigest()
+        mac = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
         self.envelope_hash = mac
         return self
 
@@ -235,13 +242,14 @@ class ReplayEquivalenceEnvelope(DGXBaseModel):
         expected = self.envelope_hash
         # Temporarily clear so compute_envelope_hash recalculates
         self.envelope_hash = ""
-        self.compute_envelope_hash()
+        self.compute_envelope_hash()  # type: ignore[operator]
         result = hmac.compare_digest(self.envelope_hash, expected)
         return result
 
 
 class RecoveryValidationResult(DGXBaseModel):
     """The result of validating a proposed recovery cut."""
+
     recovery_cut: CausalRecoveryCut
     failure_resolved: bool
     invariants: list[RecoveryInvariant]
@@ -250,11 +258,13 @@ class RecoveryValidationResult(DGXBaseModel):
     residual_risk: float = 0.0
     eligible_for_canary: bool = False
     reason: str = ""
+    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
     validated_at: datetime = Field(default_factory=_utcnow)
 
 
 class ReplayContext(DGXBaseModel):
     """Context block provided to the RecoveryReplayExecutor."""
+
     original_trace_id: str
     original_spans: list[dict[str, Any]]
     run_id: str | None = None
@@ -265,7 +275,9 @@ class ReplayContext(DGXBaseModel):
 
 class RecoveryReplayResult(DGXBaseModel):
     """The result of attempting to execute a recovery replay pipeline."""
+
     outcome: SandboxOutcome
+    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
     new_trace_id: str | None = None
     new_spans: list[dict[str, Any]] = Field(default_factory=list)
     new_state_snapshot: dict[str, Any] | None = None

@@ -6,6 +6,7 @@ shared across all packages (API, worker, replay, evaluation).
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import enum
@@ -16,7 +17,10 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from packages.contracts.src.evidence import RecoveryEvidenceKind
+
 # ─── Utilities ────────────────────────────────────────────────────────────────
+
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
@@ -27,6 +31,7 @@ def _new_uuid() -> UUID:
 
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
+
 
 class ComponentType(str, enum.Enum):
     RETRIEVER = "retriever"
@@ -110,8 +115,10 @@ class RepairDecisionStatus(str, enum.Enum):
 
 # ─── Base ─────────────────────────────────────────────────────────────────────
 
+
 class DGXBaseModel(BaseModel):
     """Base model with strict validation and UTC timestamps."""
+
     model_config = ConfigDict(
         strict=True,
         use_enum_values=True,
@@ -122,8 +129,10 @@ class DGXBaseModel(BaseModel):
 
 # ─── Tenant ──────────────────────────────────────────────────────────────────
 
+
 class Tenant(DGXBaseModel):
     """Organisation-level isolation unit."""
+
     id: UUID = Field(default_factory=_new_uuid)
     name: str = Field(min_length=1, max_length=255)
     slug: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9-]+$")
@@ -139,8 +148,10 @@ class Tenant(DGXBaseModel):
 
 # ─── ComponentVersion ─────────────────────────────────────────────────────────
 
+
 class ComponentVersion(DGXBaseModel):
     """A specific version of a pipeline component."""
+
     id: UUID = Field(default_factory=_new_uuid)
     component_type: ComponentType
     version_tag: str = Field(min_length=1, max_length=64)  # e.g. "v1", "v2-exp"
@@ -166,8 +177,10 @@ class ComponentVersion(DGXBaseModel):
 
 # ─── AgentPipeline ────────────────────────────────────────────────────────────
 
+
 class AgentPipeline(DGXBaseModel):
     """A versioned pipeline composed of ordered component versions."""
+
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     name: str = Field(min_length=1, max_length=255)
@@ -182,17 +195,17 @@ class AgentPipeline(DGXBaseModel):
         for cv in self.component_versions:
             key = str(cv.component_type)
             if key in seen:
-                raise ValueError(
-                    f"Duplicate component type in pipeline: {cv.component_type}"
-                )
+                raise ValueError(f"Duplicate component type in pipeline: {cv.component_type}")
             seen.add(key)
         return self
 
 
 # ─── SpanRecord ───────────────────────────────────────────────────────────────
 
+
 class RedactionMetadata(DGXBaseModel):
     """Records what was redacted and why."""
+
     fields_redacted: list[str] = Field(default_factory=list)
     redaction_reason: str = ""
     redacted_at: datetime = Field(default_factory=_utcnow)
@@ -206,9 +219,10 @@ class SpanRecord(DGXBaseModel):
     OpenTelemetry-compatible span with DriftGuard-X extensions.
     Raw prompts/completions are NOT stored — only hashes.
     """
+
     # OTel standard fields
     trace_id: str = Field(min_length=32, max_length=32)  # 128-bit hex
-    span_id: str = Field(min_length=16, max_length=16)   # 64-bit hex
+    span_id: str = Field(min_length=16, max_length=16)  # 64-bit hex
     parent_span_id: str | None = None
     name: str
     kind: SpanKind = SpanKind.INTERNAL
@@ -266,8 +280,10 @@ class SpanRecord(DGXBaseModel):
 
 # ─── RequestRun ───────────────────────────────────────────────────────────────
 
+
 class RequestRun(DGXBaseModel):
     """A single execution of an agent pipeline."""
+
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     pipeline_id: UUID
@@ -275,7 +291,7 @@ class RequestRun(DGXBaseModel):
 
     # Request metadata (no raw prompts stored)
     request_hash: str | None = None  # SHA-256 of the raw request body
-    request_id: str | None = None    # External idempotency key
+    request_id: str | None = None  # External idempotency key
 
     # Provenance
     commit_sha: str | None = None
@@ -315,8 +331,10 @@ class RequestRun(DGXBaseModel):
 
 # ─── TraceArtifact ────────────────────────────────────────────────────────────
 
+
 class TraceArtifact(DGXBaseModel):
     """Normalized, persisted trace for a completed run."""
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
@@ -356,8 +374,10 @@ class TraceArtifact(DGXBaseModel):
 
 # ─── Intervention ─────────────────────────────────────────────────────────────
 
+
 class Intervention(DGXBaseModel):
     """A logged intervention decision (never auto-applied to production)."""
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
@@ -377,6 +397,7 @@ class Intervention(DGXBaseModel):
 
 # ─── ReplayCapsule ────────────────────────────────────────────────────────────
 
+
 class ReplayCapsule(DGXBaseModel):
     query: str
     trace_digest: str
@@ -389,11 +410,13 @@ class ReplayCapsule(DGXBaseModel):
 
 # ─── ReplayEpisode ────────────────────────────────────────────────────────────
 
+
 class ReplayEpisode(DGXBaseModel):
     """
     A deterministic replay with one component version swapped.
     All non-intervened components are version-pinned to the original run.
     """
+
     tenant_id: UUID
     run_id: UUID  # The original run
     replay_id: UUID = Field(default_factory=uuid4)
@@ -429,6 +452,7 @@ class ReplayEpisode(DGXBaseModel):
     created_at: datetime = Field(default_factory=_utcnow)
     completed_at: datetime | None = None
     is_synthetic: bool = False
+    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
 
     # Manifest
     manifest_id: UUID | None = None
@@ -437,10 +461,12 @@ class ReplayEpisode(DGXBaseModel):
 
 # ─── ReplayStateManifest ──────────────────────────────────────────────────────
 
+
 class ReplayStateManifest(DGXBaseModel):
     """
     Immutable manifest that binds all state required for reproducible replay.
     """
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
@@ -472,9 +498,9 @@ class ReplayStateManifest(DGXBaseModel):
     def compute_hash(self) -> str:
         """Computes SHA-256 hash of canonical JSON representation."""
         import json
+
         data = self.model_dump(
-            exclude={"id", "run_id", "tenant_id", "created_at", "manifest_hash"},
-            exclude_none=True
+            exclude={"id", "run_id", "tenant_id", "created_at", "manifest_hash"}, exclude_none=True
         )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
@@ -486,12 +512,14 @@ class ReplayStateManifest(DGXBaseModel):
             self.model_identifier,
             self.retriever_version,
             self.embedding_model_version,
-            self.vector_index_snapshot_id
+            self.vector_index_snapshot_id,
         ]
 
         for field in version_fields:
             if field and forbidden_tag in field.lower():
-                raise ValueError(f"The 'latest' tag is forbidden in ReplayStateManifest. Found in field value: {field}")
+                raise ValueError(
+                    f"The 'latest' tag is forbidden in ReplayStateManifest. Found in field value: {field}"
+                )
 
         if not self.manifest_hash:
             self.manifest_hash = self.compute_hash()
@@ -524,8 +552,10 @@ class ReplayStateManifest(DGXBaseModel):
 
 # ─── Diagnosis ────────────────────────────────────────────────────────────────
 
+
 class DiagnosisClaim(DGXBaseModel):
     """A single claim in a diagnosis, with epistemic status."""
+
     claim_id: str
     description: str
     status: DiagnosisClaimStatus
@@ -535,6 +565,7 @@ class DiagnosisClaim(DGXBaseModel):
 
 class Diagnosis(DGXBaseModel):
     """Causal reliability assessment for a run."""
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     replay_episode_id: UUID | None = None
@@ -548,8 +579,10 @@ class Diagnosis(DGXBaseModel):
 
 # ─── RepairDecision ───────────────────────────────────────────────────────────
 
+
 class RepairDecision(DGXBaseModel):
     """Human-approved decision to repair a reliability failure."""
+
     id: UUID = Field(default_factory=_new_uuid)
     diagnosis_id: UUID
     run_id: UUID
@@ -567,11 +600,13 @@ class RepairDecision(DGXBaseModel):
 
 # ─── RecoveryCertificate ─────────────────────────────────────────────────────
 
+
 class RecoveryCertificate(DGXBaseModel):
     """
     Cryptographic attestation that a recovery was performed correctly.
     The certificate hash covers run_id, replay_id, intervention_id, and outcome.
     """
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     replay_episode_id: UUID
@@ -583,21 +618,31 @@ class RecoveryCertificate(DGXBaseModel):
     issued_by: str  # system or user identifier
     payload_summary: str = ""
     is_valid: bool = True
+    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
 
     @classmethod
-    def compute_hash(cls, run_id: UUID, replay_id: UUID, intervention_id: UUID, issued_by: str) -> str:
+    def compute_hash(
+        cls,
+        run_id: UUID,
+        replay_id: UUID,
+        intervention_id: UUID,
+        issued_by: str,
+        evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION,
+    ) -> str:
         """Compute deterministic certificate hash."""
-        payload = f"{run_id}:{replay_id}:{intervention_id}:{issued_by}"
+        payload = f"{run_id}:{replay_id}:{intervention_id}:{issued_by}:{evidence_kind.value}"
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
 # ─── RollbackCapsule ─────────────────────────────────────────────────────────
+
 
 class RollbackCapsule(DGXBaseModel):
     """
     Versioned rollback specification — encapsulates all state needed to
     roll back to a prior version of a component.
     """
+
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     pipeline_id: UUID
@@ -615,6 +660,7 @@ class RollbackCapsule(DGXBaseModel):
 
 # ─── Drift Detectors & Symptoms (Prompt 05) ──────────────────────────────────
 
+
 class SymptomLikelihood(str, enum.Enum):
     NONE = "none"
     LOW = "low"
@@ -625,6 +671,7 @@ class SymptomLikelihood(str, enum.Enum):
 
 class DetectorOutput(DGXBaseModel):
     """Raw output from a drift detector before thresholding."""
+
     detector_name: str
     feature_name: str
     value: float
@@ -637,6 +684,7 @@ class DetectorOutput(DGXBaseModel):
 
 class DetectorThreshold(DGXBaseModel):
     """Versioned threshold for a specific detector feature."""
+
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     pipeline_id: UUID
@@ -671,6 +719,7 @@ class TypedCausalMap(DGXBaseModel):
     """
     Decomposes an opaque drift score into typed channels (Update 2).
     """
+
     primary_channel: CausalDriftChannel
     channel_scores: dict[CausalDriftChannel, float] = Field(default_factory=dict)
     containment_partition_id: str | None = None
@@ -678,6 +727,7 @@ class TypedCausalMap(DGXBaseModel):
 
 class SymptomRegistryEntry(DGXBaseModel):
     """A registered symptom linked to a graph node. Distinct from Causal Diagnosis."""
+
     id: UUID = Field(default_factory=_new_uuid)
     tenant_id: UUID
     run_id: UUID
@@ -689,10 +739,13 @@ class SymptomRegistryEntry(DGXBaseModel):
     uncertainty: float | None = None  # 0.0 - 1.0
     typed_causal_map: TypedCausalMap | None = None
 
+
 # ─── Root Cause Report (Prompt 08) ───────────────────────────────────────────
+
 
 class RankedCandidate(DGXBaseModel):
     """A ranked candidate from the exhaustive RCA benchmark."""
+
     component_type: ComponentType
     intervention_type: InterventionType
     aggregate_score: float
@@ -704,8 +757,10 @@ class RankedCandidate(DGXBaseModel):
     trials_n: int
     is_negative_control: bool = False
 
+
 class RootCauseReport(DGXBaseModel):
     """Final RCA report detailing candidates, controls, and limitations."""
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
@@ -720,48 +775,54 @@ class RootCauseReport(DGXBaseModel):
     # Language: "statistically bounded under listed assumptions" — NOT "repair is correct"
     certificate_status: str = "UNCERTIFIED"  # CERTIFIED | UNCERTIFIED | REJECTED
     certification_policy_version: str = "v1.0"
-    bound_method: str | None = None          # hoeffding | bootstrap | conformal | unsupported
-    epsilon: float | None = None             # margin of error
-    delta: float | None = None               # failure probability (1 - nominal_confidence)
+    bound_method: str | None = None  # hoeffding | bootstrap | conformal | unsupported
+    epsilon: float | None = None  # margin of error
+    delta: float | None = None  # failure probability (1 - nominal_confidence)
     assumptions_met: list[str] = Field(default_factory=list)
     assumptions_violated: list[str] = Field(default_factory=list)
-    observed_coverage: float | None = None   # empirical coverage, always reported alongside nominal
+    observed_coverage: float | None = None  # empirical coverage, always reported alongside nominal
     nominal_confidence: float | None = None
     calibration_version: str | None = None
     calibration_age_days: float | None = None
-    human_review_required: bool = True       # defaults True; cleared only when CERTIFIED
-    block_automated_action: bool = True      # defaults True; cleared only when CERTIFIED
+    human_review_required: bool = True  # defaults True; cleared only when CERTIFIED
+    block_automated_action: bool = True  # defaults True; cleared only when CERTIFIED
 
 
 # ─── RAEB (Replay Admissibility and Evidence Budget) (Update 1) ───────────────
+
 
 class AdmissibilityScore(str, enum.Enum):
     ADMISSIBLE = "admissible"
     LIMITED = "limited"
     UNSUPPORTED = "unsupported"
 
+
 class EquivalenceVector(DGXBaseModel):
     """
     Measures the equivalence between a live run and a proposed replay.
     """
+
     freshness_score: float = Field(ge=0.0, le=1.0)
     determinism_score: float = Field(ge=0.0, le=1.0)
     dependency_impact_score: float = Field(ge=0.0, le=1.0)
+
 
 class RAEBEvaluation(DGXBaseModel):
     """
     Result of evaluating a replay proposal against the RAEB gateway.
     """
+
     equivalence_vector: EquivalenceVector
     admissibility: AdmissibilityScore
     information_gain_estimate: float = 0.0
     risk_score: float = 0.0
     rejection_reason: str | None = None
-    ig_estimator_metadata: dict | None = None
+    ig_estimator_metadata: dict[str, Any] | None = None
     evaluated_at: datetime = Field(default_factory=_utcnow)
 
 
 # ─── Pareto Replay Set (Update 5) ─────────────────────────────────────────────
+
 
 class ParetoReplayCandidate(DGXBaseModel):
     arm_id: str
@@ -770,6 +831,7 @@ class ParetoReplayCandidate(DGXBaseModel):
     cost: float
     admissibility: AdmissibilityScore
     is_pareto_optimal: bool = True
+
 
 class ExhaustionReason(str, enum.Enum):
     WALL_CLOCK = "wall_clock_exhausted"
@@ -783,10 +845,12 @@ class ExhaustionReason(str, enum.Enum):
     STORAGE_EXHAUSTED = "storage_exhausted"
     QUEUE_DELAY_EXHAUSTED = "queue_delay_exhausted"
 
+
 class ExecutionBudget(DGXBaseModel):
     """
     Defense-in-depth tracking of actual resource usage (Update 8 + Prompt 6).
     """
+
     wall_clock_time_s: float | None = None
     max_steps: int | None = None
     max_tokens: int | None = None
@@ -838,16 +902,19 @@ class ExecutionBudget(DGXBaseModel):
         """Excludes sensitive physical resource counts if needed, or normalizes."""
         return self.model_dump()
 
+
 class ParetoReplaySet(DGXBaseModel):
     candidates: list[ParetoReplayCandidate] = Field(default_factory=list)
 
 
 # ─── RecoveryEligibilityCertificate (Prompt 7) ────────────────────────────────
 
+
 class RecoveryEligibilityCertificate(DGXBaseModel):
     """
     Cryptographically binds the full state required for recovery execution.
     """
+
     original_trace_root_hash: str
     manifest_hash: str
     intervention_hash: str
@@ -864,11 +931,13 @@ class RecoveryEligibilityCertificate(DGXBaseModel):
     signer_identity: str
     signature_b64: str = ""
 
+
 def serialize_for_signing(rec: RecoveryEligibilityCertificate) -> bytes:
     """
     Canonical serialization and domain separation for REC Ed25519 signing.
     """
     import json
+
     # Exclude the signature itself
     data = rec.model_dump(exclude={"signature_b64"}, mode="json")
 

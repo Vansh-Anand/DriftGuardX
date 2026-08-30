@@ -20,8 +20,8 @@ export default function ExperimentsPage() {
 
   useEffect(() => {
     setExperiments([
-      { id: "smoke-1", name: "smoke", regime: "retrieval-only", status: "COMPLETED", success_rate: 0.8 },
-      { id: "smoke-2", name: "tool-smoke", regime: "tool-use", status: "FAILED", success_rate: 0.0 }
+      { id: "smoke-1", name: "smoke", regime: "retrieval-only", status: "RECORDED", success_rate: 0.8, evidence_kind: "synthetic_simulation" },
+      { id: "smoke-2", name: "tool-smoke", regime: "tool-use", status: "RECORDED", success_rate: 0.0, evidence_kind: "synthetic_simulation" }
     ]);
   }, []);
 
@@ -35,15 +35,15 @@ export default function ExperimentsPage() {
 
   const confirmRun = async () => {
     setIsRunning(true);
-    // Simulate network delay for experiment kickoff
-    await new Promise((res) => setTimeout(res, 1200));
+    await new Promise((res) => setTimeout(res, 350));
     
     const newExp = {
-      id: `exp-${Math.floor(Math.random()*1000)}`,
-      name: "custom-eval-run",
+      id: `preview-${Date.now()}`,
+      name: "custom-eval-preview",
       regime: "agentic-planning",
-      status: "RUNNING",
-      success_rate: 0.0,
+      status: "PREVIEW",
+      success_rate: null,
+      evidence_kind: "synthetic_simulation",
     };
     
     setExperiments(prev => [newExp, ...prev]);
@@ -51,19 +51,9 @@ export default function ExperimentsPage() {
     setCreateOpen(false);
     
     toast({
-      title: 'Experiment Started',
-      description: 'The counterfactual evaluation has been queued.',
-      variant: 'success'
+      title: 'Preview Created',
+      description: 'No experiment was executed. Connect the worker API to produce replay evidence.'
     });
-    
-    // Simulate progress
-    setTimeout(() => {
-      setExperiments(prev => prev.map(e => e.id === newExp.id ? { ...e, status: 'COMPLETED', success_rate: 0.92 } : e));
-      toast({
-         title: 'Experiment Completed',
-         description: 'custom-eval-run finished successfully.',
-      });
-    }, 5000);
   };
 
   return (
@@ -72,10 +62,10 @@ export default function ExperimentsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Experiment Registry</h1>
-            <p className="text-gray-400">View and manage frozen benchmark runs across all regimes.</p>
+            <p className="text-gray-400">Inspect evidence-classified benchmark records. Preview rows are never reported as executed results.</p>
           </div>
           <Button onClick={handleRunExperiment} variant="default" className="bg-white text-black hover:bg-zinc-200">
-            Run Experiment
+            Preview Experiment
           </Button>
         </div>
 
@@ -92,6 +82,7 @@ export default function ExperimentsPage() {
                     <TableHead className="text-gray-400">Regime</TableHead>
                     <TableHead className="text-gray-400">Status</TableHead>
                     <TableHead className="text-gray-400">Success Rate</TableHead>
+                    <TableHead className="text-gray-400">Evidence</TableHead>
                     <TableHead className="text-gray-400">Artifacts</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -100,7 +91,6 @@ export default function ExperimentsPage() {
                     <TableRow key={exp.id} className="border-zinc-800 hover:bg-white/5">
                       <TableCell className="font-medium text-white">
                         {exp.name}
-                        {exp.status === 'RUNNING' && <Spinner className="w-3 h-3 ml-2 inline" />}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-blue-400 border-blue-400/20 bg-blue-400/10">
@@ -110,14 +100,15 @@ export default function ExperimentsPage() {
                       <TableCell>
                         <Badge 
                           className={exp.status === 'RUNNING' ? 'bg-amber-500/20 text-amber-500' : ''}
-                          variant={exp.status === "COMPLETED" ? "default" : exp.status === 'FAILED' ? "destructive" : "outline"}
+                          variant={exp.status === "RECORDED" ? "default" : "outline"}
                         >
                           {exp.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-300">
-                        {exp.status === 'RUNNING' ? '--' : `${(exp.success_rate * 100).toFixed(1)}%`}
+                        {exp.success_rate == null ? 'Not executed' : `${(exp.success_rate * 100).toFixed(1)}%`}
                       </TableCell>
+                      <TableCell><Badge variant="outline" className="border-amber-400/20 bg-amber-400/10 text-amber-300">Synthetic</Badge></TableCell>
                       <TableCell>
                         <Button variant="link" className="text-purple-400 p-0 h-auto">View Details</Button>
                       </TableCell>
@@ -133,9 +124,9 @@ export default function ExperimentsPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md bg-[#1a1a1a] border-[#333] text-white">
           <DialogHeader>
-            <DialogTitle>Run New Experiment</DialogTitle>
+            <DialogTitle>Preview New Experiment</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Trigger a new Budget-Constrained Counterfactual Replay evaluation.
+              Build a synthetic evaluation configuration. This preview does not execute a replay.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4 text-sm">
@@ -152,7 +143,7 @@ export default function ExperimentsPage() {
              <Button variant="outline" onClick={() => setCreateOpen(false)} className="text-black">Cancel</Button>
              <Button onClick={confirmRun} disabled={isRunning} className="bg-blue-600 text-white hover:bg-blue-700">
                 {isRunning ? <Spinner className="w-4 h-4 mr-2" /> : null}
-                Start Evaluation
+                Create Preview
              </Button>
           </DialogFooter>
         </DialogContent>

@@ -42,7 +42,7 @@ All claims are strictly backed by the test suite output and architectural source
 - **Implementation files**: `packages/recovery/src/validation.py`
 - **Tests**: `tests/unit/test_rec_verification.py`
 - **Benchmark**: `apps/cli/run_validation_pass.py`
-- **Measured technical effect**: Envelope construction ensures isolated sandbox replays. Property tests in `test_property_recovery.py` mathematically guarantee that mutations outside the trace envelope immediately fail evidence admissibility, yielding zero false positives on external regressions.
+- **Measured technical effect**: Envelope construction rejects out-of-envelope mutations in the covered property-test cases. The suite does not estimate a population false-positive rate and does not establish behavior for untested external regressions.
 - **Assumptions**: The system can snapshot and restore component states perfectly bounded by the capability sets.
 - **Limitations**: Certain external API states may be irreversible; those are detected by the solver which fails closed gracefully (`IncidentStatus.RECOVERY_REJECTED`).
 

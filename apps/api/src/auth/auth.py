@@ -4,14 +4,17 @@ PRIVATE — All Rights Reserved.
 
 Provides OIDC JWKS token validation for production and mock tokens for local testing.
 """
-import json
-import urllib.request
+
+import asyncio
+import time
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import httpx
+import jwt
 
 from apps.api.src.config import settings
 from packages.contracts.src.auth import Role, Tenant, User
@@ -19,24 +22,55 @@ from packages.contracts.src.auth import Role, Tenant, User
 # ─── Mock Identity ─────────────────────────────────────────────────────────────
 MOCK_USER_ID = UUID("00000000-0000-0000-0000-000000000000")
 MOCK_TENANT_ID = UUID("00000000-0000-0000-FFFF-000000000001")
+MOCK_JWT_SECRET = "driftguardx-local-mock-key-32-bytes-minimum"
 
 MOCK_TENANT = Tenant(id=MOCK_TENANT_ID, name="Acme Corp")
-MOCK_USER = User(id=MOCK_USER_ID, tenant_id=MOCK_TENANT_ID, email="admin@acme.com", roles=[Role.ADMIN])
+MOCK_USER = User(
+    id=MOCK_USER_ID, tenant_id=MOCK_TENANT_ID, email="admin@acme.com", roles=[Role.ADMIN]
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # JWKS Cache
-_JWKS_CLIENT = None
-
-def get_jwks() -> dict[str, Any]:
-    global _JWKS_CLIENT
-    if not _JWKS_CLIENT and settings.oidc_jwks_uri:
-        with urllib.request.urlopen(settings.oidc_jwks_uri) as response:
-            _JWKS_CLIENT = json.loads(response.read().decode("utf-8"))
-    return _JWKS_CLIENT
+_JWKS_CLIENT: dict[str, Any] | None = None
+_JWKS_EXPIRES_AT = 0.0
+_JWKS_LOCK = asyncio.Lock()
+_JWKS_TTL_SECONDS = 300.0
 
 
-def verify_token(token: str) -> dict:
+async def get_jwks(*, force_refresh: bool = False) -> dict[str, Any]:
+    """Fetch and briefly cache the configured JWKS with bounded network I/O."""
+    global _JWKS_CLIENT, _JWKS_EXPIRES_AT
+    uri = settings.oidc_jwks_uri
+    if not uri:
+        raise ValueError("OIDC JWKS URI is not configured")
+    parsed = urlparse(uri)
+    if settings.environment in {"staging", "prod"} and parsed.scheme != "https":
+        raise ValueError("OIDC JWKS URI must use HTTPS outside local/test environments")
+
+    now = time.monotonic()
+    if not force_refresh and _JWKS_CLIENT is not None and now < _JWKS_EXPIRES_AT:
+        return _JWKS_CLIENT
+
+    async with _JWKS_LOCK:
+        now = time.monotonic()
+        if not force_refresh and _JWKS_CLIENT is not None and now < _JWKS_EXPIRES_AT:
+            return _JWKS_CLIENT
+        timeout = httpx.Timeout(5.0, connect=3.0)
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+            response = await client.get(uri, headers={"Accept": "application/json"})
+            response.raise_for_status()
+            if len(response.content) > 1024 * 1024:
+                raise ValueError("OIDC JWKS response exceeds the 1 MiB limit")
+            payload = response.json()
+        if not isinstance(payload, dict) or not isinstance(payload.get("keys"), list):
+            raise ValueError("OIDC JWKS response is malformed")
+        _JWKS_CLIENT = payload
+        _JWKS_EXPIRES_AT = time.monotonic() + _JWKS_TTL_SECONDS
+        return payload
+
+
+async def verify_token(token: str) -> dict[str, Any]:
     """Verifies and decodes a JWT."""
     if settings.auth_mode == "mock":
         # Accept the mock token literally
@@ -45,9 +79,9 @@ def verify_token(token: str) -> dict:
 
         # Or decode assuming mock secret if provided
         try:
-            payload = jwt.decode(token, "mock_secret_key_for_development", algorithms=["HS256"])
+            payload = jwt.decode(token, MOCK_JWT_SECRET, algorithms=["HS256"])
             return payload
-        except JWTError:
+        except jwt.PyJWTError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate mock credentials",
@@ -56,28 +90,31 @@ def verify_token(token: str) -> dict:
 
     # OIDC Mode
     try:
-        jwks = get_jwks()
         unverified_header = jwt.get_unverified_header(token)
+        kid = unverified_header.get("kid")
+        if not kid:
+            raise jwt.PyJWTError("Token header missing kid")
 
-        rsa_key = {}
-        for key in jwks.get("keys", []):
-            if key["kid"] == unverified_header["kid"]:
-                rsa_key = {
-                    "kty": key["kty"],
-                    "kid": key["kid"],
-                    "use": key["use"],
-                    "n": key["n"],
-                    "e": key["e"]
-                }
-                break
+        jwks = await get_jwks()
+
+        def find_key(keys: list[dict[str, Any]]) -> dict[str, Any]:
+            return next((key for key in keys if key.get("kid") == kid), {})
+
+        rsa_key = find_key(jwks["keys"])
+        if not rsa_key:
+            # Key rotation: refresh once before rejecting the token.
+            jwks = await get_jwks(force_refresh=True)
+            rsa_key = find_key(jwks["keys"])
 
         if rsa_key:
+            verification_key = jwt.PyJWK.from_dict(rsa_key).key
             payload = jwt.decode(
                 token,
-                rsa_key,
+                verification_key,
                 algorithms=["RS256"],
                 audience=settings.oidc_audience,
-                issuer=settings.oidc_issuer
+                issuer=settings.oidc_issuer,
+                options={"require": ["exp", "iat", "sub"]},
             )
             return payload
 
@@ -87,13 +124,13 @@ def verify_token(token: str) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    except JWTError as e:
+    except jwt.PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials: {e!s}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
+    except (httpx.HTTPError, ValueError, RuntimeError, KeyError, TypeError, OSError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",

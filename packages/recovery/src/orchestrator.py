@@ -30,6 +30,7 @@ from packages.contracts.src.interfaces import (
     RecoveryValidator,
     ReplayExecutor,
     ResourceContext,
+    ResourceMeasurement,
     StoppingPolicy,
     TraceProvider,
     TransportabilityGate,
@@ -153,6 +154,7 @@ class CausalRecoveryOrchestrator:
 
             all_replays: list[dict[str, Any]] = []
             remaining_candidates = list(candidates)
+            valid_evidence_count = 0
 
             while True:
                 # Update wall time
@@ -165,7 +167,11 @@ class CausalRecoveryOrchestrator:
                     belief_model=self.belief_model,
                     remaining_candidates=remaining_candidates,
                 )
-                if should_stop:
+                # A posterior or mock policy cannot authorize recovery without
+                # at least one replay that passed divergence validation.
+                if should_stop and (
+                    stop_outcome != StoppingOutcome.CONFIRMED or valid_evidence_count > 0
+                ):
                     break
 
                 # Select next experiment using real EIG
@@ -186,17 +192,42 @@ class CausalRecoveryOrchestrator:
                         belief_model=self.belief_model,
                         remaining_candidates=[],  # Force empty to reflect exhaustion
                     )
+                    if valid_evidence_count == 0:
+                        stop_outcome = StoppingOutcome.NO_ADMISSIBLE_EXPERIMENT
+                        stop_reason = "No replay passed divergence validation."
                     break
 
                 # Confirm budget reservation
                 reservation = experiment.pop("_reservation", None)
 
                 # Execute the selected experiment
-                replays = self.replay_executor.execute_replays([experiment])
+                execution_started = time.monotonic()
+                try:
+                    replays = self.replay_executor.execute_replays([experiment])
+                except Exception:
+                    if reservation is not None:
+                        reservation.release()
+                    raise
 
-                # Confirm reservation if execution succeeded
+                # Reconcile the reservation with measured execution time and
+                # an executor-reported cost when available.
                 if reservation is not None:
-                    reservation.confirm()
+                    actual_cost = sum(
+                        float(replay.get("actual_cost_usd", 0.0)) for replay in replays
+                    )
+                    if actual_cost <= 0.0:
+                        actual_cost = reservation.estimate.cost_usd
+                    reservation.commit(ResourceMeasurement(
+                        cost_usd=actual_cost,
+                        replay_count=len(replays),
+                        wall_seconds=time.monotonic() - execution_started,
+                    ))
+
+                tested_id = experiment.get("candidate_id", experiment.get("id", ""))
+                remaining_candidates = [
+                    candidate for candidate in remaining_candidates
+                    if candidate.get("candidate_id", candidate.get("id", "")) != tested_id
+                ]
 
                 # Validate divergence against the envelope
                 div_report = self.divergence_validator.validate_divergence(
@@ -219,18 +250,13 @@ class CausalRecoveryOrchestrator:
 
                 # Update belief state
                 new_belief = self.belief_model.update_belief(incident_state, replays)
+                valid_evidence_count += len(replays)
                 incident_state.root_cause_posterior = new_belief
 
                 # Record entropy for stopping rule
                 if hasattr(self.stopping_policy, "record_iteration"):
                     self.stopping_policy.record_iteration(self.belief_model.entropy())
 
-                # Remove tested candidate from remaining list
-                tested_id = experiment.get("candidate_id", experiment.get("id", ""))
-                remaining_candidates = [
-                    c for c in remaining_candidates
-                    if c.get("candidate_id", c.get("id", "")) != tested_id
-                ]
                 all_replays.extend(replays)
 
             # Preserve explicit telemetry as requested
@@ -280,6 +306,12 @@ class CausalRecoveryOrchestrator:
 
             # 7. Validate in controlled replay with signed capabilities
             machine.transition(IncidentStatus.RECOVERY_VALIDATING, "Validating cut in controlled replay.")
+            if access_context is None or not access_context.is_valid():
+                machine.transition(
+                    IncidentStatus.RECOVERY_REJECTED,
+                    "Missing or expired authenticated recovery access context.",
+                )
+                return ""
             val_result = self.recovery_validator.validate_cut(
                 cut=cut,
                 invariants=envelope.invariants,

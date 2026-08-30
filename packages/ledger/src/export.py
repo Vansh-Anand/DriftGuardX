@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 Exports certificates in JSON format or machine verification bundles.
 Redacts sensitive content from the intervention vector while retaining hashes.
 """
+
 from __future__ import annotations
 
 import json
@@ -12,6 +13,7 @@ from dataclasses import asdict
 from typing import Any
 
 from packages.ledger.src.schema import RecoveryCertificate
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 
 
 def redact_sensitive_data(payload: dict[str, Any]) -> dict[str, Any]:
@@ -22,7 +24,7 @@ def redact_sensitive_data(payload: dict[str, Any]) -> dict[str, Any]:
     Wait, if we redact data, the verification of the signature on the exported bundle will FAIL.
     Therefore, a machine verification bundle MUST contain the exact bytes that were signed.
     If privacy is required, the original certificate should only store hashes of sensitive
-    data, which we enforce at creation time. The export must NOT modify fields if it 
+    data, which we enforce at creation time. The export must NOT modify fields if it
     expects the signature to remain valid.
 
     We provide two exports:
@@ -46,13 +48,16 @@ def redact_sensitive_data(payload: dict[str, Any]) -> dict[str, Any]:
 
 def export_machine_bundle(certs: list[RecoveryCertificate]) -> str:
     """
-    Exports a complete, unredacted JSON bundle of certificates suitable for 
+    Exports a complete, unredacted JSON bundle of certificates suitable for
     independent cryptographic verification by the standalone verifier.
     """
     bundle = {
-        "version": "1.0",
+        "version": "2.0",
         "type": "DriftGuardX_Ledger_Verification_Bundle",
-        "certificates": [asdict(c) for c in certs]
+        "evidence_summary": {
+            kind.value: sum(c.evidence_kind == kind for c in certs) for kind in RecoveryEvidenceKind
+        },
+        "certificates": [asdict(c) for c in certs],
     }
     return json.dumps(bundle, indent=2)
 
@@ -67,9 +72,10 @@ def export_human_summary(certs: list[RecoveryCertificate]) -> str:
         summaries.append(redact_sensitive_data(asdict(c)))
 
     bundle = {
-        "version": "1.0",
+        "version": "2.0",
         "type": "DriftGuardX_Ledger_Human_Summary",
         "notice": "Signatures will not verify against this redacted payload.",
-        "certificates": summaries
+        "evidence_notice": "Synthetic simulation is not production replay or canary evidence.",
+        "certificates": summaries,
     }
     return json.dumps(bundle, indent=2)

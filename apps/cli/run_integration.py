@@ -4,6 +4,7 @@ PRIVATE — All Rights Reserved.
 """
 import argparse
 import sys
+from datetime import UTC, datetime, timedelta
 
 from packages.contracts.src.incident_models import IncidentState
 from packages.contracts.src.recovery_models import FailureTarget
@@ -25,6 +26,7 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
+from packages.memory.src.auth import AccessContext
 
 
 def main():
@@ -69,7 +71,12 @@ def main():
     state = IncidentState()
 
     print("\n--- Starting Causal Recovery ---")
-    cert = orch.process_incident(state, targets)
+    access_context = AccessContext(
+        requester_id="local-integration-runner",
+        tenant_id="local-validation-tenant",
+        expires_at=datetime.now(UTC) + timedelta(minutes=15),
+    )
+    cert = orch.process_incident(state, targets, access_context=access_context)
 
     print("\n--- Transition Log ---")
     if "transition_log" in state.telemetry:

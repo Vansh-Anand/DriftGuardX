@@ -47,7 +47,7 @@ def executor():
         client = docker.from_env()
         client.ping()
         return ContainerReplayExecutor()
-    except (ValueError, RuntimeError, KeyError, TypeError, OSError):
+    except Exception:
         pytest.skip("Docker is not available on this system.")
 
 

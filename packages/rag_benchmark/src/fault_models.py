@@ -1,12 +1,16 @@
 """
 DriftGuard-X v2 — Benchmark Causal Fault Models
 """
+
 import abc
 import enum
 import hashlib
 from typing import Any
 
+from pydantic import Field
+
 from packages.contracts.src.models import DGXBaseModel
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 
 
 class FaultType(str, enum.Enum):
@@ -21,6 +25,7 @@ class FaultType(str, enum.Enum):
 
 class FaultScenario(DGXBaseModel):
     """Configuration for a specific benchmark trial scenario."""
+
     scenario_id: str
     dataset: str
     split: str
@@ -56,12 +61,15 @@ class EvaluationOracle(abc.ABC):
     """Evaluates the pipeline outcome to determine if the failure was mitigated."""
 
     @abc.abstractmethod
-    def is_mitigated(self, original_faulted_output: Any, new_output: Any, scenario: FaultScenario) -> bool:
+    def is_mitigated(
+        self, original_faulted_output: Any, new_output: Any, scenario: FaultScenario
+    ) -> bool:
         pass
 
 
 class BenchmarkTrial(DGXBaseModel):
     """Records the execution of a single benchmark trial."""
+
     scenario: FaultScenario
     strategy: str
     replays_executed: int
@@ -74,9 +82,17 @@ class BenchmarkTrial(DGXBaseModel):
     wall_seconds: float
     unresolved: bool
     false_confirmed: bool
+    confirmed: bool = False
+    mitigation_observed: bool = False
+    localization_correct: bool = False
+    top_candidate: str | None = None
+    observations: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
 
 
-def generate_stable_seed(dataset: str, split: str, query_id: str, fault_type: str, replicate_id: int, global_seed: int) -> int:
+def generate_stable_seed(
+    dataset: str, split: str, query_id: str, fault_type: str, replicate_id: int, global_seed: int
+) -> int:
     """Derives a deterministic trial seed."""
     key = f"{dataset}|{split}|{query_id}|{fault_type}|{replicate_id}|{global_seed}"
     h = hashlib.sha256(key.encode("utf-8")).hexdigest()

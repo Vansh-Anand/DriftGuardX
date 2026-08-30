@@ -5,6 +5,7 @@ import pytest
 from httpx import AsyncClient
 
 from apps.api.src.auth.auth import (
+    MOCK_JWT_SECRET,
     MOCK_TENANT_ID,
 )
 from packages.contracts.src.auth import Role
@@ -21,7 +22,7 @@ def generate_mock_jwt(sub=FAKE_USER_ID, email="test@test.com", roles=None):
         "email": email,
         "roles": roles
     }
-    return jwt.encode(payload, "mock_secret_key_for_development", algorithm="HS256")
+    return jwt.encode(payload, MOCK_JWT_SECRET, algorithm="HS256")
 
 # Test 1: Cross-tenant read/write (IDOR attempt)
 @pytest.mark.asyncio
@@ -80,17 +81,17 @@ async def test_role_escalation():
     assert exc.value.status_code == 403
     assert "requires admin role" in exc.value.detail.lower()
 
-# Test 4: Missing Tenant ID
+# Test 4: Tenant is derived from signed identity/membership, never a client header
 @pytest.mark.asyncio
 async def test_missing_tenant_header(client: AsyncClient):
     token = generate_mock_jwt()
     headers = {
         "Authorization": f"Bearer {token}"
-        # Missing X-Tenant-ID
+        # No signed tenant claim and no provisioned membership.
     }
 
     response = await client.get("/v1/runs", headers=headers)
-    assert response.status_code in (400, 401)
+    assert response.status_code in (401, 403)
 
 # Test 5: Valid mock admin fallback
 @pytest.mark.asyncio

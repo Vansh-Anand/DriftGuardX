@@ -3,6 +3,7 @@ import React from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CertStatus = "CERTIFIED" | "UNCERTIFIED" | "REJECTED";
+type EvidenceKind = "synthetic_simulation" | "controlled_replay" | "production_canary";
 
 interface MockReport {
   run_id: string;
@@ -11,6 +12,7 @@ interface MockReport {
   recommended_next_step: string;
   // Certification fields (Prompt 10)
   certificate_status: CertStatus;
+  evidence_kind: EvidenceKind;
   bound_method: string;
   epsilon: number;
   delta: number;
@@ -47,6 +49,7 @@ const MOCK_REPORT: MockReport = {
   recommended_next_step: "Approve Rollback of Retriever to v1.",
   // Certification fields
   certificate_status: "CERTIFIED",
+  evidence_kind: "synthetic_simulation",
   bound_method: "hoeffding",
   epsilon: 0.087,
   delta: 0.10,
@@ -124,6 +127,11 @@ function CertificationBadge({ report }: { report: MockReport }) {
       <p className={`text-xs italic mb-4 ${badgeConfig.text}`}>
         This diagnosis is {badgeConfig.subtext}. It does NOT constitute a system safety guarantee.
       </p>
+      <div className="mb-4 rounded border border-amber-500 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+        Evidence provenance: {report.evidence_kind.replaceAll("_", " ")}.
+        {report.evidence_kind === "synthetic_simulation" &&
+          " Synthetic evidence cannot authorize production execution."}
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
         <div className="bg-white/60 rounded p-2">
@@ -169,7 +177,10 @@ function CertificationBadge({ report }: { report: MockReport }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function RootCauseReportPage({ params }: { params: { run_id: string } }) {
-  const canExecute = MOCK_REPORT.certificate_status === "CERTIFIED" && !MOCK_REPORT.block_automated_action;
+  const canExecute =
+    MOCK_REPORT.certificate_status === "CERTIFIED" &&
+    MOCK_REPORT.evidence_kind !== "synthetic_simulation" &&
+    !MOCK_REPORT.block_automated_action;
 
   return (
     <div className="p-8 max-w-6xl mx-auto font-sans bg-gray-50 min-h-screen">

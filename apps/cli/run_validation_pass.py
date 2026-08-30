@@ -1,7 +1,14 @@
 import json
+import os
 import random
 import statistics
 import time
+from datetime import UTC, datetime, timedelta
+
+os.environ.setdefault(
+    "DGX_CAPABILITY_SECRET",
+    "driftguardx-synthetic-validation-secret-32-bytes",
+)
 
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.recovery_models import FailureTarget
@@ -23,6 +30,7 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
+from packages.memory.src.auth import AccessContext
 
 
 class BenchmarkHarness:
@@ -119,7 +127,16 @@ class BenchmarkHarness:
                     state = IncidentState()
 
                     t0 = time.time()
-                    cert = orch.process_incident(state, scenario["targets"])
+                    access_context = AccessContext(
+                        requester_id="synthetic-benchmark-runner",
+                        tenant_id="synthetic-validation-tenant",
+                        expires_at=datetime.now(UTC) + timedelta(minutes=15),
+                    )
+                    cert = orch.process_incident(
+                        state,
+                        scenario["targets"],
+                        access_context=access_context,
+                    )
                     t1 = time.time()
 
                     scenario_times.append((t1 - t0) * 1000) # ms
@@ -146,7 +163,16 @@ class BenchmarkHarness:
 if __name__ == "__main__":
     harness = BenchmarkHarness(seed=42, num_trials=5) # N=5 for quick execution
     print("Running Final Validation Pass Benchmarks...")
-    res = harness.run_all()
+    benchmark_results = harness.run_all()
+    res = {
+        "evidence_kind": "synthetic_simulation",
+        "evidence_notice": (
+            "Mocked orchestration benchmark; not production or real-system replay evidence."
+        ),
+        "seed": 42,
+        "trials_per_scenario": 5,
+        "results": benchmark_results,
+    }
     with open("validation_results.json", "w") as f:
         json.dump(res, f, indent=2)
     print("Finished. Results written to validation_results.json")

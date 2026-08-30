@@ -6,10 +6,15 @@ GET  /v1/runs     — list runs
 GET  /v1/runs/{id} — get run with normalized trace
 POST /v1/runs/{id}/replays — create deterministic replay
 """
+
 from __future__ import annotations
 
+import hashlib
+import os
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -19,6 +24,7 @@ from apps.api.src.database import get_db
 from apps.api.src.dependencies import PaginationParams, get_current_tenant, get_idempotency_key
 from apps.api.src.models import (
     InterventionORM,
+    IdempotencyKeyORM,
     ReplayEpisodeORM,
     ReplayStateManifestORM,
     RequestRunORM,
@@ -41,25 +47,148 @@ from apps.api.src.schemas import (
     SpanResponse,
     TraceResponse,
 )
+from packages.contracts.src.auth import Tenant
 from packages.contracts.src.models import (
+    ComponentVersion,
     ComponentType,
     Intervention,
     InterventionType,
+    ReplayStateManifest,
 )
-from packages.policy.src.gate import evaluate_policy
-from packages.replay.src.engine import ReplayEngine, VersionRegistry
+from packages.policy.src.gate import PolicyGate, evaluate_policy
+from packages.replay.src.engine import (
+    MOCK_RAG_CORPUS_VERSION_ID,
+    MOCK_RAG_EMBEDDING_MODEL_VERSION,
+    MOCK_RETRIEVER_V1_DOCUMENT_IDS,
+    ReplayEngine,
+    VersionRegistry,
+)
+from packages.trace_sdk.src.tracer import hash_payload
 
 router = APIRouter(prefix="/v1", tags=["runs"])
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _build_version_registry() -> VersionRegistry:
     from apps.api.src.pipeline.mock_rag import ALL_COMPONENT_VERSIONS
+
     registry = VersionRegistry()
     for cv in ALL_COMPONENT_VERSIONS:
         registry.register(cv)
     return registry
+
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+
+
+def _file_sha256(relative_path: str) -> str:
+    """Hash a required runtime artifact, failing closed when it is absent."""
+    path = _REPOSITORY_ROOT / relative_path
+    if not path.is_file():
+        raise RuntimeError(f"Required replay provenance artifact is missing: {relative_path}")
+    digest = hashlib.sha256()
+    with path.open("rb") as artifact:
+        for chunk in iter(lambda: artifact.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _build_replay_manifest(
+    *,
+    original_run: RequestRunORM,
+    original_trace: TraceArtifactORM,
+    replay_version: ComponentVersion,
+    seed: int,
+) -> ReplayStateManifest:
+    """Bind a replay to actual code, lock, trace, policy, and component state."""
+    lock_digest = _file_sha256("uv.lock")
+    replay_engine_digest = _file_sha256("packages/replay/src/engine.py")
+    api_route_digest = _file_sha256("apps/api/src/routes/runs.py")
+
+    generation_parameters: dict[str, object] = {
+        "sampling": "deterministic",
+        "temperature": 0.0,
+        "seed": seed,
+    }
+    component_manifest = [
+        {
+            "component_type": str(component.component_type),
+            "version_id": str(component.id),
+            "version_tag": component.version_tag,
+            "config_hash": component.config_hash,
+        }
+        for component in PIPELINE_WITH_STABLE_RETRIEVER.component_versions
+    ]
+    retriever_settings: dict[str, object] = {
+        "top_k": len(MOCK_RETRIEVER_V1_DOCUMENT_IDS),
+        "ordering": "score_desc",
+        "version_id": str(replay_version.id),
+        "config_hash": replay_version.config_hash,
+    }
+    policy_definition = {
+        "always_allow": sorted(PolicyGate.ALWAYS_ALLOW_ACTIONS),
+        "needs_approval": sorted(PolicyGate.NEEDS_APPROVAL_ACTIONS),
+        "always_deny": sorted(PolicyGate.ALWAYS_DENY_ACTIONS),
+        "default": "deny",
+    }
+    local_artifact_digest = hash_payload(
+        {
+            "api_route_sha256": api_route_digest,
+            "replay_engine_sha256": replay_engine_digest,
+            "dependency_lock_sha256": lock_digest,
+        }
+    )
+    execution_digest = os.environ.get("DGX_CONTAINER_IMAGE_DIGEST")
+    if not execution_digest:
+        execution_digest = f"local-process:sha256:{local_artifact_digest}"
+
+    corpus_snapshot = {
+        "corpus_version": MOCK_RAG_CORPUS_VERSION_ID,
+        "document_ids": list(MOCK_RETRIEVER_V1_DOCUMENT_IDS),
+        "retriever_settings": retriever_settings,
+    }
+    trace_root_hash = hash_payload(
+        {
+            "root_span_id": original_trace.root_span_id,
+            "total_span_count": original_trace.total_span_count,
+            "spans": original_trace.spans_json,
+        }
+    )
+
+    return ReplayStateManifest(
+        run_id=original_run.id,
+        tenant_id=original_run.tenant_id,
+        # Raw prompts are deliberately not retained. This is the canonical hash
+        # of the original request envelope containing the query and seed.
+        original_query_hash=original_run.request_hash,
+        corpus_version_id=MOCK_RAG_CORPUS_VERSION_ID,
+        model_provider="local-deterministic",
+        model_identifier="MockGeneratorV1@v1",
+        model_config_hash=hash_payload(
+            {"components": component_manifest, "generation": generation_parameters}
+        ),
+        prompt_template_hash=hash_payload(
+            {
+                "callable": "packages.replay.src.engine.MockGeneratorV1.execute",
+                "source_module_sha256": replay_engine_digest,
+            }
+        ),
+        retriever_version=replay_version.version_tag,
+        retriever_settings=retriever_settings,
+        retrieved_chunk_ids=list(MOCK_RETRIEVER_V1_DOCUMENT_IDS),
+        embedding_model_version=MOCK_RAG_EMBEDDING_MODEL_VERSION,
+        vector_index_snapshot_id=f"mock-rag-index@sha256:{hash_payload(corpus_snapshot)}",
+        tool_schemas_hash=hash_payload({"tools": []}),
+        policy_config_hash=hash_payload(policy_definition),
+        memory_snapshot_id=f"stateless@sha256:{hash_payload({'persistent_memory': False})}",
+        random_seed=seed,
+        generation_parameters=generation_parameters,
+        container_image_digest=execution_digest,
+        dependency_lockfile_hash=lock_digest,
+        trace_root_hash=trace_root_hash,
+    )
 
 
 def _orm_to_run_response(run: RequestRunORM) -> RunResponse:
@@ -85,14 +214,39 @@ def _orm_to_run_response(run: RequestRunORM) -> RunResponse:
 
 # ─── POST /v1/runs ────────────────────────────────────────────────────────────
 
+
 @router.post("/runs", response_model=RunResponse, status_code=status.HTTP_201_CREATED)
 async def create_run(
     request: RunCreateRequest,
     db: AsyncSession = Depends(get_db),
-    tenant=Depends(get_current_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
     idempotency_key: str | None = Depends(get_idempotency_key),
 ) -> RunResponse:
     """Execute a deterministic mock RAG pipeline run and persist the trace."""
+
+    if not request.is_synthetic:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Non-synthetic execution is unavailable on the deterministic mock pipeline",
+        )
+
+    effective_idempotency_key = idempotency_key or request.request_id
+    if idempotency_key and request.request_id and idempotency_key != request.request_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Header and body idempotency keys do not match",
+        )
+    if effective_idempotency_key:
+        existing_key = await db.scalar(
+            select(IdempotencyKeyORM).where(
+                IdempotencyKeyORM.tenant_id == tenant.id,
+                IdempotencyKeyORM.key == effective_idempotency_key,
+            )
+        )
+        if existing_key is not None:
+            if existing_key.request_path != "/v1/runs":
+                raise HTTPException(status_code=409, detail="Idempotency key is already in use")
+            return RunResponse.model_validate(existing_key.response_body)
 
     # Policy check
     policy = evaluate_policy("create_run", "pipeline")
@@ -117,11 +271,15 @@ async def create_run(
     # Persist run
     run_orm = RequestRunORM(
         id=run_contract.id,
-        tenant_id=run_contract.tenant_id,
+        tenant_id=tenant.id,
         pipeline_id=run_contract.pipeline_id,
-        status=run_contract.status.value if hasattr(run_contract.status, "value") else run_contract.status,
+        status=(
+            run_contract.status.value
+            if hasattr(run_contract.status, "value")
+            else run_contract.status
+        ),
         request_hash=run_contract.request_hash,
-        request_id=request.request_id,
+        request_id=effective_idempotency_key,
         seed=run_contract.seed,
         response_hash=run_contract.response_hash,
         reliability_score=run_contract.reliability_score,
@@ -145,7 +303,7 @@ async def create_run(
             span_id=span.span_id,
             parent_span_id=span.parent_span_id,
             run_id=run_id,
-            tenant_id=span.tenant_id,
+            tenant_id=tenant.id,
             pipeline_id=span.pipeline_id,
             name=span.name,
             kind=str(span.kind.value) if hasattr(span.kind, "value") else str(span.kind),
@@ -154,7 +312,11 @@ async def create_run(
             status_code=span.status_code,
             status_message=span.status_message,
             attributes_json=span.attributes,
-            component_type=str(span.component_type.value) if span.component_type and hasattr(span.component_type, "value") else span.component_type,
+            component_type=(
+                str(span.component_type.value)
+                if span.component_type and hasattr(span.component_type, "value")
+                else span.component_type
+            ),
             component_version_id=span.component_version_id,
             component_version_tag=span.component_version_tag,
             input_hash=span.input_hash,
@@ -181,7 +343,11 @@ async def create_run(
             "start_time": s.start_time.isoformat(),
             "end_time": s.end_time.isoformat() if s.end_time else None,
             "status_code": s.status_code,
-            "component_type": str(s.component_type.value) if s.component_type and hasattr(s.component_type, "value") else s.component_type,
+            "component_type": (
+                str(s.component_type.value)
+                if s.component_type and hasattr(s.component_type, "value")
+                else s.component_type
+            ),
             "component_version_tag": s.component_version_tag,
             "input_hash": s.input_hash,
             "output_hash": s.output_hash,
@@ -197,7 +363,7 @@ async def create_run(
     trace_orm = TraceArtifactORM(
         id=uuid.uuid4(),
         run_id=run_id,
-        tenant_id=run_contract.tenant_id,
+        tenant_id=tenant.id,
         pipeline_id=run_contract.pipeline_id,
         spans_json=spans_json,
         root_span_id=trace_contract.root_span_id,
@@ -206,21 +372,40 @@ async def create_run(
     db.add(trace_orm)
 
     await db.flush()
-    return _orm_to_run_response(run_orm)
+    response = _orm_to_run_response(run_orm)
+    if effective_idempotency_key:
+        db.add(
+            IdempotencyKeyORM(
+                tenant_id=tenant.id,
+                key=effective_idempotency_key,
+                request_path="/v1/runs",
+                response_status=status.HTTP_201_CREATED,
+                response_body=response.model_dump(mode="json"),
+            )
+        )
+        await db.flush()
+    return response
 
 
 # ─── GET /v1/runs ─────────────────────────────────────────────────────────────
+
 
 @router.get("/runs", response_model=RunListResponse)
 async def list_runs(
     pagination: PaginationParams = Depends(),
     status_filter: str | None = Query(default=None, alias="status"),
     db: AsyncSession = Depends(get_db),
-    tenant=Depends(get_current_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
 ) -> RunListResponse:
     """List all runs with pagination, filtered by tenant."""
-    query = select(RequestRunORM).where(RequestRunORM.tenant_id == tenant.id).order_by(RequestRunORM.created_at.desc())
-    count_query = select(func.count()).select_from(RequestRunORM).where(RequestRunORM.tenant_id == tenant.id)
+    query = (
+        select(RequestRunORM)
+        .where(RequestRunORM.tenant_id == tenant.id)
+        .order_by(RequestRunORM.created_at.desc())
+    )
+    count_query = (
+        select(func.count()).select_from(RequestRunORM).where(RequestRunORM.tenant_id == tenant.id)
+    )
 
     if status_filter:
         query = query.where(RequestRunORM.status == status_filter)
@@ -243,14 +428,19 @@ async def list_runs(
 
 # ─── GET /v1/runs/{id} ────────────────────────────────────────────────────────
 
+
 @router.get("/runs/{run_id}", response_model=RunResponse)
 async def get_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    tenant=Depends(get_current_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
 ) -> RunResponse:
     """Get a run by ID."""
-    result = await db.execute(select(RequestRunORM).where(RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id))
+    result = await db.execute(
+        select(RequestRunORM).where(
+            RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id
+        )
+    )
     run = result.scalar_one_or_none()
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
@@ -259,21 +449,26 @@ async def get_run(
 
 # ─── GET /v1/runs/{id}/trace ──────────────────────────────────────────────────
 
+
 @router.get("/runs/{run_id}/trace", response_model=TraceResponse)
 async def get_run_trace(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    tenant=Depends(get_current_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
 ) -> TraceResponse:
     """Get the normalized trace for a run."""
     result = await db.execute(
-        select(TraceArtifactORM).where(TraceArtifactORM.run_id == run_id, TraceArtifactORM.tenant_id == tenant.id)
+        select(TraceArtifactORM).where(
+            TraceArtifactORM.run_id == run_id, TraceArtifactORM.tenant_id == tenant.id
+        )
     )
     trace = result.scalar_one_or_none()
     if trace is None:
         raise HTTPException(status_code=404, detail=f"Trace for run {run_id} not found")
 
-    spans_data: list[dict] = trace.spans_json if isinstance(trace.spans_json, list) else []
+    spans_data: list[dict[str, Any]] = (
+        trace.spans_json if isinstance(trace.spans_json, list) else []
+    )
     span_responses = [
         SpanResponse(
             trace_id=s.get("trace_id", ""),
@@ -281,7 +476,11 @@ async def get_run_trace(
             parent_span_id=s.get("parent_span_id"),
             name=s.get("name", ""),
             kind=s.get("kind", "INTERNAL"),
-            start_time=datetime.fromisoformat(s["start_time"]) if s.get("start_time") else datetime.now(UTC),
+            start_time=(
+                datetime.fromisoformat(s["start_time"])
+                if s.get("start_time")
+                else datetime.now(UTC)
+            ),
             end_time=datetime.fromisoformat(s["end_time"]) if s.get("end_time") else None,
             status_code=s.get("status_code", "UNSET"),
             component_type=s.get("component_type"),
@@ -312,6 +511,7 @@ async def get_run_trace(
 
 # ─── POST /v1/runs/{id}/replays ───────────────────────────────────────────────
 
+
 @router.post(
     "/runs/{run_id}/replays",
     response_model=ReplayResponse,
@@ -321,7 +521,7 @@ async def create_replay(
     run_id: uuid.UUID,
     request: ReplayCreateRequest,
     db: AsyncSession = Depends(get_db),
-    tenant=Depends(get_current_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
     idempotency_key: str | None = Depends(get_idempotency_key),
 ) -> ReplayResponse:
     """
@@ -335,7 +535,11 @@ async def create_replay(
         raise HTTPException(status_code=403, detail=f"Policy denied: {policy.rationale}")
 
     # Load original run
-    run_result = await db.execute(select(RequestRunORM).where(RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id))
+    run_result = await db.execute(
+        select(RequestRunORM).where(
+            RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id
+        )
+    )
     original_run_orm = run_result.scalar_one_or_none()
     if original_run_orm is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
@@ -348,7 +552,10 @@ async def create_replay(
 
     # Load original trace
     trace_result = await db.execute(
-        select(TraceArtifactORM).where(TraceArtifactORM.run_id == run_id)
+        select(TraceArtifactORM).where(
+            TraceArtifactORM.run_id == run_id,
+            TraceArtifactORM.tenant_id == tenant.id,
+        )
     )
     original_trace_orm = trace_result.scalar_one_or_none()
     if original_trace_orm is None:
@@ -357,8 +564,10 @@ async def create_replay(
     # Rebuild trace contract from stored JSON
     from packages.contracts.src.models import SpanKind, SpanRecord, TraceArtifact
 
-    spans_data: list[dict] = original_trace_orm.spans_json if isinstance(original_trace_orm.spans_json, list) else []
-    span_contracts = []
+    spans_data: list[dict[str, Any]] = (
+        original_trace_orm.spans_json if isinstance(original_trace_orm.spans_json, list) else []
+    )
+    span_contracts: list[SpanRecord] = []
     for s in spans_data:
         try:
             ct = None
@@ -401,7 +610,9 @@ async def create_replay(
 
     from packages.contracts.src.models import RunStatus
 
-    original_run_contract = __import__("packages.contracts.src.models", fromlist=["RequestRun"]).RequestRun(
+    original_run_contract = __import__(
+        "packages.contracts.src.models", fromlist=["RequestRun"]
+    ).RequestRun(
         id=original_run_orm.id,
         tenant_id=original_run_orm.tenant_id,
         pipeline_id=original_run_orm.pipeline_id,
@@ -439,8 +650,16 @@ async def create_replay(
         id=intervention.id,
         run_id=run_id,
         tenant_id=intervention.tenant_id,
-        intervention_type=intervention.intervention_type.value if hasattr(intervention.intervention_type, "value") else intervention.intervention_type,
-        target_component_type=intervention.target_component_type.value if hasattr(intervention.target_component_type, "value") else intervention.target_component_type,
+        intervention_type=(
+            intervention.intervention_type.value
+            if hasattr(intervention.intervention_type, "value")
+            else intervention.intervention_type
+        ),
+        target_component_type=(
+            intervention.target_component_type.value
+            if hasattr(intervention.target_component_type, "value")
+            else intervention.target_component_type
+        ),
         from_version_id=intervention.from_version_id,
         to_version_id=intervention.to_version_id,
         from_version_tag=intervention.from_version_tag,
@@ -458,29 +677,11 @@ async def create_replay(
     original_rv = original_run_orm.reliability_vector or {}
     request_inputs = {"query": "What are the latest AI safety guidelines?", "seed": request.seed}
 
-    # Create ReplayStateManifest
-    from packages.contracts.src.models import ReplayStateManifest
-    manifest_contract = ReplayStateManifest(
-        run_id=run_id,
-        tenant_id=original_run_orm.tenant_id,
-        original_query_hash="mock-query-hash",
-        corpus_version_id="mock-corpus",
-        model_provider="mock-provider",
-        model_identifier="mock-model",
-        model_config_hash="mock-config-hash",
-        prompt_template_hash="mock-prompt-hash",
-        retriever_version=to_version.version_tag,
-        retriever_settings={"mock": True},
-        retrieved_chunk_ids=["chunk1"],
-        embedding_model_version="mock-embed",
-        vector_index_snapshot_id="mock-index",
-        tool_schemas_hash="mock-schema-hash",
-        policy_config_hash="mock-policy-hash",
-        memory_snapshot_id="mock-memory",
-        random_seed=request.seed,
-        container_image_digest="mock-container",
-        dependency_lockfile_hash="mock-lockfile",
-        trace_root_hash="mock-trace-hash",
+    manifest_contract = _build_replay_manifest(
+        original_run=original_run_orm,
+        original_trace=original_trace_orm,
+        replay_version=to_version,
+        seed=request.seed,
     )
 
     manifest_orm = ReplayStateManifestORM(
@@ -529,7 +730,11 @@ async def create_replay(
         pipeline_id=original_run_orm.pipeline_id,
         intervention_id=intervention.id,
         status=episode.status.value if hasattr(episode.status, "value") else episode.status,
-        swapped_component_type=episode.swapped_component_type.value if hasattr(episode.swapped_component_type, "value") else episode.swapped_component_type,
+        swapped_component_type=(
+            episode.swapped_component_type.value
+            if hasattr(episode.swapped_component_type, "value")
+            else episode.swapped_component_type
+        ),
         original_version_id=episode.original_version_id,
         replay_version_id=episode.replay_version_id,
         original_version_tag=episode.original_version_tag,
@@ -562,7 +767,11 @@ async def create_replay(
             "start_time": s.start_time.isoformat(),
             "end_time": s.end_time.isoformat() if s.end_time else None,
             "status_code": s.status_code,
-            "component_type": str(s.component_type.value) if s.component_type and hasattr(s.component_type, "value") else s.component_type,
+            "component_type": (
+                str(s.component_type.value)
+                if s.component_type and hasattr(s.component_type, "value")
+                else s.component_type
+            ),
             "component_version_tag": s.component_version_tag,
             "latency_ms": s.latency_ms,
             "policy_result": s.policy_result,
@@ -598,6 +807,7 @@ async def create_replay(
         created_at=episode_orm.created_at,
         completed_at=episode_orm.completed_at,
         is_synthetic=episode_orm.is_synthetic,
+        evidence_kind=("synthetic_simulation" if episode_orm.is_synthetic else "controlled_replay"),
         manifest_id=manifest_orm.id,
         manifest_hash=manifest_orm.manifest_hash,
         is_pinned=episode_orm.is_pinned,

@@ -16,13 +16,26 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: api
-        image: ghcr.io/driftguardx/api@sha256:b5a2d9b2f6b8b0e7a2b9e8b7d6a5f4c3b2a1e0f9d8c7b6a5f4e3d2c1b0a9f8e7
+        # Non-deployable promotion placeholder. CI must replace the zero digest
+        # with the registry-produced digest for this exact release commit.
+        image: ghcr.io/vansh-anand/driftguardx-api@sha256:0000000000000000000000000000000000000000000000000000000000000000
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
         ports:
         - containerPort: 8000
+        env:
+        - name: DGX_CONTAINER_IMAGE_DIGEST
+          # Promotion must replace this together with the image digest above.
+          value: sha256:0000000000000000000000000000000000000000000000000000000000000000
         envFrom:
         - secretRef:
             name: driftguard-secrets
@@ -41,7 +54,7 @@ spec:
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /health
+            path: /ready
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 10

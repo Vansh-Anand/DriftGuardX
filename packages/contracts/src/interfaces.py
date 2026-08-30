@@ -275,7 +275,7 @@ class RecoveryValidator(abc.ABC):
         trace_id: str,
         original_spans: list[Any],
         access_context: AccessContext,
-        exogenous_variables: list[Any] | None = None,
+        exogenous_variables: dict[str, Any] | None = None,
     ) -> RecoveryValidationResult:
         pass
 

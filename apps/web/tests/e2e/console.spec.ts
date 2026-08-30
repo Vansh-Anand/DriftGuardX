@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('DriftGuard-X Web Console', () => {
   test('Overview page loads with correct title and navigation', async ({ page }) => {
     // We mock the API call so the test passes regardless of backend state
-    await page.route('**/v1/telemetry/quality/*', async route => {
+    await page.route('**/v1/telemetry/quality', async route => {
       const json = {
         metrics: {
           total_traces: 100,
@@ -22,10 +22,10 @@ test.describe('DriftGuard-X Web Console', () => {
       await route.fulfill({ json });
     });
 
-    await page.goto('/');
+    await page.goto('/dashboard');
 
     // Check title
-    await expect(page).toHaveTitle(/DriftGuard-X Web Console/);
+    await expect(page).toHaveTitle(/DriftGuard-X/);
     await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
     // Check navigation links
@@ -34,7 +34,7 @@ test.describe('DriftGuard-X Web Console', () => {
   });
 
   test('Runs page lists mock runs correctly', async ({ page }) => {
-    await page.route('**/v1/runs?skip=0&limit=20', async route => {
+    await page.route(/\/v1\/runs\?skip=0&limit=20$/, async route => {
       const json = {
         runs: [
           {
@@ -56,9 +56,9 @@ test.describe('DriftGuard-X Web Console', () => {
 
     await page.goto('/runs');
     await expect(page.getByRole('heading', { name: 'Runs' })).toBeVisible();
-    await expect(page.getByText('mock-run-id')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'mock...' })).toBeVisible();
     await expect(page.getByText('failed')).toBeVisible();
-    await expect(page.getByText('Synthetic')).toBeVisible();
+    await expect(page.getByText('Synthetic', { exact: true })).toBeVisible();
   });
 
   test('Replay Lab handles form submission', async ({ page }) => {

@@ -5,20 +5,25 @@ Structured logging, request IDs, health/readiness endpoints, and full API routin
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import os
+import re
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import RequestResponseEndpoint
 
 from apps.api.src.database import create_all_tables
+from apps.api.src.config import settings
+from apps.api.src.middleware import RequestBodyLimitMiddleware
 from apps.api.src.routers import manifest
 from apps.api.src.routes import graph, ingest, runs, telemetry
 from apps.api.src.routes.detectors import router as detectors_router
@@ -26,6 +31,7 @@ from apps.api.src.routes.jobs import router as jobs_router
 from apps.api.src.routes.providers import router as providers_router
 from apps.api.src.routes.replays import router as replays_router
 from apps.api.src.schemas import HealthResponse, ReadinessResponse
+from packages.utils.src.version import APP_VERSION
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -45,14 +51,13 @@ log = structlog.get_logger()
 
 # ─── App ──────────────────────────────────────────────────────────────────────
 
-APP_VERSION = os.environ.get("APP_VERSION", "0.1.0")
-APP_ENV = os.environ.get("APP_ENV", "development")
+APP_ENV = os.environ.get("APP_ENV", settings.environment)
 
 from contextlib import asynccontextmanager
 
 
 @asynccontextmanager
-async def _lifespan(app_: FastAPI):
+async def _lifespan(app_: FastAPI) -> AsyncIterator[None]:
     """App lifespan: startup + shutdown."""
     db_url = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./driftguardx_dev.db")
     if "sqlite" in db_url:
@@ -72,9 +77,9 @@ app = FastAPI(
         "⚠️ DEMO/SYNTHETIC: All runs in development mode use deterministic mock data."
     ),
     version=APP_VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=None if settings.production_like else "/docs",
+    redoc_url=None if settings.production_like else "/redoc",
+    openapi_url=None if settings.production_like else "/openapi.json",
     lifespan=_lifespan,
 )
 
@@ -82,17 +87,42 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Idempotency-Key", "X-Request-ID"],
 )
+app.add_middleware(RequestBodyLimitMiddleware, max_bytes=settings.max_request_body_bytes)
 
 # ─── Request ID Middleware ─────────────────────────────────────────────────────
 
+
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+
+
 @app.middleware("http")
-async def add_request_id(request: Request, call_next: Callable) -> Response:
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+async def add_request_id(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    supplied_request_id = request.headers.get("X-Request-ID", "")
+    request_id = (
+        supplied_request_id
+        if _REQUEST_ID_PATTERN.fullmatch(supplied_request_id)
+        else str(uuid.uuid4())
+    )
+    content_length = request.headers.get("Content-Length")
+    if content_length:
+        try:
+            if int(content_length) > settings.max_request_body_bytes:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Request body exceeds the configured limit"},
+                    headers={"X-Request-ID": request_id},
+                )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Invalid Content-Length header"},
+                headers={"X-Request-ID": request_id},
+            )
     try:
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(
@@ -106,8 +136,16 @@ async def add_request_id(request: Request, call_next: Callable) -> Response:
     response = await call_next(request)
     duration_ms = round((time.perf_counter() - start) * 1000, 2)
     response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["Cache-Control"] = "no-store"
+    if settings.production_like:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     log.info("request_completed", status_code=response.status_code, duration_ms=duration_ms)
     return response
+
 
 # ─── Health & Readiness ───────────────────────────────────────────────────────
 
@@ -123,18 +161,22 @@ async def health() -> HealthResponse:
 
 
 @app.get("/ready", response_model=ReadinessResponse, tags=["system"])
-async def readiness() -> ReadinessResponse:
+async def readiness(response: Response) -> ReadinessResponse:
     """Readiness probe — checks DB connectivity."""
     checks: dict[str, str] = {}
     try:
         from apps.api.src.database import engine
+
         async with engine.connect() as conn:
             await conn.execute(__import__("sqlalchemy", fromlist=["text"]).text("SELECT 1"))
         checks["database"] = "ok"
-    except Exception as e:
-        checks["database"] = f"error: {e}"
+    except Exception:
+        checks["database"] = "error"
+        log.exception("readiness_database_failed")
 
     overall = "ok" if all(v == "ok" for v in checks.values()) else "degraded"
+    if overall != "ok":
+        response.status_code = 503
     return ReadinessResponse(status=overall, checks=checks)
 
 
@@ -147,16 +189,20 @@ app.include_router(graph.router)
 app.include_router(manifest.router)
 app.include_router(detectors_router)
 app.include_router(replays_router)
-app.include_router(jobs_router)
+if not settings.production_like:
+    # The in-process job inspector is a local/test diagnostic surface only.
+    # Production async work must use the durable worker queue.
+    app.include_router(jobs_router)
 app.include_router(providers_router)
 
 
 # ─── Exception Handlers ───────────────────────────────────────────────────────
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    log.error("unhandled_exception", exc_type=type(exc).__name__, exc_str=str(exc))
+    log.exception("unhandled_exception", exc_type=type(exc).__name__)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "error_type": type(exc).__name__},
+        content={"detail": "Internal server error"},
     )

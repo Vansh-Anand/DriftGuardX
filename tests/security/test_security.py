@@ -54,6 +54,5 @@ async def test_request_id_header_not_injected(client: AsyncClient) -> None:
     malicious_request_id = "<script>alert(1)</script>"
     resp = await client.get("/health", headers={"X-Request-ID": malicious_request_id})
     assert resp.status_code == 200
-    # The echoed X-Request-ID should not be a valid HTML injection in JSON context
-    # Just verify it doesn't crash the server
+    assert resp.headers["X-Request-ID"] != malicious_request_id
     assert resp.json()["status"] == "ok"

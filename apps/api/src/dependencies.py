@@ -4,10 +4,12 @@ PRIVATE — All Rights Reserved.
 
 Provides dependency injection for Tenant Isolation, RBAC, and Pagination.
 """
-import uuid
 
-from fastapi import Depends, Header, HTTPException, Query, Request, status
-from sqlalchemy import select
+import uuid
+from collections.abc import Callable
+
+from fastapi import Depends, Header, HTTPException, Query, status
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.auth.auth import MOCK_TENANT, MOCK_USER, oauth2_scheme, verify_token
@@ -18,15 +20,14 @@ from packages.contracts.src.auth import Role, Tenant, User
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ) -> User:
     """Verifies the JWT and returns the User object."""
     if settings.auth_mode == "mock" and token == "mock-admin-token":
         return MOCK_USER
 
     try:
-        payload = verify_token(token)
+        payload = await verify_token(token)
         sub = payload.get("sub")
         if not sub:
             raise HTTPException(status_code=401, detail="Token missing subject claim")
@@ -39,6 +40,11 @@ async def get_current_user(
 
         # JIT Provisioning (or just map for prototype)
         if not user_orm:
+            if not settings.allow_jit_user_provisioning:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Authenticated identity is not provisioned",
+                )
             user_orm = UserORM(auth_subject=sub, email=email)
             db.add(user_orm)
             await db.commit()
@@ -46,69 +52,69 @@ async def get_current_user(
 
         # For prototype simplicity, if we JIT'd the user, we assume they need some roles.
         # In a real app we sync roles from token claims or IdP webhooks.
-        roles = [Role(r) for r in payload.get("roles", [])]
+        raw_roles = payload.get("roles", [])
+        if not isinstance(raw_roles, list):
+            raise HTTPException(status_code=401, detail="Token roles claim is malformed")
+        roles = [Role(r) for r in raw_roles]
         if not roles:
             roles = [Role.VIEWER]
 
-        return User(id=user_orm.id, tenant_id=uuid.UUID(int=0), email=email, roles=roles) # tenant_id is placeholder here, resolved next
+        tenant_claim = payload.get("tenant_id", payload.get("tid"))
+        try:
+            token_tenant_id = uuid.UUID(str(tenant_claim)) if tenant_claim else uuid.UUID(int=0)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="Token tenant claim is malformed")
+
+        return User(id=user_orm.id, tenant_id=token_tenant_id, email=email, roles=roles)
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid authentication credentials: {e!s}",
+            detail="Invalid authentication credentials",
         )
 
 
 async def get_current_tenant(
-    request: Request,
     user: User = Depends(get_current_user),
-    x_tenant_id: str | None = Header(None, description="Explicit Tenant ID"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Tenant:
-    """Extracts and verifies the tenant for the current user. Crucial for RLS / Isolation."""
+    """Derive tenant scope from a signed claim or an unambiguous membership."""
     if settings.auth_mode == "mock" and user.id == MOCK_USER.id:
         # Mock override
         return MOCK_TENANT
 
-    if not x_tenant_id:
-        # In a real app we might default to their only tenant, but for security
-        # it's best to require the client to specify.
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="X-Tenant-ID header is required"
-        )
-
-    try:
-        tenant_uuid = uuid.UUID(x_tenant_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid X-Tenant-ID format"
-        )
-
-    # Check membership
-    result = await db.execute(
+    stmt = (
         select(TenantMembershipORM, TenantORM)
         .join(TenantORM)
-        .where(
-            TenantMembershipORM.user_id == user.id,
-            TenantMembershipORM.tenant_id == tenant_uuid
-        )
+        .where(TenantMembershipORM.user_id == user.id, TenantORM.is_active.is_(True))
     )
-    row = result.first()
-    if not row:
+    if user.tenant_id.int != 0:
+        stmt = stmt.where(TenantMembershipORM.tenant_id == user.tenant_id)
+    rows = (await db.execute(stmt)).all()
+    if not rows:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this tenant or tenant does not exist"
+            detail="No active tenant membership matches the authenticated identity",
+        )
+    if len(rows) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="A signed tenant claim is required for multi-tenant identities",
         )
 
-    membership, tenant_orm = row
+    membership, tenant_orm = rows[0]
+    tenant_uuid = tenant_orm.id
 
     # Optional: set postgres runtime config for RLS
     # This requires an async context manager or engine-level hook, but we can do a local set:
-    await db.execute(f"SET LOCAL app.current_tenant_id = '{tenant_uuid!s}'")
+    bind = db.get_bind()
+    if bind.dialect.name == "postgresql":
+        await db.execute(
+            text("SELECT set_config('app.current_tenant_id', :tenant_id, true)"),
+            {"tenant_id": str(tenant_uuid)},
+        )
 
     # Merge roles (user roles + tenant specific roles)
     tenant_roles = [Role(r) for r in membership.roles_json]
@@ -119,19 +125,22 @@ async def get_current_tenant(
     return Tenant(id=tenant_orm.id, name=tenant_orm.name)
 
 
-def require_role(role: Role):
+def require_role(role: Role) -> Callable[[User], User]:
     """Dependency factory to enforce RBAC roles."""
-    def role_checker(user: User = Depends(get_current_user)):
+
+    def role_checker(user: User = Depends(get_current_user)) -> User:
         if role not in user.roles and Role.ADMIN not in user.roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation requires {role.value} role",
             )
         return user
+
     return role_checker
 
 
 # ─── Common Request Dependencies ───────────────────────────────────────────────
+
 
 class PaginationParams:
     def __init__(
@@ -146,4 +155,12 @@ class PaginationParams:
 def get_idempotency_key(
     x_idempotency_key: str | None = Header(None, description="Idempotency key for safe retries")
 ) -> str | None:
-    return x_idempotency_key
+    if x_idempotency_key is None:
+        return None
+    normalized = x_idempotency_key.strip()
+    if not normalized or len(normalized) > 255:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Idempotency-Key must contain 1 to 255 characters",
+        )
+    return normalized

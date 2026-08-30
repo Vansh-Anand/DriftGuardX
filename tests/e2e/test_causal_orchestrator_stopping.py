@@ -2,6 +2,8 @@
 Tests for orchestrator stopping logic.
 """
 
+from datetime import UTC, datetime, timedelta
+
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.recovery_models import FailureTarget
 from packages.recovery.src.mocks import (
@@ -21,6 +23,15 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
+from packages.memory.src.auth import AccessContext
+
+
+def _access_context() -> AccessContext:
+    return AccessContext(
+        requester_id="stopping-test-operator",
+        tenant_id="test-tenant",
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+    )
 from packages.replay.src.stopping_rule import EvidentiaryStoppingRule
 
 
@@ -52,7 +63,7 @@ def test_orchestrator_stops_and_fails_when_resource_exhausted():
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
 
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
 
     assert cert == ""
     assert state.status == IncidentStatus.EVIDENCE_INSUFFICIENT
@@ -67,7 +78,7 @@ def test_orchestrator_stops_and_fails_when_planner_exhausted():
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
 
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
 
     assert cert == ""
     assert state.status == IncidentStatus.EVIDENCE_INSUFFICIENT
@@ -83,7 +94,7 @@ def test_orchestrator_proceeds_when_confirmed():
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
 
-    cert = orch.process_incident(state, targets)
+    cert = orch.process_incident(state, targets, access_context=_access_context())
 
     assert cert.startswith("cert_")
     assert state.status == IncidentStatus.CLOSED
