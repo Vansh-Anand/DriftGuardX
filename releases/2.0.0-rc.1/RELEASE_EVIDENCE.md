@@ -21,6 +21,7 @@ This is an evidence-bounded engineering record. It does not establish patentabil
 - `uv.lock`, hash-locked `requirements.lock`, and the npm lock are committed inputs to a content-addressed experiment manifest.
 - Placeholder worker and planner paths no longer report fabricated successful work or reliability improvements; the graph UI renders authenticated evidence or an explicit unavailable state.
 - The console uses an evidence-aware responsive operations shell; missing telemetry/providers remain visibly unavailable, experiment previews cannot masquerade as executed results, and isolation/version claims come from current implementation and build metadata.
+- The public experience now uses an editorial motion system with cinematic data media, responsive asymmetric case layouts, route transitions, reduced-motion support, adaptive navigation, and mobile overflow protection. Bundled third-party media is documented in a source/license attribution record and is never presented as system evidence.
 
 ## Verification results
 
@@ -31,7 +32,7 @@ This is an evidence-bounded engineering record. It does not establish patentabil
 | Fatal Ruff syntax gate | Passed |
 | Black release-critical formatting gate | 30 files, passed |
 | Next.js 16.3.3 production build/type validation | Passed |
-| Playwright browser smoke | 3 passed |
+| Playwright browser smoke | 5 passed, including editorial landing and mobile composition |
 | Frozen Python dependency audit | Passed; no known vulnerabilities |
 | Production web dependency audit | Passed; 0 vulnerabilities |
 | Alembic disposable upgrade/check/downgrade/upgrade | Passed; no new upgrade operations |
@@ -60,7 +61,7 @@ The corrected oracle requires the intervention target to match injected ground t
 
 ## Immutable experiment record
 
-Manifest SHA-256: `3dbf58b22bfd1d92f2558a52142893f1af6b3e6ca4e754b0516de9f185bef540`
+Manifest SHA-256: `4dcbe004a6b0d76759eece9bd2e973e9548842c895a45019ad748f1d99fb9ff3`
 
 The active JSON manifest binds the source inventory, tracked diff, dependency locks, exact commands, seed, runtime, and three result artifacts. It records a dirty working tree because this workspace has not been committed. A reviewed clean commit and signed tag are required before external release.
 

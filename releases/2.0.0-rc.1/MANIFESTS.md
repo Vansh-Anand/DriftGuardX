@@ -1,6 +1,7 @@
 # Experiment manifests
 
-- Active: `experiment-manifest-3dbf58b22bfd1d92f2558a52142893f1af6b3e6ca4e754b0516de9f185bef540.json`
+- Active: `experiment-manifest-4dcbe004a6b0d76759eece9bd2e973e9548842c895a45019ad748f1d99fb9ff3.json`
+- Superseded: `experiment-manifest-3dbf58b22bfd1d92f2558a52142893f1af6b3e6ca4e754b0516de9f185bef540.json`
 - Superseded: `experiment-manifest-bcb7650b31634dd7bc72dc609e66713753734e5f792875e5fd9f60991217523c.json`
 - Superseded: `experiment-manifest-02195503924ee8e0f02a8e86450ecdf9ccfbb18247cf35b85b25502073422e9d.json`
 - Superseded: `experiment-manifest-d0c3c9f8a00c6c8fb3367121668eddb7885d5e2f50068b95a077f7f572a7a5c6.json`
