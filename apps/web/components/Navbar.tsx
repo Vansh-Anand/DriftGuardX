@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import { Spinner } from "@/components/ui/spinner";
+import { usePathname } from "next/navigation";
 
 function LiveClock({ label, offset }: { label: string; offset: number }) {
   const [time, setTime] = useState('');
@@ -32,6 +33,8 @@ function LiveClock({ label, offset }: { label: string; offset: number }) {
 }
 
 export function Navbar() {
+  const pathname = usePathname();
+  const isLanding = pathname === "/";
   const { user, login, logout, isLoading } = useAuth();
   const { toast } = useToast();
   const [loginOpen, setLoginOpen] = useState(false);
@@ -68,7 +71,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full z-50 border-b border-[#b7ffe5]/10 bg-[#07110f]/92 text-[#eafff7] backdrop-blur-xl">
+      <header className={`fixed top-0 left-0 w-full z-50 backdrop-blur-xl transition-colors duration-500 ${isLanding ? "landing-nav border-b border-black/10 bg-[#f4f4f0]/94 text-black" : "border-b border-[#b7ffe5]/10 bg-[#07110f]/92 text-[#eafff7]"}`}>
         <div className="flex items-center justify-between h-12 px-4 md:px-6">
           {/* Left: Logo */}
           <Link href="/" className="group flex items-center gap-2 font-mono text-xs font-bold tracking-[0.15em] uppercase text-[#eafff7]">

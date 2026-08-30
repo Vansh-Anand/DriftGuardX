@@ -8,9 +8,9 @@
       {
         "scenario": "retriever_regression",
         "N": 5,
-        "mean_time_ms": 0.10237693786621094,
+        "mean_time_ms": 0.0,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.22892179239711993,
+        "std_time_ms": 0.0,
         "mean_replays": 21,
         "mean_tokens": 31500,
         "success_rate": 1.0
@@ -120,9 +120,9 @@
       {
         "scenario": "prompt_regression",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.26640892028808594,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.43889232829559965,
         "mean_replays": 11,
         "mean_tokens": 16500,
         "success_rate": 1.0
@@ -160,9 +160,9 @@
       {
         "scenario": "model_drift",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.20766258239746094,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.4643476506238739,
         "mean_replays": 11,
         "mean_tokens": 16500,
         "success_rate": 1.0
@@ -180,9 +180,9 @@
       {
         "scenario": "policy_mismatch",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.20117759704589844,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.4498467825446898,
         "mean_replays": 11,
         "mean_tokens": 16500,
         "success_rate": 1.0
@@ -222,9 +222,9 @@
       {
         "scenario": "prompt_regression",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.19941329956054688,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.44590169343491176,
         "mean_replays": 6,
         "mean_tokens": 9000,
         "success_rate": 1.0
@@ -262,9 +262,9 @@
       {
         "scenario": "model_drift",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.21195411682128906,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.47394381332333396,
         "mean_replays": 6,
         "mean_tokens": 9000,
         "success_rate": 1.0
@@ -272,9 +272,9 @@
       {
         "scenario": "external_api_state_change",
         "N": 5,
-        "mean_time_ms": 0.40068626403808594,
+        "mean_time_ms": 0.0,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.8959617240395895,
+        "std_time_ms": 0.0,
         "mean_replays": 6,
         "mean_tokens": 9000,
         "success_rate": 1.0
@@ -282,9 +282,9 @@
       {
         "scenario": "policy_mismatch",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.1971721649169922,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.4408903640251937,
         "mean_replays": 6,
         "mean_tokens": 9000,
         "success_rate": 1.0
@@ -302,9 +302,9 @@
       {
         "scenario": "multi_cause_failure",
         "N": 5,
-        "mean_time_ms": 0.4004955291748047,
+        "mean_time_ms": 0.0,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.8955352279196135,
+        "std_time_ms": 0.0,
         "mean_replays": 6,
         "mean_tokens": 9000,
         "success_rate": 1.0
@@ -324,9 +324,9 @@
       {
         "scenario": "prompt_regression",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.19130706787109375,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.4277756083359316,
         "mean_replays": 3,
         "mean_tokens": 4500,
         "success_rate": 1.0
@@ -334,9 +334,9 @@
       {
         "scenario": "memory_poisoning",
         "N": 5,
-        "mean_time_ms": 0.40073394775390625,
+        "mean_time_ms": 0.0,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.8960683480695836,
+        "std_time_ms": 0.0,
         "mean_replays": 3,
         "mean_tokens": 4500,
         "success_rate": 1.0
@@ -344,9 +344,9 @@
       {
         "scenario": "tool_output_corruption",
         "N": 5,
-        "mean_time_ms": 0.20122528076171875,
+        "mean_time_ms": 0.1960277557373047,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.4499534065746838,
+        "std_time_ms": 0.43833138730533766,
         "mean_replays": 3,
         "mean_tokens": 4500,
         "success_rate": 1.0
@@ -354,9 +354,9 @@
       {
         "scenario": "tool_schema_change",
         "N": 5,
-        "mean_time_ms": 0.15769004821777344,
+        "mean_time_ms": 0.0,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.35260566719016095,
+        "std_time_ms": 0.0,
         "mean_replays": 3,
         "mean_tokens": 4500,
         "success_rate": 1.0
@@ -364,9 +364,9 @@
       {
         "scenario": "model_drift",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.202178955078125,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.4520858871745638,
         "mean_replays": 3,
         "mean_tokens": 4500,
         "success_rate": 1.0
@@ -404,9 +404,9 @@
       {
         "scenario": "multi_cause_failure",
         "N": 5,
-        "mean_time_ms": 0.0,
+        "mean_time_ms": 0.1995086669921875,
         "median_time_ms": 0.0,
-        "std_time_ms": 0.0,
+        "std_time_ms": 0.4461149414948998,
         "mean_replays": 3,
         "mean_tokens": 4500,
         "success_rate": 1.0

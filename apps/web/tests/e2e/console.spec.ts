@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('DriftGuard-X Web Console', () => {
+  test('Editorial landing page exposes the evidence narrative and motion media', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Evidence, not instinct/i })).toBeVisible();
+    await expect(page.locator('video[aria-label="Abstract data network animation"]')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open operations console' })).toBeVisible();
+    await expect(page.getByText('Make the invisible', { exact: false })).toBeVisible();
+  });
+
+  test('Editorial landing remains composed on a mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Evidence, not instinct/i })).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+  });
+
   test('Overview page loads with correct title and navigation', async ({ page }) => {
     // We mock the API call so the test passes regardless of backend state
     await page.route('**/v1/telemetry/quality', async route => {

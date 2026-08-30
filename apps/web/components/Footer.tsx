@@ -60,7 +60,7 @@ export function Footer() {
               <Link href="/dashboard" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors link-underline">Dashboard ↗</Link>
               <Link href="/experiments" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors link-underline">Experiments ↗</Link>
               <a href="#" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors link-underline">Documentation ↗</a>
-              <a href="https://github.com" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors link-underline">GitHub ↗</a>
+              <a href="https://github.com/Vansh-Anand/DriftGuardX" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors link-underline">GitHub ↗</a>
             </div>
           </div>
 
@@ -94,7 +94,7 @@ export function Footer() {
         <div className="flex gap-8">
           <a href="#" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors tracking-widest uppercase">Privacy</a>
           <a href="#" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors tracking-widest uppercase">Terms</a>
-          <a href="https://github.com" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors tracking-widest uppercase">GitHub ↗</a>
+          <a href="https://github.com/Vansh-Anand/DriftGuardX" className="font-mono text-xs text-[#888] hover:text-[#0a0a0a] transition-colors tracking-widest uppercase">GitHub ↗</a>
         </div>
       </div>
     </footer>
