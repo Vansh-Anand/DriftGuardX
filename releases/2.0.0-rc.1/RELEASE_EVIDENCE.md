@@ -87,10 +87,12 @@ the primary comparison metric.
 Every trial contains a canonical SHA-256 evidence digest. The complete artifact
 binds dataset file hashes, experiment parameters, source state, aggregates,
 paired statistics, and trial evidence under manifest SHA-256
-`7c4389dfea31973458e38750ffd9e0548a5995c0c31dcf88e40e1b697f1a83c9`.
-The committed local artifact records a dirty source tree because it was generated
-during implementation. The manual CI evidence workflow regenerates it from a
-clean checkout and rejects dirty provenance before retaining the artifact.
+`337f496e8b25d889ed7d21ab241a381b8c6ba1a5c8a7ff7b67e76e4cff74ad8a`.
+The artifact was regenerated from clean source commit
+`afdd841f8a5c7a3ee0d3662d3df149e156f83bb5`; its tracked-diff digest is the
+SHA-256 of an empty byte sequence. The manual CI evidence workflow independently
+regenerates the experiment from clean checkout and rejects dirty provenance
+before retaining its artifact.
 
 ## Immutable experiment record
 
