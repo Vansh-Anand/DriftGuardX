@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, Check, Fingerprint, Radar, ShieldCheck } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Check,
+  FileCheck2,
+  Fingerprint,
+  GitBranch,
+  Play,
+  Radar,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { useRef } from "react";
 
 const SYSTEMS = [
@@ -10,6 +22,30 @@ const SYSTEMS = [
   { id: "02", title: "Causal graph", note: "Evidence-backed attribution", href: "/graph", color: "#c4b5fd" },
   { id: "03", title: "Replay lab", note: "Killable counterfactuals", href: "/replay", color: "#fef08a" },
   { id: "04", title: "Recovery gate", note: "Policy-bound action", href: "/recovery", color: "#fecaca" },
+];
+
+const WORKFLOWS = [
+  {
+    title: "Diagnose agent drift",
+    copy: "Build a tenant-scoped causal graph from live spans.",
+    href: "/graph",
+    icon: GitBranch,
+    media: "/media/neural-network.jpg",
+  },
+  {
+    title: "Replay the failure",
+    copy: "Run deterministic counterfactuals inside a killable boundary.",
+    href: "/replay",
+    icon: Play,
+    media: "/media/neural-network.jpg",
+  },
+  {
+    title: "Seal evidence",
+    copy: "Bind replay class, version, policy, and manifest into a certificate.",
+    href: "/ledger",
+    icon: FileCheck2,
+    media: "/media/neural-network.jpg",
+  },
 ];
 
 const reveal = {
@@ -58,6 +94,56 @@ export default function LandingPage() {
         </motion.div>
 
         <div className="edge-label"><strong>DGX</strong><span>Evidence system</span></div>
+      </section>
+
+      <section className="agent-launchpad" aria-label="DriftGuard-X workflow launchpad">
+        <motion.div
+          className="launchpad-shell"
+          variants={reveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.25 }}
+        >
+          <div className="launchpad-heading">
+            <p className="eyebrow">Operations launchpad</p>
+            <h2>What needs proof today?</h2>
+          </div>
+          <div className="prompt-composer">
+            <Search size={18} />
+            <span>Investigate stale retrieval in the support agent and prepare a bounded recovery certificate</span>
+            <Link href="/dashboard" aria-label="Open dashboard from launchpad">
+              <ArrowUpRight size={18} />
+            </Link>
+          </div>
+          <div className="launchpad-filters" aria-label="Workflow filters">
+            {["All", "Trace", "Replay", "Policy", "Ledger", "Reports"].map((filter) => (
+              <span key={filter} className={filter === "All" ? "active" : ""}>{filter}</span>
+            ))}
+          </div>
+          <div className="workflow-grid">
+            {WORKFLOWS.map(({ title, copy, href, icon: Icon, media }, index) => (
+              <Link key={title} href={href} className="workflow-card">
+                <img src={media} alt="" aria-hidden="true" />
+                <div className="workflow-card-top">
+                  <span><Icon size={14} /> {index === 0 ? "Featured" : "Ready"}</span>
+                  <ArrowUpRight size={16} />
+                </div>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                </div>
+              </Link>
+            ))}
+            <Link href="/experiments" className="workflow-card workflow-card-accent">
+              <Sparkles size={20} />
+              <div>
+                <h3>Compare evidence classes</h3>
+                <p>Keep synthetic benchmark claims separate from controlled replay evidence before release.</p>
+              </div>
+              <span>Open experiments <ArrowUpRight size={16} /></span>
+            </Link>
+          </div>
+        </motion.div>
       </section>
 
       <section className="capability-index">

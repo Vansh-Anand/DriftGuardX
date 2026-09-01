@@ -6,6 +6,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { PageLayout } from '@/components/PageLayout';
 import { Spinner } from '@/components/ui/spinner';
 import { fetchProviders, fetchTelemetry } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 type Telemetry = {
   metrics?: {
@@ -54,6 +55,7 @@ function StatCard({ icon: Icon, label, value, sub, signal = false }: {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [providers, setProviders] = useState<Providers | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function DashboardPage() {
     }
     void loadData();
     return () => { active = false; };
-  }, []);
+  }, [user]);
 
   const connected = Boolean(telemetry);
   const badge = (
