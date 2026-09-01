@@ -8,29 +8,15 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncGenerator
-from typing import Any
-
-from pgvector.sqlalchemy import Vector
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.pool import NullPool
 
 import apps.api.src.models_ingestion
+import apps.api.src.models_bandit  # noqa: F401
+import apps.api.src.models_graph  # noqa: F401
 import apps.api.src.models_manifest  # noqa: F401
 from apps.api.src.config import settings
 from apps.api.src.models import Base
-
-
-@compiles(Vector, "sqlite")
-def compile_vector_sqlite(type_: Any, compiler: Any, **kw: Any) -> str:
-    return "JSON"
-
-
-@compiles(JSONB, "sqlite")
-def compile_jsonb_sqlite(type_: Any, compiler: Any, **kw: Any) -> str:
-    return "JSON"
-
 
 # Default: SQLite for local dev without Docker; override via env
 _DB_URL = settings.database_url.get_secret_value()

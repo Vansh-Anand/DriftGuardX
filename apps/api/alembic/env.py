@@ -3,6 +3,7 @@ DriftGuard-X v2 — Alembic environment configuration.
 
 Supports both async (PostgreSQL) and sync (SQLite for testing) engines.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,6 +27,10 @@ if str(APPLICATION_ROOT) not in sys.path:
     sys.path.insert(0, str(APPLICATION_ROOT))
 
 from apps.api.src.models import Base  # noqa: E402
+import apps.api.src.models_bandit  # noqa: E402,F401
+import apps.api.src.models_graph  # noqa: E402,F401
+import apps.api.src.models_ingestion  # noqa: E402,F401
+import apps.api.src.models_manifest  # noqa: E402,F401
 
 # Alembic config object
 config = context.config

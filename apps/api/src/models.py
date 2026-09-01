@@ -4,9 +4,9 @@ DriftGuard-X v2 — SQLAlchemy ORM Models
 Compatibility layer for both PostgreSQL (JSONB) and SQLite (JSON) backends.
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
-import os
 import uuid
 from datetime import UTC, datetime
 
@@ -17,21 +17,18 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.types import Uuid
 
-# Use JSONB on Postgres, JSON on SQLite
-_DB_URL = os.environ.get("DATABASE_URL", "sqlite")
-if "postgresql" in _DB_URL or "postgres" in _DB_URL:
-    from sqlalchemy.dialects.postgresql import JSONB as _JSON_TYPE
-    _USE_POSTGRES = True
-else:
-    from sqlalchemy import JSON as _JSON_TYPE
-    _USE_POSTGRES = False
+# Resolve the storage type at SQL compilation time, not from import-time
+# environment state.  This keeps Alembic, tests, and runtime metadata identical.
+_JSON_TYPE = JSON().with_variant(JSONB(), "postgresql")
 
 
 def _utcnow() -> datetime:
@@ -44,6 +41,7 @@ class Base(DeclarativeBase):
 
 # ─── Tenant ───────────────────────────────────────────────────────────────────
 
+
 class TenantORM(Base):
     __tablename__ = "tenants"
 
@@ -52,16 +50,19 @@ class TenantORM(Base):
     slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
-
-    pipelines: Mapped[list[AgentPipelineORM]] = relationship("AgentPipelineORM", back_populates="tenant")
-
-    __table_args__ = (
-        Index("ix_tenants_slug", "slug"),
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
     )
+
+    pipelines: Mapped[list[AgentPipelineORM]] = relationship(
+        "AgentPipelineORM", back_populates="tenant"
+    )
+
+    __table_args__ = (Index("ix_tenants_slug", "slug"),)
 
 
 # ─── Auth Models ──────────────────────────────────────────────────────────────
+
 
 class UserORM(Base):
     __tablename__ = "users"
@@ -70,17 +71,25 @@ class UserORM(Base):
     auth_subject: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
 
-    memberships: Mapped[list[TenantMembershipORM]] = relationship("TenantMembershipORM", back_populates="user")
+    memberships: Mapped[list[TenantMembershipORM]] = relationship(
+        "TenantMembershipORM", back_populates="user"
+    )
 
 
 class TenantMembershipORM(Base):
     __tablename__ = "tenant_memberships"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     roles_json: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
@@ -96,30 +105,33 @@ class TenantMembershipORM(Base):
 
 # ─── Idempotency ──────────────────────────────────────────────────────────────
 
+
 class IdempotencyKeyORM(Base):
     __tablename__ = "idempotency_keys"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     key: Mapped[str] = mapped_column(String(255), nullable=False)
     request_path: Mapped[str] = mapped_column(String(255), nullable=False)
     response_status: Mapped[int] = mapped_column(Integer, nullable=False)
     response_body: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "key", name="uq_idempotency_tenant_key"),
-    )
-
+    __table_args__ = (UniqueConstraint("tenant_id", "key", name="uq_idempotency_tenant_key"),)
 
 
 # ─── Audit Event ──────────────────────────────────────────────────────────────
+
 
 class AuditEventORM(Base):
     __tablename__ = "audit_events"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     resource_type: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -135,11 +147,14 @@ class AuditEventORM(Base):
 
 # ─── ComponentVersion ─────────────────────────────────────────────────────────
 
+
 class ComponentVersionORM(Base):
     __tablename__ = "component_versions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     component_type: Mapped[str] = mapped_column(String(64), nullable=False)
     version_tag: Mapped[str] = mapped_column(String(64), nullable=False)
     state: Mapped[str] = mapped_column(String(32), nullable=False, default="stable")
@@ -155,11 +170,14 @@ class ComponentVersionORM(Base):
 
 # ─── AgentPipeline ────────────────────────────────────────────────────────────
 
+
 class AgentPipelineORM(Base):
     __tablename__ = "agent_pipelines"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     version: Mapped[str] = mapped_column(String(64), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -169,19 +187,22 @@ class AgentPipelineORM(Base):
     tenant: Mapped[TenantORM] = relationship("TenantORM", back_populates="pipelines")
     runs: Mapped[list[RequestRunORM]] = relationship("RequestRunORM", back_populates="pipeline")
 
-    __table_args__ = (
-        Index("ix_agent_pipelines_tenant_id", "tenant_id"),
-    )
+    __table_args__ = (Index("ix_agent_pipelines_tenant_id", "tenant_id"),)
 
 
 # ─── RequestRun ───────────────────────────────────────────────────────────────
+
 
 class RequestRunORM(Base):
     __tablename__ = "request_runs"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
-    pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("agent_pipelines.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("agent_pipelines.id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
 
     request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -211,11 +232,14 @@ class RequestRunORM(Base):
 
     pipeline: Mapped[AgentPipelineORM] = relationship("AgentPipelineORM", back_populates="runs")
     trace: Mapped[TraceArtifactORM | None] = relationship(
-        "TraceArtifactORM", back_populates="run", uselist=False,
+        "TraceArtifactORM",
+        back_populates="run",
+        uselist=False,
         foreign_keys="TraceArtifactORM.run_id",
     )
     replay_episodes: Mapped[list[ReplayEpisodeORM]] = relationship(
-        "ReplayEpisodeORM", back_populates="original_run",
+        "ReplayEpisodeORM",
+        back_populates="original_run",
         foreign_keys="ReplayEpisodeORM.original_run_id",
     )
 
@@ -229,11 +253,14 @@ class RequestRunORM(Base):
 
 # ─── TraceArtifact ────────────────────────────────────────────────────────────
 
+
 class TraceArtifactORM(Base):
     __tablename__ = "trace_artifacts"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False, unique=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False, unique=True
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     spans_json: Mapped[list] = mapped_column(_JSON_TYPE, nullable=False, default=list)
@@ -253,6 +280,7 @@ class TraceArtifactORM(Base):
 
 # ─── SpanRecord (denormalized) ────────────────────────────────────────────────
 
+
 class SpanRecordORM(Base):
     __tablename__ = "span_records"
 
@@ -260,7 +288,9 @@ class SpanRecordORM(Base):
     trace_id: Mapped[str] = mapped_column(String(32), nullable=False)
     span_id: Mapped[str] = mapped_column(String(16), nullable=False)
     parent_span_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -272,7 +302,9 @@ class SpanRecordORM(Base):
     attributes_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
 
     component_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    component_version_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    component_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), nullable=True
+    )
     component_version_tag: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     input_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -302,11 +334,14 @@ class SpanRecordORM(Base):
 
 # ─── Intervention ─────────────────────────────────────────────────────────────
 
+
 class InterventionORM(Base):
     __tablename__ = "interventions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     intervention_type: Mapped[str] = mapped_column(String(64), nullable=False)
     target_component_type: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -320,23 +355,28 @@ class InterventionORM(Base):
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     requires_human_approval: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    __table_args__ = (
-        Index("ix_interventions_run_id", "run_id"),
-    )
+    __table_args__ = (Index("ix_interventions_run_id", "run_id"),)
 
 
 # ─── ReplayEpisode ────────────────────────────────────────────────────────────
+
 
 class ReplayEpisodeORM(Base):
     __tablename__ = "replay_episodes"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    original_run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    original_run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
-    intervention_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("interventions.id"), nullable=False)
+    intervention_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("interventions.id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
-    manifest_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("replay_state_manifests.id"), nullable=True)
+    manifest_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("replay_state_manifests.id"), nullable=True
+    )
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
 
     swapped_component_type: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -363,7 +403,8 @@ class ReplayEpisodeORM(Base):
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
 
     original_run: Mapped[RequestRunORM] = relationship(
-        "RequestRunORM", back_populates="replay_episodes",
+        "RequestRunORM",
+        back_populates="replay_episodes",
         foreign_keys=[original_run_id],
     )
     manifest: Mapped[ReplayStateManifestORM | None] = relationship(
@@ -379,11 +420,14 @@ class ReplayEpisodeORM(Base):
 
 # ─── ReplayStateManifest ──────────────────────────────────────────────────────
 
+
 class ReplayStateManifestORM(Base):
     __tablename__ = "replay_state_manifests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False
+    )
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
     original_query_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -417,6 +461,7 @@ class ReplayStateManifestORM(Base):
 
 # ─── Drift Detectors & Symptoms ───────────────────────────────────────────────
 
+
 class DetectorThresholdORM(Base):
     __tablename__ = "detector_thresholds"
 
@@ -431,9 +476,7 @@ class DetectorThresholdORM(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    __table_args__ = (
-        Index("ix_detector_thresholds_tenant_id", "tenant_id"),
-    )
+    __table_args__ = (Index("ix_detector_thresholds_tenant_id", "tenant_id"),)
 
 
 class SymptomRegistryEntryORM(Base):
@@ -441,7 +484,9 @@ class SymptomRegistryEntryORM(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
-    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("request_runs.id"), nullable=False
+    )
     graph_node_id: Mapped[str] = mapped_column(String(255), nullable=False)
     symptom_name: Mapped[str] = mapped_column(String(255), nullable=False)
     severity: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -458,11 +503,14 @@ class SymptomRegistryEntryORM(Base):
 
 # ─── Durable Workflow & Approvals (Prompt 5) ──────────────────────────────────
 
+
 class JobORM(Base):
     __tablename__ = "jobs"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     task_type: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     result: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
@@ -483,7 +531,9 @@ class ApprovalRequestORM(Base):
     __tablename__ = "approval_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     resource: Mapped[str] = mapped_column(String(255), nullable=False)
     requester_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -497,7 +547,9 @@ class ApprovalRequestORM(Base):
     delegated_approvers: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
     context_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
 
-    decisions: Mapped[list[ApprovalDecisionORM]] = relationship("ApprovalDecisionORM", back_populates="request")
+    decisions: Mapped[list[ApprovalDecisionORM]] = relationship(
+        "ApprovalDecisionORM", back_populates="request"
+    )
 
     __table_args__ = (
         Index("ix_approval_requests_tenant_id", "tenant_id"),
@@ -509,7 +561,9 @@ class ApprovalDecisionORM(Base):
     __tablename__ = "approval_decisions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    request_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("approval_requests.id"), nullable=False)
+    request_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("approval_requests.id"), nullable=False
+    )
     actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
     decision: Mapped[str] = mapped_column(String(32), nullable=False)
     comment: Mapped[str] = mapped_column(Text, default="")
@@ -517,14 +571,18 @@ class ApprovalDecisionORM(Base):
     is_break_glass: Mapped[bool] = mapped_column(Boolean, default=False)
     break_glass_justification: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    request: Mapped[ApprovalRequestORM] = relationship("ApprovalRequestORM", back_populates="decisions")
+    request: Mapped[ApprovalRequestORM] = relationship(
+        "ApprovalRequestORM", back_populates="decisions"
+    )
 
 
 class RecoveryStateORM(Base):
     __tablename__ = "recovery_states"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     proposal_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     current_status: Mapped[str] = mapped_column(String(32), nullable=False)
     capsule_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -534,7 +592,9 @@ class RecoveryStateORM(Base):
     escalated: Mapped[bool] = mapped_column(Boolean, default=False)
     event_log_json: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
 
     __table_args__ = (
         Index("ix_recovery_states_tenant_id", "tenant_id"),
@@ -546,7 +606,9 @@ class LedgerEntryORM(Base):
     __tablename__ = "ledger_entries"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     commit_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     timestamp: Mapped[str] = mapped_column(String(64), nullable=False)
     merkle_root: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -561,13 +623,17 @@ class LedgerEntryORM(Base):
         Index("ix_ledger_entries_commit_hash", "commit_hash"),
     )
 
+
 # ─── Recovery Eligibility Certificate (Prompt 7) ──────────────────────────────
+
 
 class RecoveryCertificateORM(Base):
     __tablename__ = "recovery_certificates"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
 
     # Core cryptographic binding
     original_trace_root_hash: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -597,4 +663,3 @@ class RecoveryCertificateORM(Base):
         Index("ix_recovery_certificates_trace", "original_trace_root_hash"),
         Index("ix_recovery_certificates_capsule", "recovery_capsule_hash"),
     )
-

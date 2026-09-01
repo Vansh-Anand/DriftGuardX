@@ -55,12 +55,26 @@ def _is_postgresql() -> bool:
     return op.get_bind().dialect.name == "postgresql"
 
 
+def _available_columns() -> dict[str, set[str]]:
+    inspector = sa.inspect(op.get_bind())
+    return {
+        table_name: {str(column["name"]) for column in inspector.get_columns(table_name)}
+        for table_name in inspector.get_table_names()
+    }
+
+
 def upgrade() -> None:
     if not _is_postgresql():
         return
 
     jsonb = postgresql.JSONB(astext_type=sa.Text())
+    available = _available_columns()
     for table_name, column_name in _JSON_COLUMNS:
+        # Two legacy no-op revisions left ingestion tables absent in databases
+        # that had already advanced past them.  The following revision repairs
+        # those tables; this conversion remains safe for both old and fresh DBs.
+        if column_name not in available.get(table_name, set()):
+            continue
         op.alter_column(
             table_name,
             column_name,
@@ -75,7 +89,10 @@ def downgrade() -> None:
         return
 
     jsonb = postgresql.JSONB(astext_type=sa.Text())
+    available = _available_columns()
     for table_name, column_name in reversed(_JSON_COLUMNS):
+        if column_name not in available.get(table_name, set()):
+            continue
         op.alter_column(
             table_name,
             column_name,
