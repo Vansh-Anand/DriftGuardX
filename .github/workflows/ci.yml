@@ -107,7 +107,18 @@ jobs:
       env:
         DATABASE_URL: postgresql+asyncpg://driftguardx:ci-password@localhost:5432/driftguardx_ci
         DGX_MODE: test
-      run: uv run alembic check
+      run: |
+        set +e
+        output="$(uv run alembic check 2>&1)"
+        status=$?
+        printf '%s\n' "$output"
+        if [ "$status" -ne 0 ]; then
+          output="${output//'%'/'%25'}"
+          output="${output//$'\r'/'%0D'}"
+          output="${output//$'\n'/'%0A'}"
+          printf '::error title=PostgreSQL migration parity failed::%s\n' "$output"
+          exit "$status"
+        fi
 
     - name: Validate PostgreSQL full downgrade
       working-directory: apps/api
@@ -150,9 +161,21 @@ jobs:
     - name: Audit production web dependencies
       run: npm audit --omit=dev --audit-level=high
     - run: npx playwright install --with-deps chromium
-    - run: npm run build
+    - name: Build production web application
       env:
         DGX_VERIFICATION_STATUS: ci-verified
+      run: |
+        set +e
+        output="$(npm run build 2>&1)"
+        status=$?
+        printf '%s\n' "$output"
+        if [ "$status" -ne 0 ]; then
+          output="${output//'%'/'%25'}"
+          output="${output//$'\r'/'%0D'}"
+          output="${output//$'\n'/'%0A'}"
+          printf '::error title=Production web build failed::%s\n' "$output"
+          exit "$status"
+        fi
     - run: npm run test:e2e
 
   container-build:
