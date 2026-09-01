@@ -138,7 +138,7 @@ DriftGuard-X implements a **closed loop** across eight logical phases:
                                │
 ┌──────────────────────────────▼───────────────────────────────────────┐
 │                          DATA LAYER                                  │
-│  PostgreSQL 16 (JSONB) │ Redis 7 │ aiosqlite Ledger │ MLflow SQLite  │
+│ PostgreSQL 16 + pgvector │ Redis 7 │ Ledger │ Immutable Manifests │
 └──────────────────────────────────────────────────────────────────────┘
                                │
 ┌──────────────────────────────▼───────────────────────────────────────┐
@@ -170,7 +170,7 @@ DriftGuard-X implements a **closed loop** across eight logical phases:
 | Numerical Computing | NumPy | ≥1.26.0 |
 | Statistical Tests | SciPy | ≥1.11.0 |
 | Graph Algorithms | NetworkX | ≥3.0.0 |
-| Experiment Tracking | MLflow | ≥2.0.0 |
+| Experiment Evidence | Canonical signed manifests | Schema v1.0 |
 | Visualization | Matplotlib + Seaborn | ≥3.7.0 / ≥0.12.0 |
 
 ### Database & Storage
@@ -322,7 +322,7 @@ driftguardx/                           Root monorepo
 │   │       ├── analysis/stats.py      Bootstrap, permutation, effect size
 │   │       ├── datasets/adapters.py   Benchmark dataset adapters
 │   │       ├── datasets/fault_overlays.py  Stochastic fault injection
-│   │       └── experiments/           Orchestrator + MLflow tracker
+│   │       └── experiments/           Orchestrator + evidence tracker
 │   ├── rationale/                     Explainability + LLM rationale
 │   │   └── src/
 │   │       ├── models.py              RationaleInputContract + Output
@@ -985,7 +985,7 @@ score = aggregate_reliability_score(vector, weights)
 **`experiments/orchestrator.py`:**
 - Routes fault regimes across dataset slices.
 - Runs detector-only, bcrb, exhaustive-replay, and combined evaluation configs.
-- Records all metrics to MLflow.
+- Records metrics and artifact hashes in immutable experiment manifests.
 
 ---
 
@@ -1087,7 +1087,7 @@ The UI never displays a confidence percentage without showing its bound method a
 
 **`experiments.py`** — evaluation runner:
 - `python -m apps.cli.experiments run --config ablation_v1 --faults retriever_stale`
-- Outputs MLflow run ID and experiment metrics.
+- Outputs a manifest digest, trial digests, and experiment metrics.
 
 ---
 
@@ -1586,13 +1586,13 @@ Every log event is a JSON object with:
 }
 ```
 
-### MLflow Experiment Tracking
+### Immutable Experiment Evidence
 
-All evaluation runs tracked with:
+All release evaluation runs bind:
 - **Parameters:** fault type, detector config, bandit budget, model version.
 - **Metrics:** reliability_delta mean/variance, BCRB efficiency, detector precision/recall, FPR.
 - **Artifacts:** confusion matrices, efficiency frontier plots, calibration curves.
-- **Tags:** git_sha, environment, seed.
+- **Provenance:** git SHA, dirty-state digest, environment, seed, dataset hashes, and evidence class.
 
 ---
 
@@ -1681,7 +1681,7 @@ HPA on CPU utilization > 70%.
 **GAT Model serving at scale:**
 - ONNX export for platform-agnostic inference.
 - Triton Inference Server for GPU-batched inference.
-- Model versioning via MLflow Model Registry.
+- Model versioning through immutable weight, configuration, and environment digests.
 
 ---
 
@@ -1792,8 +1792,8 @@ HPA on CPU utilization > 70%.
 - Validate: AUC-ROC > 0.90 on held-out test set.
 
 **8. Model Registry & Versioning (Est: 3 days)**
-- Register trained GAT in MLflow Model Registry.
-- Tag with `production` stage after validation.
+- Bind trained GAT weights and configuration into a signed release manifest.
+- Promote the immutable digest to `production` only after independent validation.
 - Implement A/B testing between model versions in production.
 
 **9. Model Drift Monitoring (Est: 2 days)**
