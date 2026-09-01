@@ -322,3 +322,72 @@ class RecoveryExecution(DGXBaseModel):
     end_time: datetime | None = None
     applied_actions: list[RecoveryAction] = Field(default_factory=list)
     rollback_status: str | None = None
+
+class JobState(str, enum.Enum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+    TIMED_OUT = "TIMED_OUT"
+
+class CryptographicSignature(DGXBaseModel):
+    algorithm: str = "Ed25519"
+    public_key: str
+    signature: str
+    timestamp: datetime = Field(default_factory=_utcnow)
+    signer_id: str
+
+class InterventionSpec(DGXBaseModel):
+    spec_id: str = Field(default_factory=lambda: str(_new_uuid()))
+    target_component: str
+    current_version: str | None = None
+    candidate_version: str | None = None
+    intervention_type: str
+    expected_cost: float = 0.0
+    risk_score: float = 0.0
+    blast_radius: float = 0.0
+    rollback_plan: str | None = None
+    dependencies: list[str] = Field(default_factory=list)
+
+class QuarantineAction(DGXBaseModel):
+    action_id: str = Field(default_factory=lambda: str(_new_uuid()))
+    target_component: str
+    reason: str
+    duration_seconds: int | None = None
+    fallback_routing: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+class ReplayStateManifest(DGXBaseModel):
+    manifest_id: str = Field(default_factory=lambda: str(_new_uuid()))
+    trace_id: str
+    agent_versions: dict[str, str] = Field(default_factory=dict)
+    routing_graph_hash: str | None = None
+    task_state: dict[str, Any] = Field(default_factory=dict)
+    prompts: dict[str, str] = Field(default_factory=dict)
+    tools: list[str] = Field(default_factory=list)
+    memory_snapshots: dict[str, Any] = Field(default_factory=dict)
+    policies: dict[str, str] = Field(default_factory=dict)
+    model_versions: dict[str, str] = Field(default_factory=dict)
+    retrieval_state: dict[str, Any] = Field(default_factory=dict)
+    rng_seeds: dict[str, int] = Field(default_factory=dict)
+    dependencies: dict[str, str] = Field(default_factory=dict)
+    image_digest: str | None = None
+    signature: CryptographicSignature | None = None
+
+class ApprovalState(str, enum.Enum):
+    PROPOSED = "PROPOSED"
+    REPLAY_CONFIRMED = "REPLAY_CONFIRMED"
+    AWAITING_APPROVAL = "AWAITING_APPROVAL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    CANARY = "CANARY"
+    PROMOTED = "PROMOTED"
+    ROLLED_BACK = "ROLLED_BACK"
+
+class RBACRole(str, enum.Enum):
+    VIEWER = "VIEWER"
+    INVESTIGATOR = "INVESTIGATOR"
+    OPERATOR = "OPERATOR"
+    APPROVER = "APPROVER"
+    SYSTEM_ADMIN = "SYSTEM_ADMIN"

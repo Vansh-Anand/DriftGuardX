@@ -2,14 +2,29 @@
 DriftGuard-X v2 — Graph Attention Network (GAT) Inference Engine
 Trained on TrainTicket Distributed Microservice Trace Dataset.
 """
+from __future__ import annotations
 import os
 from typing import Any
-
 import numpy as np
-import torch
-import torch.nn.functional as F
-from torch.nn import Dropout, LayerNorm, Linear, ReLU, Sequential
-from torch_geometric.nn import GATConv, global_max_pool, global_mean_pool
+
+try:
+    import torch
+    import torch.nn.functional as F
+    from torch.nn import Dropout, LayerNorm, Linear, ReLU, Sequential
+    from torch_geometric.nn import GATConv, global_max_pool, global_mean_pool
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    
+    # Mock classes for type checking if torch is missing
+    class MockModule:
+        def __init__(self, *args, **kwargs): pass
+    torch = type('torch', (), {
+        'nn': type('nn', (), {'Module': MockModule}),
+        'Tensor': Any,
+        'long': Any,
+        'float': Any
+    }) # type: ignore
 
 
 class DriftGuardX_GAT(torch.nn.Module):
@@ -65,6 +80,13 @@ class GATTraceDetector:
     Production detector wrapper for executing GAT inference on live or ingested Jaeger/OTel traces.
     """
     def __init__(self, model_path: str = "driftguardx_gat_model.pth", device: str | None = None):
+        self.is_loaded = False
+        
+        if not TORCH_AVAILABLE:
+            print("Warning: PyTorch not available. Detector running in mock heuristic mode.")
+            self.device = "mock_cpu"
+            return
+            
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         self.model = DriftGuardX_GAT(in_channels=6, hidden_dim=64, num_classes=2)
 
@@ -75,7 +97,6 @@ class GATTraceDetector:
             self.model.eval()
             self.is_loaded = True
         else:
-            self.is_loaded = False
             print(f"Warning: Model weight file '{model_path}' not found. Detector running in mock mode.")
 
     def detect_trace_anomaly(self, spans: list[dict[str, Any]]) -> dict[str, Any]:

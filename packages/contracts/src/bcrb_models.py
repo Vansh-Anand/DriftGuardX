@@ -41,6 +41,17 @@ class BCRBStep(DGXBaseModel):
     end_time: datetime | None = None
 
 
+class StoppingCondition(str, enum.Enum):
+    CONFIDENCE_REACHED = "confidence_reached"
+    RELIABILITY_RECOVERED = "reliability_recovered"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    ALL_SAFE_CANDIDATES_TESTED = "all_safe_candidates_tested"
+    EXPECTED_UTILITY_BELOW_THRESHOLD = "expected_utility_below_threshold"
+
+class DiagnosisOutcome(str, enum.Enum):
+    CONFIRMED = "confirmed"
+    UNKNOWN = "unknown"
+
 class BCRBSession(DGXBaseModel):
     session_id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
@@ -49,5 +60,7 @@ class BCRBSession(DGXBaseModel):
     total_spent_usd: float = 0.0
     candidates: list[BCRBCandidate] = Field(default_factory=list)
     steps: list[BCRBStep] = Field(default_factory=list)
+    stopping_condition_met: StoppingCondition | None = None
+    diagnosis_outcome: DiagnosisOutcome | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     completed_at: datetime | None = None

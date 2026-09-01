@@ -322,6 +322,7 @@ class SpanRecordORM(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     redaction_json: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
+    provenance_json: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "span_id", name="uq_span_records_tenant_span"),

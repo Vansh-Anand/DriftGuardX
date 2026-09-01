@@ -14,6 +14,7 @@ type Telemetry = {
     total_spans?: number;
     total_errors?: number;
     ingestion_lag_ms?: number;
+    spans_with_provenance?: number;
   };
 };
 
@@ -100,7 +101,7 @@ export default function DashboardPage() {
   return (
     <PageLayout title="Overview" subtitle="Evidence-aware system health and reliability signals" badge={badge}>
       <div className="mx-auto max-w-[1500px] space-y-6 p-4 md:p-8">
-        <section className="bg-[var(--background)] border border-[var(--border)] relative overflow-hidden p-6 md:p-8 shadow-[8px_8px_0_0_var(--foreground)]">
+        <section className="bg-[var(--background)] border border-[var(--border)] relative overflow-hidden p-6 md:p-8">
           <div className="relative grid gap-8 xl:grid-cols-[1.35fr_.65fr] xl:items-end">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 border border-[var(--border)] bg-transparent px-3 py-1 font-mono text-[9px] uppercase tracking-[.18em] text-[var(--foreground)]">
@@ -113,7 +114,7 @@ export default function DashboardPage() {
                 Every diagnosis stays attached to its evidence class. Synthetic evaluations cannot silently become replay or production claims.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 border border-[var(--border)] bg-transparent p-3 shadow-[4px_4px_0_0_var(--foreground)]">
+            <div className="grid grid-cols-3 gap-2 border border-[var(--border)] bg-transparent p-3">
               {['Trace', 'Replay', 'Certify'].map((step, index) => (
                 <div key={step} className="relative border border-[var(--border)] bg-transparent px-3 py-4 text-center">
                   <div className="font-mono text-[9px] text-[var(--muted)]">0{index + 1}</div>
@@ -128,12 +129,12 @@ export default function DashboardPage() {
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard icon={Activity} label="Total traces" value={metrics?.total_traces ?? '—'} sub={connected ? 'Tenant-scoped executions' : 'Sign in to connect'} signal={connected} />
           <StatCard icon={Layers3} label="Total spans" value={metrics?.total_spans ?? '—'} sub="Versioned causal observations" />
-          <StatCard icon={TriangleAlert} label="Detected errors" value={metrics?.total_errors ?? '—'} sub="Measured pipeline events" />
+          <StatCard icon={ShieldCheck} label="Provenance tagged" value={metrics?.spans_with_provenance ?? '—'} sub="Fully verified origin" />
           <StatCard icon={Radio} label="Ingestion lag" value={metrics ? `${metrics.ingestion_lag_ms ?? 0}ms` : '—'} sub="Authenticated stream latency" />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.45fr_.55fr]">
-          <div className="bg-[var(--background)] border border-[var(--border)] p-5 md:p-7 shadow-[4px_4px_0_0_var(--foreground)]">
+          <div className="bg-[var(--background)] border border-[var(--border)] p-5 md:p-7">
             <div className="mb-8 flex items-start justify-between gap-4">
               <div>
                 <div className="font-mono text-[9px] uppercase tracking-[.2em] text-[var(--muted)]">Signal topology</div>
@@ -165,7 +166,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-[var(--background)] border border-[var(--border)] p-5 md:p-7 shadow-[4px_4px_0_0_var(--foreground)]">
+          <div className="bg-[var(--background)] border border-[var(--border)] p-5 md:p-7">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-mono text-[9px] uppercase tracking-[.2em] text-[var(--muted)]">Provider mesh</div>

@@ -34,11 +34,23 @@ class AgentTask(DGXBaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class AgentIdentity(DGXBaseModel):
+    agent_id: str
+    agent_type: str
+    agent_version: str
+    provider: str | None = None
+    model_id: str | None = None
+    prompt_hash: str | None = None
+    config_hash: str | None = None
+    tool_registry_hash: str | None = None
+
+
 class AgentInvocation(DGXBaseModel):
     invocation_id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
-    agent_name: str
+    agent_identity: AgentIdentity | None = None
+    agent_name: str | None = None  # Deprecated in favor of agent_identity
     system_prompt_hash: str | None = None
     messages: list[AgentMessage] = Field(default_factory=list)
     output_message: AgentMessage | None = None

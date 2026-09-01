@@ -47,6 +47,12 @@ async def get_telemetry_quality(
     )
     errors = await db.scalar(errors_stmt) or 0
 
+    # 5. Provenance completeness
+    provenance_stmt = select(func.count(SpanRecordORM.id)).where(
+        SpanRecordORM.tenant_id == tenant.id, SpanRecordORM.provenance_json.is_not(None)
+    )
+    spans_with_provenance = await db.scalar(provenance_stmt) or 0
+
     latest_span_time = await db.scalar(
         select(func.max(func.coalesce(SpanRecordORM.end_time, SpanRecordORM.start_time))).where(
             SpanRecordORM.tenant_id == tenant.id
@@ -70,6 +76,7 @@ async def get_telemetry_quality(
             "total_errors": errors,
             "duplicate_rate": None,
             "ingestion_lag_ms": ingestion_lag_ms,
+            "spans_with_provenance": spans_with_provenance,
         },
     }
 

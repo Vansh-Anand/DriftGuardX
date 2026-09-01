@@ -5,6 +5,8 @@ PRIVATE — All Rights Reserved.
 
 import uuid
 from packages.contracts.src.models import ComponentType
+from packages.contracts.src.recovery_models import ReplayStateManifest, QuarantineAction
+from packages.isolation.src.invariance_checker import InvarianceChecker, ContaminationError
 
 class QuarantineRule:
     def __init__(self, target_component: ComponentType, description: str, enforce_network_isolation: bool = True):
@@ -36,6 +38,32 @@ class CausalIsolator:
         self._active_rules.append(rule)
         return rule
         
+    def enforce_invariance_and_quarantine(
+        self,
+        root_cause_component: ComponentType,
+        description: str,
+        original_manifest: ReplayStateManifest,
+        replay_manifest: ReplayStateManifest,
+        allowed_descendants: list[str],
+        intervened_variables: list[str]
+    ) -> QuarantineRule:
+        """
+        Cryptographically/mathematically verify that no non-target state diverged.
+        If it did, refuse the quarantine. Otherwise, apply it.
+        """
+        try:
+            InvarianceChecker.verify_no_contamination(
+                original_manifest=original_manifest,
+                replay_manifest=replay_manifest,
+                allowed_causal_descendants=allowed_descendants,
+                intervened_variables=intervened_variables
+            )
+        except ContaminationError as e:
+            # Item 160: refuse causal confirmation when replay invariance cannot be demonstrated.
+            raise ValueError(f"Refusing quarantine due to invariance violation: {e}")
+            
+        return self.apply_quarantine(root_cause_component, description)
+
     def check_invocation_allowed(self, component: ComponentType) -> bool:
         """
         Checks if a component is quarantined. Returns True if allowed to run.

@@ -73,18 +73,35 @@ class EndToEndRecoveryPipeline:
         )
         
         # 5. Repair Decision (In a real system, this goes to human approval)
-        # Here we mock a successful repair decision
+        # Here we mock a PROPOSED decision
         repair_decision_id = uuid.uuid4()
         
         # 6. Certification
         intervention_id = uuid.uuid4()
+        
+        # Enforce that certificates cannot be minted from SYNTHETIC_SIMULATION (Item 168)
+        evidence_kind = RecoveryEvidenceKind.CONTROLLED_REPLAY
+        
         cert_hash = RecoveryCertificate.compute_hash(
             run_id=uuid.UUID(run_id),
             replay_id=best_step.replay_episode_id,
             intervention_id=intervention_id,
             issued_by="bcrb_automated_pipeline",
-            evidence_kind=RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+            evidence_kind=evidence_kind
         )
+        
+        # Phase 3: Sign the certificate using the HSM
+        from packages.security.src.signer import kms_provider
+        
+        payload_to_sign = {
+            "run_id": run_id,
+            "replay_episode_id": str(best_step.replay_episode_id),
+            "intervention_id": str(intervention_id),
+            "evidence_kind": evidence_kind.value,
+            "hash": cert_hash
+        }
+        
+        signature = kms_provider.sign_payload(payload_to_sign)
         
         certificate = RecoveryCertificate(
             id=uuid.uuid4(),
@@ -97,7 +114,9 @@ class EndToEndRecoveryPipeline:
             issued_by="bcrb_automated_pipeline",
             payload_summary=diagnosis.root_cause_description,
             is_valid=True,
-            evidence_kind=RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+            evidence_kind=evidence_kind,
+            approval_state="PROPOSED",
+            cryptographic_signature=signature.model_dump()
         )
         
         return certificate

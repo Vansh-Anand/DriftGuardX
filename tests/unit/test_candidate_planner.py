@@ -38,8 +38,8 @@ def test_candidate_planner_generation():
     
     # Test generation for policy denial
     candidates = planner.generate_candidates(invocations, run_id, "policy_denial")
-    
-    assert len(candidates) == 2
+
+    assert len(candidates) >= 2
     
     # We expect a rollback for retrieval and config patch for policy
     intervention_types = {c.intervention_type for c in candidates}

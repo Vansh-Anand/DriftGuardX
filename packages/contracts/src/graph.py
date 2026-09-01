@@ -33,6 +33,11 @@ class NodeType(str, enum.Enum):
     PROVIDER = "provider"
     OPERATIONAL_RESOURCE = "operational_resource"
     AGENT = "agent"
+    
+    # Roadmap Item 18 Categories
+    INFORMATION = "information"
+    COMPUTATION = "computation"
+    ACTUATION = "actuation"
 
 
 class EdgeType(str, enum.Enum):
