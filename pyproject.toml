@@ -63,6 +63,7 @@ benchmark = [
     "openai>=1.14.0",
     "tiktoken>=0.6.0",
     "beir>=2.0.0",
+    "pyarrow>=23.0.1",
 ]
 
 [tool.hatch.build.targets.wheel]
