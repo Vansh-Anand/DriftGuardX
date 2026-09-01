@@ -70,7 +70,8 @@ jobs:
           packages/rag_benchmark/src/fault_injection.py packages/rag_benchmark/src/rag_pipeline.py \
           packages/rag_benchmark/src/schedulers.py packages/rag_benchmark/src/controlled_replay.py \
           packages/detectors/src/calibration.py packages/evaluation/src/report_generator.py \
-          apps/cli/run_controlled_replay_benchmark.py scripts/download_scifact.py
+          apps/cli/run_controlled_replay_benchmark.py scripts/download_scifact.py \
+          scripts/enforce_trivy_report.py
 
     - name: Strict type check for release-critical modules
       run: |
@@ -93,6 +94,7 @@ jobs:
           packages/rag_benchmark/src/controlled_replay.py packages/detectors/src/calibration.py \
           packages/evaluation/src/report_generator.py apps/cli/run_controlled_replay_benchmark.py \
           scripts/download_scifact.py \
+          scripts/enforce_trivy_report.py \
           packages/utils/src/version.py
 
     - name: Upgrade PostgreSQL schema to head
@@ -230,12 +232,18 @@ jobs:
         output-file: reports/sbom.spdx.json
 
     - name: Vulnerability Scan (Trivy)
+      id: trivy
+      continue-on-error: true
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
-        format: 'table'
-        exit-code: '1'
+        format: 'json'
+        output: 'reports/trivy.json'
+        exit-code: '0'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
+
+    - name: Enforce vulnerability policy with actionable annotations
+      run: python scripts/enforce_trivy_report.py reports/trivy.json
