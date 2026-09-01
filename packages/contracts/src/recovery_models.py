@@ -287,3 +287,38 @@ class RecoveryReplayResult(DGXBaseModel):
     external_side_effects: list[dict[str, Any]] = Field(default_factory=list)
     executor_metadata: dict[str, Any] = Field(default_factory=dict)
     reproducibility_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ApprovalRequest(DGXBaseModel):
+    request_id: str = Field(default_factory=lambda: str(_new_uuid()))
+    tenant_id: str
+    run_id: str
+    recovery_id: str
+    status: str = "PENDING"
+    requester_id: str
+    justification: str
+    requested_at: datetime = Field(default_factory=_utcnow)
+    decided_at: datetime | None = None
+    decided_by: str | None = None
+
+
+class CanaryEpisode(DGXBaseModel):
+    episode_id: str = Field(default_factory=lambda: str(_new_uuid()))
+    recovery_id: str
+    tenant_id: str
+    status: str = "PENDING"
+    traffic_percentage: float = 0.0
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    metrics_snapshot: dict[str, Any] = Field(default_factory=dict)
+
+
+class RecoveryExecution(DGXBaseModel):
+    execution_id: str = Field(default_factory=lambda: str(_new_uuid()))
+    recovery_id: str
+    tenant_id: str
+    status: str = "PENDING"
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    applied_actions: list[RecoveryAction] = Field(default_factory=list)
+    rollback_status: str | None = None

@@ -1,232 +1,149 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Check,
-  FileCheck2,
-  Fingerprint,
-  GitBranch,
-  Play,
-  Radar,
-  Search,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
-import { useRef } from "react";
-
-const SYSTEMS = [
-  { id: "01", title: "Trace fabric", note: "Versioned observability", href: "/timeline", color: "#a7f3d0" },
-  { id: "02", title: "Causal graph", note: "Evidence-backed attribution", href: "/graph", color: "#c4b5fd" },
-  { id: "03", title: "Replay lab", note: "Killable counterfactuals", href: "/replay", color: "#fef08a" },
-  { id: "04", title: "Recovery gate", note: "Policy-bound action", href: "/recovery", color: "#fecaca" },
-];
-
-const WORKFLOWS = [
-  {
-    title: "Diagnose agent drift",
-    copy: "Build a tenant-scoped causal graph from live spans.",
-    href: "/graph",
-    icon: GitBranch,
-    media: "/media/neural-network.jpg",
-  },
-  {
-    title: "Replay the failure",
-    copy: "Run deterministic counterfactuals inside a killable boundary.",
-    href: "/replay",
-    icon: Play,
-    media: "/media/neural-network.jpg",
-  },
-  {
-    title: "Seal evidence",
-    copy: "Bind replay class, version, policy, and manifest into a certificate.",
-    href: "/ledger",
-    icon: FileCheck2,
-    media: "/media/neural-network.jpg",
-  },
-];
-
-const reveal = {
-  hidden: { opacity: 0, y: 52 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] as const } },
-};
+import { motion } from "framer-motion";
+import { ArrowRight, Plus } from "lucide-react";
 
 export default function LandingPage() {
-  const visionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: visionRef, offset: ["start end", "end start"] });
-  const mediaY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
-
   return (
-    <div className="editorial-site">
-      <section className="hero-stage">
-        <div className="hero-kicker">
-          <span>Reliability infrastructure for agentic AI</span>
-          <span className="hidden sm:inline">Research release · 2.0.0-rc.1</span>
+    <div className="min-h-screen bg-background text-foreground font-sans relative pb-32">
+      {/* Drafting Guidelines (Background grid is handled in globals.css) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
+        <div className="absolute top-0 bottom-0 left-[10%] w-px bg-foreground" />
+        <div className="absolute top-0 bottom-0 right-[10%] w-px bg-foreground" />
+        <div className="absolute left-0 right-0 top-[20%] h-px bg-foreground" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-32">
+        {/* Top Info Block */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-24 text-xs font-mono uppercase tracking-widest border-t border-b border-foreground/20 py-4 crosshair-corner crosshair-tl crosshair-tr crosshair-bl crosshair-br">
+          <div className="col-span-1 md:col-span-2">
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tighter mb-2">DRIFTGUARDX.</h1>
+            <p className="text-muted">THE AWARD-WINNING<br/>RAG RELIABILITY PLATFORM</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between">
+              <span className="text-muted">TYPE</span>
+              <span>DATA RELIABILITY INFRASTRUCTURE</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted">FOCUS</span>
+              <span>AGENTIC RAG TRACING</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-muted">SYSTEMS</span>
+            <span>001 INITIALIZE CORE SYSTEM</span>
+            <span>002 LOAD AI MODELS</span>
+            <span>003 CONFIGURE DATA PIPELINES</span>
+          </div>
         </div>
 
-        <motion.div
-          className="hero-media"
-          initial={{ clipPath: "inset(42% 28% 42% 28% round 2px)" }}
-          animate={{ clipPath: "inset(0% 0% 0% 0% round 0px)" }}
-          transition={{ duration: 1.35, delay: 0.15, ease: [0.76, 0, 0.24, 1] }}
-        >
-          <video autoPlay muted loop playsInline poster="/media/neural-network.jpg" aria-label="Abstract data network animation">
-            <source src="/media/data-network.mp4" type="video/mp4" />
-          </video>
-          <div className="hero-shade" />
-          <div className="hero-grid" aria-hidden="true" />
-        </motion.div>
+        {/* Hero Illustration */}
+        <div className="relative w-full aspect-video border border-foreground/20 bg-[#F4F4F0] flex items-center justify-center overflow-hidden crosshair-corner crosshair-tl crosshair-tr crosshair-bl crosshair-br mb-24">
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice">
+            {/* Architectural structural lines */}
+            <g stroke="#090B0A" strokeWidth="1" opacity="0.3" fill="none">
+              <rect x="250" y="100" width="500" height="300" />
+              <rect x="300" y="150" width="400" height="200" />
+              <line x1="250" y1="250" x2="750" y2="250" />
+              <line x1="500" y1="100" x2="500" y2="400" />
+              <line x1="0" y1="350" x2="1000" y2="350" />
+              {/* Stairs/abstract blocks */}
+              <path d="M 200 400 L 250 400 L 250 350" />
+              <path d="M 150 450 L 200 450 L 200 400" />
+              <path d="M 100 500 L 150 500 L 150 450" />
+            </g>
+            
+            {/* Red accent line running through architecture */}
+            <line x1="0" y1="250" x2="1000" y2="250" stroke="#FF2400" strokeWidth="1.5" className="animate-draw" />
+          </svg>
 
-        <motion.div className="hero-copy" initial="hidden" animate="visible" variants={reveal}>
-          <p className="eyebrow text-white/60">Trace / isolate / replay / recover</p>
-          <h1>
-            Evidence,
-            <span>not instinct.</span>
-          </h1>
-          <div className="hero-bottom-copy">
-            <p>See why an agent failed. Prove the smallest safe intervention. Keep synthetic and real evidence unmistakably separate.</p>
-            <Link href="/dashboard" className="round-action" aria-label="Open operations console">
-              <ArrowDownRight size={25} />
-            </Link>
+          {/* Interactive Red Markers */}
+          <div className="absolute top-[30%] left-[35%] group">
+            <div className="red-square" />
+            <div className="absolute left-6 top-0 w-64 bg-background border border-foreground p-3 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+              <p className="mono font-bold border-b border-foreground/20 pb-1 mb-2">DGX [01]</p>
+              <p className="text-xs">Data Drift Detected in Embedding Space. Replaying counterfactuals to isolate the root cause.</p>
+            </div>
           </div>
-        </motion.div>
 
-        <div className="edge-label"><strong>DGX</strong><span>Evidence system</span></div>
-      </section>
-
-      <section className="agent-launchpad" aria-label="DriftGuard-X workflow launchpad">
-        <motion.div
-          className="launchpad-shell"
-          variants={reveal}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.25 }}
-        >
-          <div className="launchpad-heading">
-            <p className="eyebrow">Operations launchpad</p>
-            <h2>What needs proof today?</h2>
+          <div className="absolute top-[65%] left-[60%] group">
+            <div className="red-square" />
+            <div className="absolute left-6 top-0 w-64 bg-background border border-foreground p-3 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+              <p className="mono font-bold border-b border-foreground/20 pb-1 mb-2">DGX [02]</p>
+              <p className="text-xs">Policy Violation: Unsafe output identified. Initiating recovery gate and blocking response.</p>
+            </div>
           </div>
-          <div className="prompt-composer">
-            <Search size={18} />
-            <span>Investigate stale retrieval in the support agent and prepare a bounded recovery certificate</span>
-            <Link href="/dashboard" aria-label="Open dashboard from launchpad">
-              <ArrowUpRight size={18} />
-            </Link>
-          </div>
-          <div className="launchpad-filters" aria-label="Workflow filters">
-            {["All", "Trace", "Replay", "Policy", "Ledger", "Reports"].map((filter) => (
-              <span key={filter} className={filter === "All" ? "active" : ""}>{filter}</span>
-            ))}
-          </div>
-          <div className="workflow-grid">
-            {WORKFLOWS.map(({ title, copy, href, icon: Icon, media }, index) => (
-              <Link key={title} href={href} className="workflow-card">
-                <img src={media} alt="" aria-hidden="true" />
-                <div className="workflow-card-top">
-                  <span><Icon size={14} /> {index === 0 ? "Featured" : "Ready"}</span>
-                  <ArrowUpRight size={16} />
-                </div>
-                <div>
-                  <h3>{title}</h3>
-                  <p>{copy}</p>
-                </div>
-              </Link>
-            ))}
-            <Link href="/experiments" className="workflow-card workflow-card-accent">
-              <Sparkles size={20} />
-              <div>
-                <h3>Compare evidence classes</h3>
-                <p>Keep synthetic benchmark claims separate from controlled replay evidence before release.</p>
-              </div>
-              <span>Open experiments <ArrowUpRight size={16} /></span>
-            </Link>
-          </div>
-        </motion.div>
-      </section>
-
-      <section className="capability-index">
-        <motion.div className="section-intro" variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
-          <p className="eyebrow">The control plane</p>
-          <h2>One reliability system.<br /><em>Four evidence loops.</em></h2>
-          <p className="section-copy">A deliberately bounded operating surface for tracing, causal localization, deterministic replay, and governed recovery.</p>
-        </motion.div>
-
-        <div className="system-list">
-          {SYSTEMS.map((system, index) => (
-            <motion.div key={system.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }}>
-              <Link href={system.href} className="system-row" style={{ "--row-accent": system.color } as React.CSSProperties}>
-                <span className="system-id">{system.id}</span>
-                <span className="system-title">{system.title}</span>
-                <span className="system-note">{system.note}</span>
-                <ArrowUpRight className="system-arrow" />
-              </Link>
-            </motion.div>
-          ))}
         </div>
-      </section>
 
-      <section className="case-collage">
-        <div className="collage-label">
-          <span>Selected surfaces</span>
-          <span>Live console / controlled evidence</span>
+        {/* Big Statement Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start gap-12 border-b border-foreground/20 pb-24 relative crosshair-corner crosshair-bl crosshair-br">
+          <Plus className="absolute -left-3 -top-3 text-muted" size={24} strokeWidth={1} />
+          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-none uppercase max-w-3xl">
+            An AI agent that works inside your data pipelines
+          </h2>
+          <div className="max-w-sm flex flex-col gap-6">
+            <p className="text-lg leading-tight">
+              DriftGuardX reviews your causal graphs, identifies drift, and proposes counterfactuals. Upon approval, it recovers automatically. The concept crafted for data reliability teams.
+            </p>
+            <Link href="/dashboard" className="mono inline-flex items-center gap-2 link-underline w-fit group">
+              DISCOVER MORE <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
-        <motion.article className="case-card case-observe" variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-          <img src="/media/neural-network.jpg" alt="Abstract neural network visualization" />
-          <div className="case-overlay">
-            <Radar />
-            <p>Watch every dependency<br />without losing provenance.</p>
-          </div>
-          <span>01 / Observe</span>
-        </motion.article>
-        <motion.article className="case-card case-console" variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-          <div className="mini-console">
-            <div className="mini-top"><span>LIVE TRACE</span><span className="live-pill">● HEALTHY</span></div>
-            <div className="trace-orbit"><span /><i /><b /><em /></div>
-            <div className="mini-metrics"><span>18.2k<small>spans</small></span><span>42ms<small>lag</small></span><span>0.3%<small>errors</small></span></div>
-          </div>
-          <span>02 / Understand</span>
-        </motion.article>
-        <motion.article className="case-card case-proof" variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-          <div className="proof-panel">
-            <Fingerprint size={58} strokeWidth={1} />
-            <h3>Bound to evidence.</h3>
-            {["Tenant scoped", "Replay confirmed", "Certificate sealed"].map(item => <p key={item}><Check size={14} />{item}</p>)}
-          </div>
-          <span>03 / Prove</span>
-        </motion.article>
-      </section>
 
-      <section ref={visionRef} className="vision-stage">
-        <motion.div className="vision-media" style={{ y: mediaY }}>
-          <img src="/media/neural-network.jpg" alt="Teal neural network representing explainable agent operations" />
-        </motion.div>
-        <div className="vision-shade" />
-        <motion.div className="vision-copy" variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.4 }}>
-          <p className="eyebrow text-white/60">Core vision</p>
-          <h2>Make the invisible<br /><em>defensible.</em></h2>
-          <p>Every intervention should have a bounded cause, reproducible replay, explicit evidence class, and verifiable certificate.</p>
-        </motion.div>
-      </section>
+        {/* Iterations Bar */}
+        <div className="flex justify-between items-center py-4 border-b border-foreground/20 overflow-x-auto whitespace-nowrap mono text-muted">
+          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FASTER ITERATIONS</span>
+          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FEWER MISTAKES</span>
+          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> LESS BUSYWORK</span>
+          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FASTER ITERATIONS</span>
+          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FEWER MISTAKES</span>
+        </div>
 
-      <section className="trust-strip">
-        {[
-          [ShieldCheck, "Fail closed", "Production configuration rejects unsafe defaults."],
-          [Radar, "See causality", "Attribution is confirmed through controlled replay."],
-          [Fingerprint, "Seal provenance", "Version, policy, lock, and evidence remain bound."],
-        ].map(([Icon, title, copy]) => {
-          const Glyph = Icon as typeof ShieldCheck;
-          return <article key={String(title)}><Glyph /><h3>{String(title)}</h3><p>{String(copy)}</p></article>;
-        })}
-      </section>
-
-      <section className="closing-orbit">
-        <div className="orbit-lines" aria-hidden="true"><span /><span /><i /></div>
-        <p className="eyebrow">Start with the evidence</p>
-        <h2>Enter the<br /><em>control plane.</em></h2>
-        <Link href="/dashboard" className="capsule-link">Open console <ArrowUpRight size={18} /></Link>
-      </section>
+        {/* Second Visual Area */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-24">
+          <div className="relative aspect-square border border-foreground/20 p-8 flex flex-col justify-between">
+            <h3 className="text-4xl font-bold uppercase tracking-tighter leading-none">
+              The repetitive parts of monitoring shouldn't eat your day.
+            </h3>
+            <div className="absolute inset-0 z-0 opacity-10 flex items-center justify-center overflow-hidden pointer-events-none">
+                <svg viewBox="0 0 100 100" className="w-full h-full scale-150">
+                    <circle cx="50" cy="50" r="40" stroke="#090B0A" strokeWidth="0.5" fill="none" />
+                    <circle cx="50" cy="50" r="30" stroke="#090B0A" strokeWidth="0.5" fill="none" />
+                    <line x1="50" y1="0" x2="50" y2="100" stroke="#090B0A" strokeWidth="0.5" />
+                    <line x1="0" y1="50" x2="100" y2="50" stroke="#090B0A" strokeWidth="0.5" />
+                </svg>
+            </div>
+            
+            <div className="relative z-10 bg-accent text-background w-32 h-32 rounded-full flex items-center justify-center self-end mix-blend-multiply">
+              {/* Red Circle Accent purely for visual weight */}
+            </div>
+            
+            <Link href="/dashboard" className="mono inline-flex items-center gap-2 link-underline w-fit mt-8 z-10">
+              LEARN MORE <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="border border-foreground/20 relative p-8 crosshair-corner crosshair-tl crosshair-br">
+            <div className="absolute top-4 left-4 red-square" />
+            <div className="absolute bottom-4 right-4 red-square" />
+            <p className="mono mb-4">[02]</p>
+            <h3 className="text-2xl font-bold uppercase mb-8">DGX DASHBOARD</h3>
+            <div className="w-full h-64 border border-foreground/10 bg-white shadow-sm flex flex-col p-4 relative overflow-hidden">
+               <div className="flex justify-between border-b border-foreground/10 pb-2 mb-4 mono">
+                  <span>ACTIVE SPANS: 18.2K</span>
+                  <span className="text-accent flex items-center gap-1"><div className="w-2 h-2 bg-accent rounded-full animate-pulse"/> LIVE</span>
+               </div>
+               <div className="flex-1 border-l-2 border-accent pl-4 flex flex-col justify-center gap-4">
+                  <div className="h-2 w-3/4 bg-foreground/10" />
+                  <div className="h-2 w-1/2 bg-foreground/10" />
+                  <div className="h-2 w-5/6 bg-foreground/10" />
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

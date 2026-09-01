@@ -156,6 +156,15 @@ def _build_replay_manifest(
             "spans": original_trace.spans_json,
         }
     )
+    multi_agent_topology = [
+        {"agent": "orchestrator", "next": ["retrieval"]},
+        {"agent": "retrieval", "next": ["reasoning"]},
+        {"agent": "reasoning", "next": ["tool"]},
+        {"agent": "tool", "next": ["verifier"]},
+        {"agent": "verifier", "next": ["policy"]},
+        {"agent": "policy", "next": ["response"]},
+        {"agent": "response", "next": []},
+    ]
 
     return ReplayStateManifest(
         run_id=original_run.id,
@@ -167,7 +176,7 @@ def _build_replay_manifest(
         model_provider="local-deterministic",
         model_identifier="MockGeneratorV1@v1",
         model_config_hash=hash_payload(
-            {"components": component_manifest, "generation": generation_parameters}
+            {"components": component_manifest, "generation": generation_parameters, "topology": multi_agent_topology}
         ),
         prompt_template_hash=hash_payload(
             {
@@ -385,6 +394,65 @@ async def create_run(
         )
         await db.flush()
     return response
+
+
+# ─── POST /v1/runs/register ───────────────────────────────────────────────────
+
+
+from apps.api.src.schemas import RunRegisterRequest, RunRegisterResponse
+
+@router.post("/runs/register", response_model=RunRegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register_run(
+    request: RunRegisterRequest,
+    db: AsyncSession = Depends(get_db),
+    tenant: Tenant = Depends(get_current_tenant),
+) -> RunRegisterResponse:
+    """Register an external or custom run in preparation for span ingestion."""
+    run_id = request.run_id or uuid.uuid4()
+    
+    run_orm = RequestRunORM(
+        id=run_id,
+        tenant_id=tenant.id,
+        pipeline_id=request.pipeline_id,
+        status="running",
+        request_hash=hash_payload(request.query),
+        request_id=None,
+        seed=42, # default
+        response_hash=None,
+        reliability_score=None,
+        reliability_vector={},
+        total_latency_ms=0.0,
+        total_tokens=0,
+        total_cost_usd=0.0,
+        error_type=None,
+        error_message=None,
+        started_at=datetime.now(UTC),
+        completed_at=None,
+        is_synthetic=request.is_synthetic,
+    )
+    db.add(run_orm)
+    
+    # We must also create a placeholder trace artifact to be filled later or by ingestion
+    trace_orm = TraceArtifactORM(
+        id=uuid.uuid4(),
+        run_id=run_id,
+        tenant_id=tenant.id,
+        pipeline_id=request.pipeline_id,
+        spans_json=[],
+        root_span_id=None,
+        total_span_count=0,
+    )
+    db.add(trace_orm)
+    
+    await db.flush()
+    
+    return RunRegisterResponse(
+        id=run_orm.id,
+        tenant_id=run_orm.tenant_id,
+        pipeline_id=run_orm.pipeline_id,
+        status=run_orm.status,
+        is_synthetic=run_orm.is_synthetic
+    )
 
 
 # ─── GET /v1/runs ─────────────────────────────────────────────────────────────

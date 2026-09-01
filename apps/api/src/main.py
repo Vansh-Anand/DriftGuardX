@@ -30,6 +30,7 @@ from apps.api.src.routes.detectors import router as detectors_router
 from apps.api.src.routes.jobs import router as jobs_router
 from apps.api.src.routes.providers import router as providers_router
 from apps.api.src.routes.replays import router as replays_router
+from apps.api.src.routes.recovery import router as recovery_router
 from apps.api.src.schemas import HealthResponse, ReadinessResponse
 from packages.utils.src.version import APP_VERSION
 
@@ -194,6 +195,7 @@ if not settings.production_like:
     # Production async work must use the durable worker queue.
     app.include_router(jobs_router)
 app.include_router(providers_router)
+app.include_router(recovery_router)
 
 
 # ─── Exception Handlers ───────────────────────────────────────────────────────

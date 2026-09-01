@@ -30,6 +30,21 @@ class RunCreateRequest(APIBase):
     request_id: str | None = Field(default=None, max_length=255, description="Idempotency key")
 
 
+class RunRegisterRequest(APIBase):
+    query: str = Field(min_length=1, max_length=4096, description="The external query that was run")
+    pipeline_id: uuid.UUID
+    run_id: uuid.UUID | None = Field(default=None, description="Provide a pre-generated UUID, or one will be assigned")
+    is_synthetic: bool = Field(default=False, description="Is this an external synthetic run?")
+
+
+class RunRegisterResponse(APIBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    pipeline_id: uuid.UUID
+    status: str
+    is_synthetic: bool
+
+
 class RunResponse(APIBase):
     id: uuid.UUID
     tenant_id: uuid.UUID

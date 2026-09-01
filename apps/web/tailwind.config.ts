@@ -9,14 +9,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#ECEAE2",
-        foreground: "#0a0a0a",
-        accent: "#E8FF00",
-        dark: "#0a0a0a",
-        border: "#0a0a0a",
-        mint: "#E8FF00",   // repurpose mint slot to yellow accent
-        muted: "#888888",
-        card: "#0a0a0a",
+        background: "#F4F4F0",
+        foreground: "#090B0A",
+        accent: "#FF2400",
+        dark: "#090B0A",
+        border: "#090B0A",
+        mint: "#FF2400",   // Repurpose mint to red accent
+        muted: "#59605C",
+        card: "#ffffff",
       },
       fontFamily: {
         sans: ['var(--font-grotesk)', 'sans-serif'],

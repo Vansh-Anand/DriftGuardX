@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,30 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { usePathname } from "next/navigation";
 
-function LiveClock({ label, offset }: { label: string; offset: number }) {
-  const [time, setTime] = useState('');
-  useEffect(() => {
-    const update = () => {
-      const d = new Date();
-      const utc = d.getTime() + d.getTimezoneOffset() * 60000;
-      const local = new Date(utc + 3600000 * offset);
-      setTime(local.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
-    };
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [offset]);
-
-  return (
-    <span className="font-mono text-[9px] tracking-widest text-[#8eb1a5]">
-      {label} {time}
-    </span>
-  );
-}
-
 export function Navbar() {
   const pathname = usePathname();
-  const isLanding = pathname === "/";
   const { user, login, logout, isLoading } = useAuth();
   const { toast } = useToast();
   const [loginOpen, setLoginOpen] = useState(false);
@@ -71,102 +49,102 @@ export function Navbar() {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 w-full z-50 backdrop-blur-xl transition-colors duration-500 ${isLanding ? "landing-nav border-b border-black/10 bg-[#f4f4f0]/94 text-black" : "border-b border-[#b7ffe5]/10 bg-[#07110f]/92 text-[#eafff7]"}`}>
-        <div className="flex items-center justify-between h-12 px-4 md:px-6">
-          {/* Left: Logo */}
-          <Link href="/" className="group flex items-center gap-2 font-mono text-xs font-bold tracking-[0.15em] uppercase text-[#eafff7]">
-            <span className="relative grid h-5 w-5 place-items-center rounded-full border border-[#7cf7d4]/40">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#7cf7d4] signal-dot" />
-            </span>
-            <span>DriftGuard<span className="text-[#7cf7d4]">·X</span></span>
+      <header className="fixed top-0 left-0 w-full z-50 bg-background text-foreground border-b border-foreground/20">
+        <div className="flex items-center justify-between h-14 w-full">
+          {/* Left: Logo (Cube icon mimicking industrial design) */}
+          <Link href="/" className="flex items-center gap-3 px-6 h-full border-r border-foreground/20 group">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-foreground stroke-[1.5]" strokeLinecap="round" strokeLinejoin="round">
+               <polygon points="12 2 2 7 12 12 22 7 12 2" />
+               <polyline points="2 17 12 22 22 17" />
+               <polyline points="2 12 12 17 22 12" />
+            </svg>
+            <span className="font-bold tracking-tighter text-xl uppercase">DRIFTGUARDX</span>
           </Link>
 
-          {/* Center: Live clocks like 2xA */}
-          <div className="hidden xl:flex items-center gap-10 opacity-55">
-            <LiveClock label="NYC(US)" offset={-4} />
-            <LiveClock label="LON(UK)" offset={1} />
-            <LiveClock label="IST(IN)" offset={5.5} />
-          </div>
+          {/* Center: Nav links */}
+          <nav className="hidden md:flex items-center h-full flex-1">
+            <Link href="/dashboard" className="mono px-6 h-full flex items-center border-r border-foreground/20 hover:bg-foreground/5 transition-colors">
+              CONSOLE
+            </Link>
+            <Link href="/reports" className="mono px-6 h-full flex items-center border-r border-foreground/20 hover:bg-foreground/5 transition-colors">
+              REPORTS
+            </Link>
+            <Link href="/security" className="mono px-6 h-full flex items-center border-r border-foreground/20 hover:bg-foreground/5 transition-colors">
+              SECURITY
+            </Link>
+            <Link href="/experiments" className="mono px-6 h-full flex items-center border-r border-foreground/20 hover:bg-foreground/5 transition-colors">
+              EXPERIMENTS
+            </Link>
+          </nav>
 
-          {/* Right: Nav links */}
-          <nav className="flex items-center gap-3 md:gap-6">
-            <Link href="/dashboard" className="font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
-              Console
-            </Link>
-            <Link href="/reports" className="hidden sm:block font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
-              Reports
-            </Link>
-            <Link href="/security" className="hidden md:block font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
-              Security
-            </Link>
-            <Link href="/experiments" className="hidden lg:block font-mono text-[10px] tracking-widest uppercase text-[#b7d3ca] hover:text-[#7cf7d4] transition-colors link-underline">
-              Experiments
-            </Link>
-
+          {/* Right: Auth / Contact */}
+          <div className="flex items-center h-full">
             {isLoading ? (
-              <Spinner className="w-3 h-3" />
+              <div className="px-6 h-full flex items-center">
+                <Spinner className="w-3 h-3" />
+              </div>
             ) : user ? (
               <DropdownMenu>
-                <DropdownMenuTrigger className="outline-none">
-                  <Avatar className="w-7 h-7 border border-[#7cf7d4]/30">
+                <DropdownMenuTrigger className="outline-none h-full px-6 flex items-center border-l border-foreground/20 hover:bg-foreground/5">
+                  <Avatar className="w-8 h-8 rounded-none border border-foreground">
                     <AvatarImage src={user.avatarUrl} />
-                    <AvatarFallback className="bg-[#0a0a0a] text-[#ECEAE2] text-[10px] font-mono">
+                    <AvatarFallback className="bg-foreground text-background text-xs font-mono rounded-none">
                       {user.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-[#0a0a0a] border-[#333] text-[#ECEAE2] font-mono text-xs">
+                <DropdownMenuContent align="end" className="w-48 bg-background border-foreground text-foreground font-mono text-xs rounded-none">
                   <DropdownMenuLabel className="font-mono text-xs">{user.email}</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-[#333]" />
-                  <DropdownMenuItem asChild className="focus:bg-[#222] cursor-pointer">
-                    <Link href="/dashboard"><UserIcon className="mr-2 h-3 w-3" /> Dashboard</Link>
+                  <DropdownMenuSeparator className="bg-foreground/20" />
+                  <DropdownMenuItem asChild className="focus:bg-foreground/10 rounded-none cursor-pointer">
+                    <Link href="/dashboard"><UserIcon className="mr-2 h-3 w-3" /> DASHBOARD</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-[#333]" />
-                  <DropdownMenuItem onClick={handleLogout} className="focus:bg-[#222] cursor-pointer text-red-400">
-                    <LogOut className="mr-2 h-3 w-3" /> Log out
+                  <DropdownMenuSeparator className="bg-foreground/20" />
+                  <DropdownMenuItem onClick={handleLogout} className="focus:bg-foreground/10 rounded-none cursor-pointer text-accent">
+                    <LogOut className="mr-2 h-3 w-3" /> LOG OUT
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <button
                 onClick={() => setLoginOpen(true)}
-                className="rounded-full border border-[#7cf7d4]/35 bg-[#7cf7d4]/5 px-4 py-1.5 font-mono text-[10px] tracking-widest uppercase text-[#7cf7d4] hover:bg-[#7cf7d4] hover:text-[#07110f] transition-colors"
+                className="h-full px-6 flex items-center border-l border-foreground/20 mono text-accent font-bold hover:bg-accent hover:text-background transition-colors"
               >
-                Sign In
+                SIGN IN →
               </button>
             )}
-          </nav>
+          </div>
         </div>
       </header>
 
       <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
-        <DialogContent className="sm:max-w-md bg-[#ECEAE2] border border-[#0a0a0a] text-[#0a0a0a] font-mono">
+        <DialogContent className="sm:max-w-md bg-background border border-foreground text-foreground font-mono rounded-none">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm tracking-widest uppercase">Sign in to DriftGuard-X</DialogTitle>
-            <DialogDescription className="font-mono text-xs text-[#888]">
-              Enter your email to access the platform.
+            <DialogTitle className="font-mono text-sm tracking-widest uppercase">SIGN IN TO DRIFTGUARDX</DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted">
+              ENTER YOUR EMAIL TO ACCESS THE PLATFORM.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleLogin} className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="font-mono text-xs uppercase tracking-widest">Email address</label>
+              <label htmlFor="email" className="font-mono text-xs uppercase tracking-widest">EMAIL ADDRESS</label>
               <input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="NAME@EXAMPLE.COM"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-10 w-full border border-[#0a0a0a] bg-transparent px-3 py-2 text-sm font-mono text-[#0a0a0a] placeholder:text-[#888] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+                className="h-10 w-full border border-foreground bg-transparent px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground rounded-none"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="flex h-10 w-full items-center justify-center border border-[#0a0a0a] bg-[#0a0a0a] text-[#ECEAE2] font-mono text-xs tracking-widest uppercase hover:bg-[#333] transition-colors disabled:opacity-50"
+              className="flex h-10 w-full items-center justify-center border border-foreground bg-foreground text-background font-mono text-xs tracking-widest uppercase hover:bg-foreground/90 transition-colors disabled:opacity-50 rounded-none"
             >
-              {isLoggingIn ? <Spinner className="w-4 h-4 mr-2" /> : null}
-              Access Platform
+              {isLoggingIn ? <Spinner className="w-4 h-4 mr-2 text-background" /> : null}
+              ACCESS PLATFORM
             </button>
           </form>
         </DialogContent>

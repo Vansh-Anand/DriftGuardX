@@ -37,19 +37,18 @@ function StatCard({ icon: Icon, label, value, sub, signal = false }: {
   signal?: boolean;
 }) {
   return (
-    <div className="glass-panel group relative overflow-hidden rounded-2xl p-5 transition-transform duration-300 hover:-translate-y-1">
-      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#7cf7d4]/5 blur-2xl transition-colors group-hover:bg-[#7cf7d4]/10" />
+    <div className="bg-[var(--background)] border border-[var(--border)] relative overflow-hidden p-5 transition-transform duration-300 hover:-translate-y-1">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[.2em] text-[#789b90]">{label}</span>
-        <span className="grid h-8 w-8 place-items-center rounded-xl border border-[#b7ffe5]/10 bg-[#b7ffe5]/5 text-[#7cf7d4]">
+        <span className="font-mono text-[9px] uppercase tracking-[.2em] text-[var(--muted)]">{label}</span>
+        <span className="grid h-8 w-8 place-items-center border border-[var(--border)] bg-transparent text-[var(--foreground)]">
           <Icon size={14} />
         </span>
       </div>
       <div className="mt-5 flex items-end gap-2">
-        <span className="text-4xl font-semibold tracking-[-.05em] text-[#effff9]">{value}</span>
-        {signal && <span className="mb-2 h-1.5 w-1.5 rounded-full bg-[#7cf7d4] signal-dot animate-signal" />}
+        <span className="text-4xl font-semibold tracking-[-.05em] text-[var(--foreground)]">{value}</span>
+        {signal && <span className="mb-2 h-1.5 w-1.5 rounded-full bg-[var(--accent)] animate-pulse" />}
       </div>
-      <div className="mt-2 font-mono text-[10px] text-[#67877d]">{sub}</div>
+      <div className="mt-2 font-mono text-[10px] text-[var(--muted)]">{sub}</div>
     </div>
   );
 }
@@ -81,8 +80,8 @@ export default function DashboardPage() {
 
   const connected = Boolean(telemetry);
   const badge = (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.16em] ${connected ? 'border-[#7cf7d4]/30 bg-[#7cf7d4]/10 text-[#7cf7d4]' : 'border-amber-300/25 bg-amber-300/10 text-amber-200'}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-[#7cf7d4] signal-dot animate-signal' : 'bg-amber-200'}`} />
+    <span className={`inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.16em] ${connected ? 'border-[var(--foreground)] bg-transparent text-[var(--foreground)]' : 'border-[var(--accent)] text-[var(--accent)]'}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-[var(--foreground)] animate-pulse' : 'bg-[var(--accent)]'}`} />
       {connected ? 'Authenticated stream' : 'Awaiting telemetry'}
     </span>
   );
@@ -90,7 +89,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <PageLayout title="Overview" subtitle="Evidence-aware system health and reliability signals" badge={badge}>
-        <div className="grid min-h-[60vh] place-items-center"><Spinner className="h-8 w-8 text-[#7cf7d4]" /></div>
+        <div className="grid min-h-[60vh] place-items-center"><Spinner className="h-8 w-8 text-[var(--foreground)]" /></div>
       </PageLayout>
     );
   }
@@ -101,26 +100,25 @@ export default function DashboardPage() {
   return (
     <PageLayout title="Overview" subtitle="Evidence-aware system health and reliability signals" badge={badge}>
       <div className="mx-auto max-w-[1500px] space-y-6 p-4 md:p-8">
-        <section className="glass-panel relative overflow-hidden rounded-3xl p-6 md:p-8">
-          <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#9b87ff]/10 blur-[100px]" />
+        <section className="bg-[var(--background)] border border-[var(--border)] relative overflow-hidden p-6 md:p-8 shadow-[8px_8px_0_0_var(--foreground)]">
           <div className="relative grid gap-8 xl:grid-cols-[1.35fr_.65fr] xl:items-end">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#9b87ff]/25 bg-[#9b87ff]/10 px-3 py-1 font-mono text-[9px] uppercase tracking-[.18em] text-[#c7bbff]">
+              <div className="mb-4 inline-flex items-center gap-2 border border-[var(--border)] bg-transparent px-3 py-1 font-mono text-[9px] uppercase tracking-[.18em] text-[var(--foreground)]">
                 <ShieldCheck size={12} /> Research evidence boundary active
               </div>
-              <h2 className="max-w-3xl text-3xl font-semibold leading-[1.05] tracking-[-.04em] text-[#effff9] md:text-5xl">
-                See the failure path.<br /><span className="text-[#7cf7d4]">Prove the recovery path.</span>
+              <h2 className="max-w-3xl text-3xl font-semibold leading-[1.05] tracking-[-.04em] text-[var(--foreground)] md:text-5xl">
+                See the failure path.<br /><span className="text-[var(--accent)]">Prove the recovery path.</span>
               </h2>
-              <p className="mt-4 max-w-2xl font-mono text-[11px] leading-6 text-[#83a49a]">
+              <p className="mt-4 max-w-2xl font-mono text-[11px] leading-6 text-[var(--muted)]">
                 Every diagnosis stays attached to its evidence class. Synthetic evaluations cannot silently become replay or production claims.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-[#b7ffe5]/10 bg-black/15 p-3">
+            <div className="grid grid-cols-3 gap-2 border border-[var(--border)] bg-transparent p-3 shadow-[4px_4px_0_0_var(--foreground)]">
               {['Trace', 'Replay', 'Certify'].map((step, index) => (
-                <div key={step} className="relative rounded-xl border border-[#b7ffe5]/10 bg-[#b7ffe5]/[.03] px-3 py-4 text-center">
-                  <div className="font-mono text-[9px] text-[#55766c]">0{index + 1}</div>
-                  <div className="mt-1 text-xs font-medium text-[#dff8ef]">{step}</div>
-                  {index < 2 && <span className="absolute -right-2 top-1/2 z-10 text-[#7cf7d4]">→</span>}
+                <div key={step} className="relative border border-[var(--border)] bg-transparent px-3 py-4 text-center">
+                  <div className="font-mono text-[9px] text-[var(--muted)]">0{index + 1}</div>
+                  <div className="mt-1 text-xs font-bold uppercase tracking-widest text-[var(--foreground)]">{step}</div>
+                  {index < 2 && <span className="absolute -right-2 top-1/2 z-10 text-[var(--foreground)]">→</span>}
                 </div>
               ))}
             </div>
@@ -135,62 +133,62 @@ export default function DashboardPage() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.45fr_.55fr]">
-          <div className="glass-panel rounded-3xl p-5 md:p-7">
+          <div className="bg-[var(--background)] border border-[var(--border)] p-5 md:p-7 shadow-[4px_4px_0_0_var(--foreground)]">
             <div className="mb-8 flex items-start justify-between gap-4">
               <div>
-                <div className="font-mono text-[9px] uppercase tracking-[.2em] text-[#789b90]">Signal topology</div>
-                <h3 className="mt-2 text-xl font-medium text-[#effff9]">Trace volume and latency envelope</h3>
+                <div className="font-mono text-[9px] uppercase tracking-[.2em] text-[var(--muted)]">Signal topology</div>
+                <h3 className="mt-2 text-xl font-medium text-[var(--foreground)]">Trace volume and latency envelope</h3>
               </div>
-              <span className="rounded-full border border-[#b7ffe5]/10 px-3 py-1 font-mono text-[9px] uppercase tracking-wider text-[#67877d]">Illustrative trend</span>
+              <span className="border border-[var(--border)] px-3 py-1 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">Illustrative trend</span>
             </div>
             <div className="h-[310px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={TREND} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
                   <defs>
                     <linearGradient id="traceGlow" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#7CF7D4" stopOpacity={0.34} />
-                      <stop offset="100%" stopColor="#7CF7D4" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#090B0A" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#090B0A" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="rgba(183,255,229,.07)" vertical={false} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#628378', fontFamily: 'var(--font-mono)', fontSize: 9 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#628378', fontFamily: 'var(--font-mono)', fontSize: 9 }} />
-                  <Tooltip contentStyle={{ background: '#0b1b17', border: '1px solid rgba(183,255,229,.15)', borderRadius: 14, color: '#effff9', fontFamily: 'var(--font-mono)', fontSize: 10 }} />
-                  <Area type="monotone" dataKey="traces" stroke="#7CF7D4" strokeWidth={2} fill="url(#traceGlow)" />
-                  <Area type="monotone" dataKey="latency" stroke="#9B87FF" strokeWidth={1.5} fill="transparent" strokeDasharray="4 5" />
+                  <CartesianGrid stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9 }} />
+                  <Tooltip contentStyle={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)', fontFamily: 'var(--font-mono)', fontSize: 10 }} />
+                  <Area type="monotone" dataKey="traces" stroke="var(--foreground)" strokeWidth={2} fill="url(#traceGlow)" />
+                  <Area type="monotone" dataKey="latency" stroke="var(--muted)" strokeWidth={1.5} fill="transparent" strokeDasharray="4 5" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-3 flex gap-5 font-mono text-[9px] uppercase tracking-wider text-[#789b90]">
-              <span className="flex items-center gap-2"><span className="h-px w-5 bg-[#7cf7d4]" /> Trace volume</span>
-              <span className="flex items-center gap-2"><span className="h-px w-5 bg-[#9b87ff]" /> Latency envelope</span>
+            <div className="mt-3 flex gap-5 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">
+              <span className="flex items-center gap-2"><span className="h-px w-5 bg-[var(--foreground)]" /> Trace volume</span>
+              <span className="flex items-center gap-2"><span className="h-px w-5 bg-[var(--muted)]" /> Latency envelope</span>
             </div>
           </div>
 
-          <div className="glass-panel rounded-3xl p-5 md:p-7">
+          <div className="bg-[var(--background)] border border-[var(--border)] p-5 md:p-7 shadow-[4px_4px_0_0_var(--foreground)]">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-mono text-[9px] uppercase tracking-[.2em] text-[#789b90]">Provider mesh</div>
-                <h3 className="mt-2 text-xl font-medium text-[#effff9]">Execution surfaces</h3>
+                <div className="font-mono text-[9px] uppercase tracking-[.2em] text-[var(--muted)]">Provider mesh</div>
+                <h3 className="mt-2 text-xl font-medium text-[var(--foreground)]">Execution surfaces</h3>
               </div>
-              <DatabaseZap size={18} className="text-[#7cf7d4]" />
+              <DatabaseZap size={18} className="text-[var(--foreground)]" />
             </div>
             <div className="mt-7 space-y-2">
               {providerEntries.length ? providerEntries.map(([name, config]) => (
-                <div key={name} className="flex items-center justify-between rounded-2xl border border-[#b7ffe5]/10 bg-[#b7ffe5]/[.025] p-4">
+                <div key={name} className="flex items-center justify-between border border-[var(--border)] bg-transparent p-4">
                   <div>
-                    <div className="text-sm font-medium text-[#e9fff7]">{name}</div>
-                    <div className="mt-1 font-mono text-[9px] text-[#628378]">${config.cost_per_1k ?? 0} / 1k tokens</div>
+                    <div className="text-sm font-bold uppercase tracking-widest text-[var(--foreground)]">{name}</div>
+                    <div className="mt-1 font-mono text-[9px] text-[var(--muted)]">${config.cost_per_1k ?? 0} / 1k tokens</div>
                   </div>
-                  <span className={`rounded-full border px-2.5 py-1 font-mono text-[8px] uppercase tracking-wider ${config.status === 'healthy' ? 'border-[#7cf7d4]/25 bg-[#7cf7d4]/10 text-[#7cf7d4]' : 'border-rose-300/25 bg-rose-300/10 text-rose-200'}`}>
+                  <span className={`border px-2.5 py-1 font-mono text-[8px] uppercase tracking-wider ${config.status === 'healthy' ? 'border-[var(--foreground)] text-[var(--foreground)]' : 'border-[var(--accent)] text-[var(--accent)]'}`}>
                     {config.status ?? 'unknown'}
                   </span>
                 </div>
               )) : (
-                <div className="rounded-2xl border border-dashed border-[#b7ffe5]/15 p-8 text-center">
-                  <Radio size={20} className="mx-auto text-[#628378]" />
-                  <div className="mt-3 text-sm text-[#a7c4ba]">No authenticated provider data</div>
-                  <div className="mt-1 font-mono text-[9px] text-[#55766c]">The console does not substitute demo providers.</div>
+                <div className="border border-dashed border-[var(--border)] p-8 text-center">
+                  <Radio size={20} className="mx-auto text-[var(--muted)]" />
+                  <div className="mt-3 text-sm text-[var(--foreground)]">No authenticated provider data</div>
+                  <div className="mt-1 font-mono text-[9px] text-[var(--muted)]">The console does not substitute demo providers.</div>
                 </div>
               )}
             </div>
