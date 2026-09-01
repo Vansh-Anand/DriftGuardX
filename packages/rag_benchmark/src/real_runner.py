@@ -1,3 +1,9 @@
+"""Legacy mocked-integration benchmark.
+
+Despite the historical filename, this module does not execute real-data or
+production replay. New real-data evidence must use ``controlled_replay.py``.
+"""
+
 import asyncio
 import math
 import random
@@ -24,8 +30,8 @@ from packages.rag_benchmark.src.schedulers import (
 )
 from packages.rag_pipeline.src.interfaces import LLMAdapter, RetrieverAdapter
 
-# Synthetic BEIR/SciFact Dataset (10 episodes)
-SCIFACT_EPISODES = [
+# Synthetic examples; these are not SciFact records.
+MOCK_EPISODES = [
     EvaluationEpisode(
         query="Does DriftGuard-X cryptographically bind traces to recovery capsules?",
         expected_answer="Yes, DriftGuard-X uses a Recovery Eligibility Certificate to cryptographically bind traces to recovery capsules.",
@@ -106,7 +112,7 @@ class LocalArtifactStore:
         pass
 
 
-async def run_real_benchmark():
+async def run_mocked_integration_benchmark():
     print("Initializing Benchmark Engine...")
 
     # 1. Initialize Pipeline
@@ -189,8 +195,8 @@ async def run_real_benchmark():
                 try:
                     start_time = time.time()
                     out = await pipeline.execute(
-                        query=SCIFACT_EPISODES[0].query,
-                        corpus_version_id=SCIFACT_EPISODES[0].corpus_version_id,
+                        query=MOCK_EPISODES[0].query,
+                        corpus_version_id=MOCK_EPISODES[0].corpus_version_id,
                         run_id=run_id,
                         tenant_id=tenant_id,
                     )
@@ -279,4 +285,4 @@ async def run_real_benchmark():
 
 
 if __name__ == "__main__":
-    asyncio.run(run_real_benchmark())
+    asyncio.run(run_mocked_integration_benchmark())

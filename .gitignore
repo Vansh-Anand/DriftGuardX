@@ -36,6 +36,7 @@ venv.bak/
 
 # Testing
 .pytest_cache/
+.pytest-*/
 .coverage
 .coverage.*
 htmlcov/
@@ -104,6 +105,13 @@ apps/api/alembic.ini.local
 # Generated
 *.generated.ts
 openapi-client/
+
+# Local invention-disclosure rendering and authoring scratch
+artifacts/invention-disclosure/figures/
+artifacts/invention-disclosure/qa-*/
+artifacts/invention-disclosure/reference-*
+artifacts/invention-disclosure/tools/
+extend_disclosure_20p*.py
 
 # Logs
 *.log

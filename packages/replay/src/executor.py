@@ -2,8 +2,11 @@
 DriftGuard-X v2 — Isolated Replay Executor
 Abstracts execution between local multiprocess sandboxes and production container boundaries.
 """
+
 import asyncio
+import json
 import os
+import re
 import tempfile
 import time
 from abc import ABC, abstractmethod
@@ -22,6 +25,7 @@ class ReplayStateManifest(BaseModel):
     execution_time_seconds: float
     memory_used_bytes: int | None = None
 
+
 class ReplayResult(BaseModel):
     payload: Any
     error: str | None = None
@@ -30,7 +34,9 @@ class ReplayResult(BaseModel):
 
 class ReplayExecutor(ABC):
     @abstractmethod
-    async def execute(self, func: Callable, budget_seconds: float, **kwargs) -> ReplayResult:
+    async def execute(
+        self, func: Callable[..., Any], budget_seconds: float, **kwargs: Any
+    ) -> ReplayResult:
         pass
 
 
@@ -39,7 +45,10 @@ class LocalDevExecutor(ReplayExecutor):
     Executes replays using the existing local multiprocessing SandboxedWorker.
     Suitable for unit tests and local demo mode.
     """
-    async def execute(self, func: Callable, budget_seconds: float, **kwargs) -> ReplayResult:
+
+    async def execute(
+        self, func: Callable[..., Any], budget_seconds: float, **kwargs: Any
+    ) -> ReplayResult:
         start_time = time.monotonic()
 
         try:
@@ -50,7 +59,7 @@ class LocalDevExecutor(ReplayExecutor):
                 kwargs,
                 timeout_seconds=int(budget_seconds),
                 trace_id="local_replay",
-                enable_arc=False
+                enable_arc=False,
             )
             error = None
         except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
@@ -65,39 +74,41 @@ class LocalDevExecutor(ReplayExecutor):
             manifest=ReplayStateManifest(
                 executor_type="LocalDevExecutor",
                 execution_time_seconds=execution_time,
-                memory_used_bytes=None
-            )
+                memory_used_bytes=None,
+            ),
         )
+
 
 class ContainerReplayExecutor(ReplayExecutor):
     """
     Production-oriented replay executor enforcing hard sandboxing using Docker.
+
+    The image must be supplied by immutable registry digest. The executor never
+    builds an image or resolves a mutable tag at runtime. Container output crosses
+    the trust boundary as bounded JSON, never pickle/cloudpickle.
     """
-    def __init__(self, image: str = "python:3.11-slim"):
-        self.base_image = image
-        self.image = "driftguard-sandbox:latest"
+
+    _DIGEST_PINNED_IMAGE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
+
+    def __init__(self, image: str | None = None):
+        resolved_image = image or os.environ.get("DGX_REPLAY_IMAGE", "")
+        if not self._DIGEST_PINNED_IMAGE.fullmatch(resolved_image):
+            raise ValueError(
+                "DGX_REPLAY_IMAGE must be a registry image pinned by @sha256:<64 hex chars>"
+            )
+        self.image = resolved_image
+        self.image_digest = resolved_image.rsplit("@", 1)[1]
         try:
-            import io
-
             import docker
+
             self.client = docker.from_env()
-
-            try:
-                self.client.images.get(self.image)
-            except docker.errors.ImageNotFound:
-                dockerfile = f"FROM {self.base_image}\nRUN pip install cloudpickle\n"
-                self.client.images.build(fileobj=io.BytesIO(dockerfile.encode('utf-8')), tag=self.image)
-
             self.image_info = self.client.images.get(self.image)
-            self.image_digest = self.image_info.id
-            repo_digests = self.image_info.attrs.get("RepoDigests", [])
-            if repo_digests:
-                self.image_digest = repo_digests[0]
-
         except ImportError:
             self.client = None
 
-    async def execute(self, func: Callable, budget_seconds: float, **kwargs) -> ReplayResult:
+    async def execute(
+        self, func: Callable[..., Any], budget_seconds: float, **kwargs: Any
+    ) -> ReplayResult:
         if not self.client:
             raise RuntimeError("Docker SDK not installed or daemon unavailable.")
 
@@ -112,25 +123,41 @@ class ContainerReplayExecutor(ReplayExecutor):
                 manifest=ReplayStateManifest(
                     executor_type="ContainerReplayExecutor",
                     image_digest=self.image_digest,
-                    execution_time_seconds=0
-                )
+                    execution_time_seconds=0,
+                ),
             )
 
         # Create a temporary directory to share with the container
         temp_dir = tempfile.mkdtemp(prefix="driftguard_sandbox_")
+        if os.name == "posix":
+            # The digest-pinned image runs as uid 10001 and needs access only to
+            # this per-replay exchange directory.
+            os.chmod(temp_dir, 0o777)
         payload_path = os.path.join(temp_dir, "payload.pkl")
-        result_path = os.path.join(temp_dir, "result.pkl")
+        result_path = os.path.join(temp_dir, "result.json")
 
         with open(payload_path, "wb") as f:
             f.write(payload_data)
 
-        # Runner script that unpickles, runs, and pickles the result
+        # The request contains trusted callable code and only travels into the
+        # sandbox. The result travels back to the parent as bounded JSON.
         runner_script = """
 import sys
-import pickle
-import os
+import json
 
 import cloudpickle
+
+MAX_OUTPUT_BYTES = 10 * 1024 * 1024
+
+def write_result(value):
+    encoder = json.JSONEncoder(ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+    emitted = 0
+    with open('/sandbox/result.json', 'w', encoding='utf-8') as output:
+        for chunk in encoder.iterencode(value):
+            emitted += len(chunk.encode('utf-8'))
+            if emitted > MAX_OUTPUT_BYTES:
+                raise RuntimeError("Response payload exceeds 10MB limit.")
+            output.write(chunk)
 
 def main():
     try:
@@ -141,17 +168,13 @@ def main():
         sys.path.insert(0, '/app')
         
         result = func(**kwargs)
-        
-        out_data = cloudpickle.dumps({"status": "success", "payload": result})
-        if len(out_data) > 10 * 1024 * 1024:
-            raise RuntimeError("Response payload exceeds 10MB limit.")
+        write_result({"status": "success", "payload": result})
             
-        with open('/sandbox/result.pkl', 'wb') as f:
-            f.write(out_data)
-            
-    except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
-        with open('/sandbox/result.pkl', 'wb') as f:
-            cloudpickle.dump({"status": "error", "error": str(e)}, f)
+    except BaseException as e:
+        try:
+            write_result({"status": "error", "error": f"{type(e).__name__}: {e}"})
+        except BaseException:
+            pass
 
 if __name__ == '__main__':
     main()
@@ -165,13 +188,10 @@ if __name__ == '__main__':
         error_msg = None
 
         try:
-            # We must map the host temp_dir into the container.
-            # Docker Desktop on Mac/Windows or native Linux supports mapping /tmp.
-            # Convert Windows path if needed, but docker-py usually handles it.
-            volumes = {
-                temp_dir: {'bind': '/sandbox', 'mode': 'rw'},
-                os.getcwd(): {'bind': '/app', 'mode': 'ro'}
-            }
+            # Only the per-replay exchange directory crosses the host boundary.
+            # Application code and the frozen environment come from the pinned
+            # image; the host repository is never mounted into the container.
+            volumes = {temp_dir: {"bind": "/sandbox", "mode": "rw"}}
 
             # Spin up the container with hard boundaries
             container = self.client.containers.run(
@@ -180,12 +200,15 @@ if __name__ == '__main__':
                 volumes=volumes,
                 working_dir="/app",
                 network_mode="none",  # Default deny network
-                mem_limit="128m",     # Memory cap
-                nano_cpus=1000000000, # 1 CPU core
-                pids_limit=10,        # Prevent fork bombs
-                tmpfs={'/tmp': 'size=64m'}, # Storage limit
+                read_only=True,
+                cap_drop=["ALL"],
+                security_opt=["no-new-privileges:true"],
+                mem_limit="128m",  # Memory cap
+                nano_cpus=1000000000,  # 1 CPU core
+                pids_limit=10,  # Prevent fork bombs
+                tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},  # Storage limit
                 detach=True,
-                remove=False
+                remove=False,
             )
 
             # Wait for it to finish asynchronously
@@ -208,7 +231,7 @@ if __name__ == '__main__':
                 # Get max memory used if possible
                 try:
                     stats = container.stats(stream=False)
-                    max_mem = stats.get('memory_stats', {}).get('max_usage')
+                    max_mem = stats.get("memory_stats", {}).get("max_usage")
                 except (ValueError, RuntimeError, KeyError, TypeError, OSError):
                     max_mem = None
             else:
@@ -227,24 +250,32 @@ if __name__ == '__main__':
 
         execution_time = time.monotonic() - start_time
 
-        # Load the result from the mount
+        # Load bounded JSON from the mount. Never deserialize container-controlled
+        # pickle/cloudpickle in the parent process.
         result_payload = None
         if not error_msg:
             if os.path.exists(result_path):
                 try:
+                    max_response_bytes = 10 * 1024 * 1024
+                    if os.path.getsize(result_path) > max_response_bytes:
+                        raise RuntimeError("Response payload exceeds 10MB limit")
                     with open(result_path, "rb") as f:
-                        res = cloudpickle.load(f)
+                        encoded_result = f.read(max_response_bytes + 1)
+                    if len(encoded_result) > max_response_bytes:
+                        raise RuntimeError("Response payload exceeds 10MB limit")
+                    res = json.loads(encoded_result)
                     if res["status"] == "success":
                         result_payload = res["payload"]
                     else:
                         error_msg = res["error"]
                 except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
-                    error_msg = f"Failed to unpickle result: {e!s}"
+                    error_msg = f"Failed to decode bounded result: {e!s}"
             else:
                 error_msg = "No result file found. Container may have crashed."
 
         # Cleanup temp dir (ignoring errors if files are locked)
         import shutil
+
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
         except (ValueError, RuntimeError, KeyError, TypeError, OSError):
@@ -257,6 +288,6 @@ if __name__ == '__main__':
                 executor_type="ContainerReplayExecutor",
                 image_digest=self.image_digest,
                 execution_time_seconds=execution_time,
-                memory_used_bytes=max_mem
-            )
+                memory_used_bytes=max_mem,
+            ),
         )

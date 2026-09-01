@@ -22,12 +22,16 @@ try:
 except Exception:
     HAS_DOCKER = False
 
-pytestmark = pytest.mark.skipif(not HAS_DOCKER, reason="Docker is not running")
+REPLAY_IMAGE = os.environ.get("DGX_REPLAY_IMAGE")
+pytestmark = pytest.mark.skipif(
+    not HAS_DOCKER or not REPLAY_IMAGE,
+    reason="Docker and a digest-pinned DGX_REPLAY_IMAGE are required",
+)
 
 
 @pytest.fixture
 def executor():
-    return ContainerReplayExecutor(image="python:3.11-slim")
+    return ContainerReplayExecutor(image=REPLAY_IMAGE)
 
 
 def safe_func():

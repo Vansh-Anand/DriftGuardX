@@ -4,7 +4,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
 RUN python -m pip install --no-cache-dir uv==0.11.23 \
-    && uv sync --frozen --no-dev --extra ml --extra benchmark
+    && uv sync --frozen --no-dev --extra infra
 
 FROM python:3.11-slim
 WORKDIR /app
@@ -13,7 +13,6 @@ RUN groupadd --gid 10001 appgroup \
     && useradd --uid 10001 --gid appgroup --no-create-home --shell /usr/sbin/nologin appuser
 COPY --from=builder /app/.venv /app/.venv
 COPY --chown=appuser:appgroup packages/ ./packages/
-COPY --chown=appuser:appgroup apps/cli/ ./apps/cli/
 COPY --chown=appuser:appgroup uv.lock ./uv.lock
 USER appuser
-ENTRYPOINT ["python", "-m", "apps.cli.experiments"]
+ENTRYPOINT ["python"]

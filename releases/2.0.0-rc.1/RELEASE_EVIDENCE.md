@@ -1,6 +1,6 @@
 # DriftGuard-X 2.0.0-rc.1 Release Evidence
 
-Verification date: 2026-08-30  
+Verification date: 2026-09-01
 Engineering status: internal release-candidate gates passed; production promotion not approved.
 
 This is an evidence-bounded engineering record. It does not establish patentability, production safety, security certification, or real-world effectiveness.
@@ -27,10 +27,10 @@ This is an evidence-bounded engineering record. It does not establish patentabil
 
 | Gate | Result |
 |---|---|
-| Complete Python suite | 430 passed, 20 conditional skips |
-| Release-critical strict MyPy | 32 files, no issues |
+| Complete Python suite | 443 passed, 20 conditional skips |
+| Release-critical strict MyPy | 38 files, no issues |
 | Fatal Ruff syntax gate | Passed |
-| Black release-critical formatting gate | 30 files, passed |
+| Black release-critical formatting gate | 36 files, passed |
 | Next.js 16.3.3 production build/type validation | Passed |
 | Playwright browser smoke | 5 passed, including editorial landing and mobile composition |
 | Frozen Python dependency audit | Passed; no known vulnerabilities |
@@ -59,6 +59,39 @@ Evidence class for every result below: `synthetic_simulation`.
 
 The corrected oracle requires the intervention target to match injected ground truth. Confirmation and actually observed mitigation are reported separately. The result does not support a cost, replay-count, blast-radius, or superiority claim for the causal planner; exhaustive and fixed-order search were cheaper in this uniform-prior synthetic harness.
 
+## Real-data controlled replay evidence
+
+Evidence class: `controlled_replay`.
+
+An additional offline benchmark executed a deterministic BM25 retrieval workload
+over a hash-pinned BEIR/SciFact snapshot: 5,183 scientific documents, 1,109
+queries, and the official test qrels. One hundred queries for which the clean
+retriever found at least one relevant document were evaluated. The harness
+tombstoned each query's relevant index entries, then re-executed candidate
+interventions until retrieval recall returned to the clean baseline.
+
+| Strategy | Recovery rate | Mean replays | Paired replay delta vs BCRB | 95% paired bootstrap CI | Randomization p-value |
+|---|---:|---:|---:|---:|---:|
+| BCRB with index-integrity prior | 1.000 | 1.000 | — | — | — |
+| Fixed order | 1.000 | 4.000 | +3.000 | [3.000, 3.000] | <0.001 |
+| Seeded random | 1.000 | 2.320 | +1.320 | [1.120, 1.520] | <0.001 |
+
+The BCRB prior is supplied by the controlled `index_snapshot_digest_changed`
+fault signature. The qrels define both relevance and the tombstoned documents.
+Consequently, this result supports only the narrow claim that an integrity signal
+can reduce replay count for this retrieval fault family. It does not establish
+general BCRB or causal-planner superiority, full RAG effectiveness, live-system
+safety, or production recovery. Host-specific elapsed time is recorded but is not
+the primary comparison metric.
+
+Every trial contains a canonical SHA-256 evidence digest. The complete artifact
+binds dataset file hashes, experiment parameters, source state, aggregates,
+paired statistics, and trial evidence under manifest SHA-256
+`7c4389dfea31973458e38750ffd9e0548a5995c0c31dcf88e40e1b697f1a83c9`.
+The committed local artifact records a dirty source tree because it was generated
+during implementation. The manual CI evidence workflow regenerates it from a
+clean checkout and rejects dirty provenance before retaining the artifact.
+
 ## Immutable experiment record
 
 Manifest SHA-256: `4dcbe004a6b0d76759eece9bd2e973e9548842c895a45019ad748f1d99fb9ff3`
@@ -72,5 +105,5 @@ The active JSON manifest binds the source inventory, tracked diff, dependency lo
 3. Validate the migration cycle and authenticated service smoke against disposable PostgreSQL/Redis services in CI.
 4. Configure and test production OIDC, role synchronization, KMS/HSM-backed keys, secrets, ingress, TLS, network policy, backups, and observability.
 5. Wire and independently validate a production provider/retrieval pipeline and durable external job dispatcher; both intentionally fail closed or remain outside the production API today rather than fabricating success.
-6. Preregister evaluation criteria and obtain independent controlled/real replay evidence before any effectiveness claim.
+6. Preregister evaluation criteria and obtain independent controlled replay across additional fault families, plus production-canary evidence, before any broad effectiveness claim.
 7. Obtain independent penetration, load, failure-injection, privacy, licensing, and patent-counsel review before external distribution.

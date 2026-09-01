@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Detector Calibration Pipeline
 """
+
 from collections.abc import Sequence
 
 import numpy as np
@@ -16,9 +17,7 @@ def calculate_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[
 
 
 def calculate_metrics_for_threshold(
-    y_true: Sequence[int],
-    y_score: Sequence[float],
-    threshold: float
+    y_true: Sequence[int], y_score: Sequence[float], threshold: float
 ) -> dict[str, float]:
     """Calculate F1, FPR, TPR for a specific threshold."""
     y_true_np = np.array(y_true)
@@ -39,14 +38,28 @@ def calculate_metrics_for_threshold(
         "fpr": float(fpr),
         "precision": float(precision),
         "recall": float(recall),
-        "f1": float(f1)
+        "f1": float(f1),
     }
 
 
 def compute_auroc_auprc(y_true: Sequence[int], y_score: Sequence[float]) -> tuple[float, float]:
-    """Compute AUROC and AUPRC without sklearn by iterating thresholds."""
-    y_true_np = np.array(y_true)
-    y_score_np = np.array(y_score)
+    """Compute AUROC and average precision without a sklearn dependency.
+
+    The precision-recall curve is traversed in descending score order.  The
+    previous implementation reversed both axes before integration, which made
+    recall decrease and produced impossible negative AUPRC values.
+    """
+    if len(y_true) != len(y_score):
+        raise ValueError("y_true and y_score must have the same length")
+    if not y_true:
+        raise ValueError("at least one observation is required")
+
+    y_true_np = np.asarray(y_true, dtype=int)
+    y_score_np = np.asarray(y_score, dtype=float)
+    if not np.isin(y_true_np, (0, 1)).all():
+        raise ValueError("y_true must contain only binary labels 0 and 1")
+    if not np.isfinite(y_score_np).all():
+        raise ValueError("y_score must contain only finite values")
 
     if len(np.unique(y_true_np)) < 2:
         return 0.0, 0.0
@@ -55,32 +68,37 @@ def compute_auroc_auprc(y_true: Sequence[int], y_score: Sequence[float]) -> tupl
     thresholds = np.sort(thresholds)[::-1]  # descending
 
     tprs, fprs = [0.0], [0.0]
-    precisions, recalls = [1.0], [0.0]
 
     for t in thresholds:
         m = calculate_metrics_for_threshold(y_true, y_score, t)
         tprs.append(m["tpr"])
         fprs.append(m["fpr"])
-        precisions.append(m["precision"])
-        recalls.append(m["recall"])
 
     tprs.append(1.0)
     fprs.append(1.0)
-    precisions.append(0.0)
-    recalls.append(1.0)
 
-    # Calculate Area Under Curve using Trapezoidal rule
-    auroc = np.trapz(tprs, fprs)
-    auprc = np.trapz(precisions[::-1], recalls[::-1])
+    # AUROC uses trapezoidal integration along monotonically increasing FPR.
+    auroc = np.trapezoid(tprs, fprs)
 
-    return float(auroc), float(auprc)
+    # Average precision is the accepted step-wise area summary for a ranked
+    # precision-recall curve and is stable in the presence of tied scores.
+    order = np.argsort(-y_score_np, kind="stable")
+    sorted_truth = y_true_np[order]
+    true_positives = np.cumsum(sorted_truth)
+    ranks = np.arange(1, len(sorted_truth) + 1)
+    precision_at_rank = true_positives / ranks
+    positive_count = int(np.sum(sorted_truth))
+    auprc = float(np.sum(precision_at_rank * sorted_truth) / positive_count)
+
+    return float(np.clip(auroc, 0.0, 1.0)), float(np.clip(auprc, 0.0, 1.0))
 
 
-def calibrate_detector(y_true: Sequence[int], y_score: Sequence[float], target_fpr: float = 0.05) -> dict[str, float]:
+def calibrate_detector(
+    y_true: Sequence[int], y_score: Sequence[float], target_fpr: float = 0.05
+) -> dict[str, float]:
     """
     Find optimal threshold that maintains FPR <= target_fpr while maximizing F1.
     """
-    y_true_np = np.array(y_true)
     y_score_np = np.array(y_score)
     thresholds = np.unique(y_score_np)
 
@@ -103,5 +121,5 @@ def calibrate_detector(y_true: Sequence[int], y_score: Sequence[float], target_f
         "fpr": best_metrics.get("fpr", 0.0),
         "tpr": best_metrics.get("tpr", 0.0),
         "auroc": auroc,
-        "auprc": auprc
+        "auprc": auprc,
     }

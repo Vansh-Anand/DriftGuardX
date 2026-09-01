@@ -6,7 +6,7 @@ import math
 import os
 from collections.abc import Sequence
 
-os.environ["DGX_CAPABILITY_SECRET"] = "driftguardx-synthetic-benchmark-secret"
+os.environ.setdefault("DGX_CAPABILITY_SECRET", "driftguardx-synthetic-benchmark-secret")
 import random
 import statistics
 import time

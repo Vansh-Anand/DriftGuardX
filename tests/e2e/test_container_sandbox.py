@@ -1,16 +1,24 @@
+import os
+import sys
 
+import cloudpickle
 import pytest
 
 from packages.replay.src.executor import ContainerReplayExecutor
 
+cloudpickle.register_pickle_by_value(sys.modules[__name__])
+
 # Simple functions to test the executor
+
 
 def quick_success():
     return "success"
 
+
 def hanging_job():
     while True:
         pass
+
 
 def memory_pressure():
     # Attempt to allocate more than 128MB
@@ -18,14 +26,17 @@ def memory_pressure():
     data = [0.0] * 20000000
     return len(data)
 
+
 def network_access():
     import urllib.request
+
     try:
         # 1.1.1.1 is Cloudflare DNS, usually highly available
         urllib.request.urlopen("http://1.1.1.1", timeout=2)
         return "network_success"
     except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
         raise RuntimeError(f"Network failed: {e!s}")
+
 
 def oversized_payload():
     # Attempt to write a large file to /tmp (which is limited to 64MB)
@@ -36,17 +47,22 @@ def oversized_payload():
     except (ValueError, RuntimeError, KeyError, TypeError, OSError) as e:
         raise RuntimeError(f"Write failed: {e!s}")
 
+
 def failed_execution():
     raise ValueError("Intentional crash")
 
 
 @pytest.fixture
 def executor():
+    image = os.environ.get("DGX_REPLAY_IMAGE")
+    if not image:
+        pytest.skip("A digest-pinned DGX_REPLAY_IMAGE is not configured.")
     try:
         import docker
+
         client = docker.from_env()
         client.ping()
-        return ContainerReplayExecutor()
+        return ContainerReplayExecutor(image=image)
     except Exception:
         pytest.skip("Docker is not available on this system.")
 
@@ -59,6 +75,7 @@ async def test_quick_success(executor):
     assert result.manifest.executor_type == "ContainerReplayExecutor"
     assert result.manifest.image_digest is not None
 
+
 @pytest.mark.asyncio
 async def test_hanging_job(executor):
     # The container should be killed after the budget
@@ -68,13 +85,19 @@ async def test_hanging_job(executor):
     assert "TimeoutError" in result.error
     assert result.manifest.execution_time_seconds >= 2.0
 
+
 @pytest.mark.asyncio
 async def test_memory_pressure(executor):
     # The container should be killed by OOM killer due to 128m limit
     result = await executor.execute(memory_pressure, budget_seconds=10.0)
     assert result.payload is None
     assert result.error is not None
-    assert "No result file found" in result.error or "memory" in result.error.lower() or "ContainerError" in result.error
+    assert (
+        "No result file found" in result.error
+        or "memory" in result.error.lower()
+        or "ContainerError" in result.error
+    )
+
 
 @pytest.mark.asyncio
 async def test_network_access(executor):
@@ -82,7 +105,12 @@ async def test_network_access(executor):
     result = await executor.execute(network_access, budget_seconds=5.0)
     assert result.payload is None
     assert result.error is not None
-    assert "Network failed" in result.error or "Name or service not known" in result.error or "Network is unreachable" in result.error
+    assert (
+        "Network failed" in result.error
+        or "Name or service not known" in result.error
+        or "Network is unreachable" in result.error
+    )
+
 
 @pytest.mark.asyncio
 async def test_oversized_payload(executor):
@@ -92,6 +120,7 @@ async def test_oversized_payload(executor):
     assert result.error is not None
     assert "No space left on device" in result.error or "Write failed" in result.error
 
+
 @pytest.mark.asyncio
 async def test_failed_execution(executor):
     # The python exception should be caught and bubbled up
@@ -100,10 +129,12 @@ async def test_failed_execution(executor):
     assert result.error is not None
     assert "Intentional crash" in result.error
 
+
 @pytest.mark.asyncio
 async def test_cleanup(executor):
     # Ensure containers are cleaned up
     import docker
+
     client = docker.from_env()
 
     # Count containers with our image before

@@ -35,8 +35,16 @@ JWKS URI). Mock authentication is deliberately rejected in staging/production.
 
 Release-candidate verification and benchmark limitations are recorded in
 [`releases/2.0.0-rc.1/RELEASE_EVIDENCE.md`](releases/2.0.0-rc.1/RELEASE_EVIDENCE.md).
-The benchmark evidence is synthetic and currently does not support a causal-planner
-performance advantage.
+The original causal-planner benchmark remains synthetic and does not support a
+general causal-planner performance advantage. A separate hash-bound SciFact/BM25
+benchmark executes real public dataset records under controlled index fault
+injection and is explicitly classified as `controlled_replay`, not production
+evidence. Run it with:
+
+```bash
+uv run python scripts/download_scifact.py
+uv run python -m apps.cli.run_controlled_replay_benchmark --max-queries 100
+```
 
 ## License & Patents
 **CONFIDENTIAL**. Do not distribute, publicly host, or present this software outside of cleared research circles. Patent novelty searches and formal IP filings are pending.

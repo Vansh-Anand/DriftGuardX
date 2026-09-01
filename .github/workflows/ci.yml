@@ -65,9 +65,12 @@ jobs:
           apps/cli/run_benchmark.py apps/worker/src/worker.py \
           packages/contracts/src/recovery_models.py packages/recovery/src/replay_executor.py \
           packages/recovery/src/validation.py packages/replay/src/engine.py \
+          packages/replay/src/executor.py \
           packages/replay/src/exogenous_controller.py packages/rag_benchmark/src/fault_models.py \
           packages/rag_benchmark/src/fault_injection.py packages/rag_benchmark/src/rag_pipeline.py \
-          packages/rag_benchmark/src/schedulers.py
+          packages/rag_benchmark/src/schedulers.py packages/rag_benchmark/src/controlled_replay.py \
+          packages/detectors/src/calibration.py packages/evaluation/src/report_generator.py \
+          apps/cli/run_controlled_replay_benchmark.py scripts/download_scifact.py
 
     - name: Strict type check for release-critical modules
       run: |
@@ -84,8 +87,12 @@ jobs:
           packages/contracts/src/models.py packages/contracts/src/recovery_models.py \
           packages/ledger/src/schema.py packages/ledger/src/export.py \
           packages/recovery/src/replay_executor.py packages/recovery/src/validation.py \
-          packages/replay/src/engine.py packages/replay/src/planner.py packages/replay/src/sandbox.py \
+          packages/replay/src/engine.py packages/replay/src/executor.py \
+          packages/replay/src/planner.py packages/replay/src/sandbox.py \
           packages/replay/src/exogenous_controller.py packages/rag_benchmark/src/fault_models.py \
+          packages/rag_benchmark/src/controlled_replay.py packages/detectors/src/calibration.py \
+          packages/evaluation/src/report_generator.py apps/cli/run_controlled_replay_benchmark.py \
+          scripts/download_scifact.py \
           packages/utils/src/version.py
 
     - name: Validate migrations against PostgreSQL
@@ -130,6 +137,33 @@ jobs:
       env:
         DGX_VERIFICATION_STATUS: ci-verified
     - run: npm run test:e2e
+
+  container-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - name: api
+          file: apps/api/Dockerfile
+        - name: worker
+          file: apps/worker/Dockerfile
+        - name: web
+          file: apps/web/Dockerfile
+        - name: replay
+          file: apps/replay/Dockerfile
+    steps:
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - name: Build ${{ matrix.name }} image without publishing
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ${{ matrix.file }}
+        push: false
+        tags: driftguardx-${{ matrix.name }}:${{ github.sha }}
+        cache-from: type=gha,scope=${{ matrix.name }}
+        cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
   security-and-sbom:
     runs-on: ubuntu-latest
