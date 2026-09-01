@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 :root {
+  --font-grotesk: "Arial Nova", "Avenir Next", "Segoe UI", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+:root {
   --background: #ECEAE2;
   --foreground: #0a0a0a;
   --accent: #E8FF00;

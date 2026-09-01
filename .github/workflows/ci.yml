@@ -95,16 +95,33 @@ jobs:
           scripts/download_scifact.py \
           packages/utils/src/version.py
 
-    - name: Validate migrations against PostgreSQL
+    - name: Upgrade PostgreSQL schema to head
       working-directory: apps/api
       env:
         DATABASE_URL: postgresql+asyncpg://driftguardx:ci-password@localhost:5432/driftguardx_ci
         DGX_MODE: test
-      run: |
-        uv run alembic upgrade head
-        uv run alembic check
-        uv run alembic downgrade base
-        uv run alembic upgrade head
+      run: uv run alembic upgrade head
+
+    - name: Validate PostgreSQL model and migration parity
+      working-directory: apps/api
+      env:
+        DATABASE_URL: postgresql+asyncpg://driftguardx:ci-password@localhost:5432/driftguardx_ci
+        DGX_MODE: test
+      run: uv run alembic check
+
+    - name: Validate PostgreSQL full downgrade
+      working-directory: apps/api
+      env:
+        DATABASE_URL: postgresql+asyncpg://driftguardx:ci-password@localhost:5432/driftguardx_ci
+        DGX_MODE: test
+      run: uv run alembic downgrade base
+
+    - name: Validate PostgreSQL clean re-upgrade
+      working-directory: apps/api
+      env:
+        DATABASE_URL: postgresql+asyncpg://driftguardx:ci-password@localhost:5432/driftguardx_ci
+        DGX_MODE: test
+      run: uv run alembic upgrade head
 
     - name: Run complete Python suite, including service-backed integration smoke
       env:
