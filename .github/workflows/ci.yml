@@ -125,7 +125,18 @@ jobs:
       env:
         DATABASE_URL: postgresql+asyncpg://driftguardx:ci-password@localhost:5432/driftguardx_ci
         DGX_MODE: test
-      run: uv run alembic downgrade base
+      run: |
+        set +e
+        output="$(uv run alembic downgrade base 2>&1)"
+        status=$?
+        printf '%s\n' "$output"
+        if [ "$status" -ne 0 ]; then
+          output="${output//'%'/'%25'}"
+          output="${output//$'\r'/'%0D'}"
+          output="${output//$'\n'/'%0A'}"
+          printf '::error title=PostgreSQL full downgrade failed::%s\n' "$output"
+          exit "$status"
+        fi
 
     - name: Validate PostgreSQL clean re-upgrade
       working-directory: apps/api
