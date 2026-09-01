@@ -27,20 +27,27 @@ This is an evidence-bounded engineering record. It does not establish patentabil
 
 | Gate | Result |
 |---|---|
-| Complete Python suite | 443 passed, 20 conditional skips |
-| Release-critical strict MyPy | 38 files, no issues |
+| Complete Python suite | 444 passed, 20 conditional skips |
+| Release-critical strict MyPy | 39 files, no issues |
 | Fatal Ruff syntax gate | Passed |
-| Black release-critical formatting gate | 36 files, passed |
+| Black release-critical formatting gate | 37 files, passed |
 | Next.js 16.3.3 production build/type validation | Passed |
 | Playwright browser smoke | 5 passed, including editorial landing and mobile composition |
 | Frozen Python dependency audit | Passed; no known vulnerabilities |
 | Production web dependency audit | Passed; 0 vulnerabilities |
-| Alembic disposable upgrade/check/downgrade/upgrade | Passed; no new upgrade operations |
+| Trivy HIGH/CRITICAL policy + Syft SBOM | Passed; actionable scanner findings: 0 |
+| PostgreSQL upgrade/check/downgrade/upgrade | Passed; model and migration metadata in parity |
+| API, worker, replay, and web container builds | Passed on GitHub-hosted Linux runners |
 | Compose model validation | Passed |
 | Kubernetes YAML parse validation | 10 files passed |
 | Frozen dependency resolution | Passed (`uv lock --check`) |
 
-Conditional local skips cover optional ML packages, live service endpoints, and a running Docker daemon. The local Docker daemon was unavailable, so image builds and Docker isolation tests were not executed on this workstation. CI is configured to supply PostgreSQL and Redis and to run the complete suite on Python 3.11.
+Conditional skips cover optional ML packages, live external provider endpoints,
+and container replay tests that require a published digest-pinned replay image.
+The local Docker daemon was unavailable, but GitHub CI supplied pgvector-enabled
+PostgreSQL and Redis, executed the complete suite on Python 3.11, built all four
+Linux images, generated an SBOM, and enforced the vulnerability policy. Definitive
+run: `33517126647` (`6910da748402aa2d1619a07dbfe0fa12dab88615`).
 
 ## Manifest-bound benchmark evidence
 
@@ -96,16 +103,18 @@ before retaining its artifact.
 
 ## Immutable experiment record
 
-Manifest SHA-256: `4dcbe004a6b0d76759eece9bd2e973e9548842c895a45019ad748f1d99fb9ff3`
-
-The active JSON manifest binds the source inventory, tracked diff, dependency locks, exact commands, seed, runtime, and three result artifacts. It records a dirty working tree because this workspace has not been committed. A reviewed clean commit and signed tag are required before external release.
+The controlled-replay artifact manifest SHA-256 is
+`337f496e8b25d889ed7d21ab241a381b8c6ba1a5c8a7ff7b67e76e4cff74ad8a`.
+It binds the clean benchmark source commit, pinned SciFact file hashes, exact
+parameters, aggregates, paired statistics, and all 300 trial digests. The
+software dependency lock was subsequently security-hardened and verified in CI;
+the historical benchmark artifact remains immutable and is not relabeled as a
+run of the later software commit.
 
 ## External promotion gates
 
-1. Run Docker image builds and isolation tests on a Docker-capable runner; archive test and SBOM/vulnerability-scan evidence.
-2. Publish API, worker, and web images under the repository owner's registry namespace; replace each zero digest and the replay image identity with registry-produced immutable digests.
-3. Validate the migration cycle and authenticated service smoke against disposable PostgreSQL/Redis services in CI.
-4. Configure and test production OIDC, role synchronization, KMS/HSM-backed keys, secrets, ingress, TLS, network policy, backups, and observability.
-5. Wire and independently validate a production provider/retrieval pipeline and durable external job dispatcher; both intentionally fail closed or remain outside the production API today rather than fabricating success.
-6. Preregister evaluation criteria and obtain independent controlled replay across additional fault families, plus production-canary evidence, before any broad effectiveness claim.
-7. Obtain independent penetration, load, failure-injection, privacy, licensing, and patent-counsel review before external distribution.
+1. Publish API, worker, web, and replay images under the repository owner's registry namespace; replace each zero digest with registry-produced immutable digests and rerun the container replay isolation tests against that digest.
+2. Configure and test production OIDC, role synchronization, KMS/HSM-backed keys, secrets, ingress, TLS, network policy, backups, and observability.
+3. Wire and independently validate a production provider/retrieval pipeline and durable external job dispatcher; both intentionally fail closed or remain outside the production API today rather than fabricating success.
+4. Preregister evaluation criteria and obtain independent controlled replay across additional fault families, plus production-canary evidence, before any broad effectiveness claim.
+5. Obtain independent penetration, load, failure-injection, privacy, licensing, and Indian patent-counsel review before external distribution or filing decisions.
