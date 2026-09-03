@@ -35,6 +35,7 @@ def test_manifest_hashing_and_pinning():
         container_image_digest="sha256:123",
         dependency_lockfile_hash="lock-hash",
         trace_root_hash="trace-hash",
+        original_query="test query",
         original_query_hash="query-hash",
         corpus_version_id="corpus-v1",
     )
@@ -66,6 +67,7 @@ def test_manifest_hashing_and_pinning():
         container_image_digest="sha256:123",
         dependency_lockfile_hash="lock-hash",
         trace_root_hash="trace-hash",
+        original_query="test query",
         original_query_hash="query-hash",
         corpus_version_id="corpus-v1",
     )

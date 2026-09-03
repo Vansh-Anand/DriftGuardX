@@ -21,7 +21,7 @@ def test_api_replay_manifest_binds_real_runtime_artifacts(monkeypatch):
     manifest = _build_replay_manifest(
         original_run=run,
         original_trace=trace,
-        replay_version=RETRIEVER_V1,
+        original_query="test query",
         seed=42,
     )
 
@@ -50,7 +50,7 @@ def test_api_replay_manifest_uses_deployed_image_digest(monkeypatch):
     manifest = _build_replay_manifest(
         original_run=SimpleNamespace(id=uuid4(), tenant_id=uuid4(), request_hash="a" * 64),
         original_trace=SimpleNamespace(root_span_id="b" * 16, total_span_count=0, spans_json=[]),
-        replay_version=RETRIEVER_V1,
+        original_query="test query",
         seed=7,
     )
     assert manifest.container_image_digest == image_digest

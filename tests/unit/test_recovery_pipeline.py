@@ -2,11 +2,13 @@ import uuid
 from datetime import UTC, datetime
 from unittest.mock import patch
 
+import pytest
 from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
 from packages.contracts.src.agent_models import AgentInvocation
 
+pytestmark = pytest.mark.asyncio
 
-def test_end_to_end_recovery_pipeline():
+async def test_end_to_end_recovery_pipeline():
     tenant_id = str(uuid.uuid4())
     run_id = str(uuid.uuid4())
     pipeline = EndToEndRecoveryPipeline(tenant_id=tenant_id)
@@ -40,7 +42,7 @@ def test_end_to_end_recovery_pipeline():
             )
         mock_exec.side_effect = mock_execute_canary
 
-        certificate = pipeline.execute_recovery_loop(
+        certificate = await pipeline.execute_recovery_loop(
             run_id=run_id, invocations=invocations, failure_symptom="stale_context"
         )
 

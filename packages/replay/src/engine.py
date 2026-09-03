@@ -505,7 +505,8 @@ class ReplayEngine:
         if "tenant_id" not in current_inputs:
             current_inputs["tenant_id"] = str(tenant_id)
         if "partition_id" not in current_inputs:
-            current_inputs["partition_id"] = f"{tenant_id}_{replay_id}"
+            # Use original_run.id for partition to ensure determinism across replays
+            current_inputs["partition_id"] = f"{tenant_id}_{original_run.id}"
 
         all_spans: list[SpanRecord] = []
         root_span_id: str | None = None
