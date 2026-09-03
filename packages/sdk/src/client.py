@@ -48,6 +48,22 @@ class DriftGuardClient:
         response.raise_for_status()
         return response.json()
 
+    def finalize_run(self, run_id: str, status: str, **kwargs) -> dict[str, Any]:
+        """Finalize a run with terminal status and telemetry."""
+        payload = {"status": status}
+        payload.update(kwargs)
+        response = self.client.post(f"/runs/{run_id}/finalize", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def batch_spans(self, spans: list[dict[str, Any]]) -> dict[str, Any]:
+        """Ingest a batch of spans."""
+        # Retry buffering logic can be implemented by callers or advanced client wrappers
+        # but the API boundary requires a simple POST
+        response = self.client.post("/ingest/spans", json={"spans": spans})
+        response.raise_for_status()
+        return response.json()
+
 
 class AsyncDriftGuardClient:
     """Asynchronous client for DriftGuard-X API."""
@@ -64,5 +80,20 @@ class AsyncDriftGuardClient:
     async def list_runs(self, skip: int = 0, limit: int = 20) -> dict[str, Any]:
         """List executed runs."""
         response = await self.client.get("/runs", params={"skip": skip, "limit": limit})
+        response.raise_for_status()
+        return response.json()
+
+
+    async def finalize_run(self, run_id: str, status: str, **kwargs) -> dict[str, Any]:
+        """Finalize a run with terminal status and telemetry."""
+        payload = {"status": status}
+        payload.update(kwargs)
+        response = await self.client.post(f"/runs/{run_id}/finalize", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    async def batch_spans(self, spans: list[dict[str, Any]]) -> dict[str, Any]:
+        """Ingest a batch of spans."""
+        response = await self.client.post("/ingest/spans", json={"spans": spans})
         response.raise_for_status()
         return response.json()

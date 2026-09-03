@@ -52,6 +52,22 @@ class RunRegisterResponse(APIBase):
     is_synthetic: bool
 
 
+class RunFinalizeRequest(APIBase):
+    status: Literal["COMPLETED", "FAILED", "CANCELLED"]
+    error_type: str | None = None
+    error_message: str | None = None
+    reliability_score: float | None = None
+    reliability_vector: dict[str, float] = Field(default_factory=dict)
+    total_tokens: int | None = None
+    total_cost_usd: float | None = None
+    total_latency_ms: float | None = None
+
+
+class RunFinalizeResponse(APIBase):
+    id: uuid.UUID
+    status: str
+
+
 class RunResponse(APIBase):
     id: uuid.UUID
     tenant_id: uuid.UUID

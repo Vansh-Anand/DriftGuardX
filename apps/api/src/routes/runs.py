@@ -962,3 +962,57 @@ async def create_replay(
         manifest_hash=manifest_orm.manifest_hash,
         is_pinned=episode_orm.is_pinned,
     )
+
+
+# ─── POST /v1/runs/{run_id}/finalize ──────────────────────────────────────────
+
+from apps.api.src.schemas import RunFinalizeRequest, RunFinalizeResponse
+
+@router.post(
+    "/runs/{run_id}/finalize", response_model=RunFinalizeResponse, status_code=status.HTTP_200_OK
+)
+async def finalize_run(
+    run_id: uuid.UUID,
+    request: RunFinalizeRequest,
+    db: AsyncSession = Depends(get_db),
+    tenant: Tenant = Depends(get_current_tenant),
+) -> RunFinalizeResponse:
+    """Finalize a run by transitioning to a terminal state and recording telemetry."""
+    result = await db.execute(
+        select(RequestRunORM).where(
+            RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id
+        )
+    )
+    run_orm = result.scalar_one_or_none()
+    if run_orm is None:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+    # Idempotent finalization check
+    if run_orm.status in ("COMPLETED", "FAILED", "CANCELLED"):
+        # If terminal, just return existing status to be idempotent, 
+        # unless conflicting terminal state is passed (then we reject).
+        if run_orm.status != request.status:
+            raise HTTPException(status_code=409, detail=f"Run already in terminal state {run_orm.status}")
+        return RunFinalizeResponse(id=run_id, status=run_orm.status)
+
+    run_orm.status = request.status
+    if request.error_type:
+        run_orm.error_type = request.error_type
+    if request.error_message:
+        run_orm.error_message = request.error_message
+    if request.reliability_score is not None:
+        run_orm.reliability_score = request.reliability_score
+    if request.reliability_vector:
+        run_orm.reliability_vector = request.reliability_vector
+    if request.total_tokens is not None:
+        run_orm.total_tokens = request.total_tokens
+    if request.total_cost_usd is not None:
+        run_orm.total_cost_usd = request.total_cost_usd
+    if request.total_latency_ms is not None:
+        run_orm.total_latency_ms = request.total_latency_ms
+
+    run_orm.completed_at = datetime.now(UTC)
+
+    await db.flush()
+
+    return RunFinalizeResponse(id=run_id, status=run_orm.status)
