@@ -298,3 +298,15 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - The deterministic evidence generated is correctly fenced out as `SYNTHETIC_SIMULATION` (enforced during Prompt 11).
 
 **Commit Hash**: Pending push.
+
+
+## PROMPT 13 — ROADMAP #36–#45 (Trace SDK Hardening and External Integrations)
+### Verification Results
+- ✅ API run finalization: POST /v1/runs/{run_id}/finalize enforces idempotency and handles missing trace payload details safely.
+- ✅ SDK enhancements: DriftGuardClient now contains inalize_run and atch_spans.
+- ✅ Trace decorators: @trace_component propagates causally correct TraceContext hierarchies and ensures exact error/arg extractions natively.
+- ✅ OTel Integrations: DriftGuardSpanExporter correctly bridges OpenTelemetry's native spans into DriftGuard-X payload schemas via the atch_spans API.
+- ✅ LangGraph Adaptor: langgraph_node adapter cleanly structures external node executions as ComponentType.AGENT spans in DriftGuard-X.
+- ✅ Tests: Integration tests in 	est_trace_sdk.py correctly validate sync/async decorators, span collection, OTel mocking, and causal hierarchies.
+### Status
+- [x] COMPLETE
