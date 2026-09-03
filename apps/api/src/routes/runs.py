@@ -166,15 +166,34 @@ def _build_replay_manifest(
             "spans": original_trace.spans_json,
         }
     )
-    multi_agent_topology = [
-        {"agent": "orchestrator", "next": ["retrieval"]},
-        {"agent": "retrieval", "next": ["reasoning"]},
-        {"agent": "reasoning", "next": ["tool"]},
-        {"agent": "tool", "next": ["verifier"]},
-        {"agent": "verifier", "next": ["policy"]},
-        {"agent": "policy", "next": ["response"]},
-        {"agent": "response", "next": []},
-    ]
+    # Construct multi_agent_topology from trace spans dynamically
+    multi_agent_topology = []
+    if original_trace and original_trace.spans_json:
+        # spans_json is a dict of span_id -> span_dict or a list
+        spans = original_trace.spans_json
+        if isinstance(spans, dict):
+            spans = list(spans.values())
+            
+        agent_spans = [s for s in spans if s.get("component_type") == ComponentType.AGENT.value or s.get("component_type") == "AGENT"]
+        
+        # Build node relationships
+        nodes = {}
+        for s in agent_spans:
+            agent_type = s.get("attributes", {}).get("dgx.agent.type", s.get("name"))
+            span_id = s.get("span_id")
+            source_span_id = s.get("attributes", {}).get("dgx.causal.source_span_id")
+            nodes[span_id] = {"agent": agent_type, "span_id": span_id, "next": [], "source": source_span_id}
+            
+        # Link next based on source
+        for span_id, data in nodes.items():
+            if data["source"] and data["source"] in nodes:
+                nodes[data["source"]]["next"].append(data["agent"])
+                
+        for node in nodes.values():
+            multi_agent_topology.append({"agent": node["agent"], "next": list(set(node["next"]))})
+            
+    if not multi_agent_topology:
+        multi_agent_topology = [{"agent": "orchestrator", "next": []}]
 
     return ReplayStateManifest(
         run_id=original_run.id,

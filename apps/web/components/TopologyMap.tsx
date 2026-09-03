@@ -1,30 +1,66 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface TopologyMapProps {
   failingComponent?: string | null;
+  topology?: { agent: string; next: string[] }[];
 }
 
-export function TopologyMap({ failingComponent }: TopologyMapProps) {
-  // Nodes in our causal graph
-  const nodes = [
-    { id: 'retriever', label: 'RETRIEVER', x: 100, y: 150 },
-    { id: 'generator', label: 'GENERATOR', x: 300, y: 150 },
-    { id: 'policy_check', label: 'POLICY_CHECK', x: 500, y: 150 },
-    { id: 'orchestrator', label: 'ORCHESTRATOR', x: 300, y: 50 },
-    { id: 'verifier', label: 'VERIFIER', x: 700, y: 150 },
-  ];
+export function TopologyMap({ failingComponent, topology }: TopologyMapProps) {
+  const { nodes, edges } = useMemo(() => {
+    if (!topology || topology.length === 0) {
+      // Fallback/illustrative diagram only
+      return {
+        nodes: [
+          { id: 'retriever', label: 'RETRIEVER', x: 100, y: 150 },
+          { id: 'generator', label: 'GENERATOR', x: 300, y: 150 },
+          { id: 'policy_check', label: 'POLICY_CHECK', x: 500, y: 150 },
+          { id: 'orchestrator', label: 'ORCHESTRATOR', x: 300, y: 50 },
+          { id: 'verifier', label: 'VERIFIER', x: 700, y: 150 },
+        ],
+        edges: [
+          { from: 'orchestrator', to: 'retriever' },
+          { from: 'orchestrator', to: 'generator' },
+          { from: 'orchestrator', to: 'policy_check' },
+          { from: 'retriever', to: 'generator' },
+          { from: 'generator', to: 'policy_check' },
+          { from: 'policy_check', to: 'verifier' },
+        ]
+      };
+    }
+    
+    // Auto-layout simple linear/branching logic for dynamic topology
+    const dynamicNodes: any[] = [];
+    const dynamicEdges: any[] = [];
+    
+    let xOffset = 50;
+    
+    topology.forEach((node, i) => {
+      // Very basic layout
+      dynamicNodes.push({ id: node.agent, label: node.agent.toUpperCase(), x: xOffset, y: 150 });
+      xOffset += 200;
+      
+      node.next.forEach(nextAgent => {
+        dynamicEdges.push({ from: node.agent, to: nextAgent });
+      });
+    });
+    
+    // Fix Y positions for multiple paths (naive auto-layout)
+    dynamicNodes.forEach((node, i) => {
+      if (i % 2 !== 0) {
+         node.y = 50;
+      }
+    });
 
-  const edges = [
-    { from: 'orchestrator', to: 'retriever' },
-    { from: 'orchestrator', to: 'generator' },
-    { from: 'orchestrator', to: 'policy_check' },
-    { from: 'retriever', to: 'generator' },
-    { from: 'generator', to: 'policy_check' },
-    { from: 'policy_check', to: 'verifier' },
-  ];
+    return { nodes: dynamicNodes, edges: dynamicEdges };
+  }, [topology]);
 
   return (
     <div className="relative w-full h-80 bg-[var(--background)] border border-[var(--border)] overflow-hidden">
+      {(!topology || topology.length === 0) && (
+        <div className="absolute top-2 left-2 text-xs font-mono text-red-500 uppercase z-10 font-bold border border-red-500 p-1">
+          * ILLUSTRATIVE DEMO GRAPH *
+        </div>
+      )}
       {/* Drafting grid background */}
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
         backgroundImage: 'linear-gradient(var(--foreground) 1px, transparent 1px), linear-gradient(90deg, var(--foreground) 1px, transparent 1px)',
@@ -39,7 +75,6 @@ export function TopologyMap({ failingComponent }: TopologyMapProps) {
           
           if (!fromNode || !toNode) return null;
 
-          // Simple orthogonal path routing for the blueprint feel
           const midY = fromNode.y + (toNode.y - fromNode.y) / 2;
           const path = `M ${fromNode.x + 60} ${fromNode.y} L ${fromNode.x + 60} ${midY} L ${toNode.x + 60} ${midY} L ${toNode.x + 60} ${toNode.y}`;
 
@@ -76,7 +111,7 @@ export function TopologyMap({ failingComponent }: TopologyMapProps) {
                 x="60"
                 y="24"
                 textAnchor="middle"
-                className={`font-mono text-xs font-bold tracking-widest ${isFailing ? 'fill-background' : 'fill-foreground'}`}
+                className={`font-mono text-[9px] font-bold tracking-widest ${isFailing ? 'fill-background' : 'fill-foreground'}`}
               >
                 {node.label}
               </text>
@@ -89,7 +124,6 @@ export function TopologyMap({ failingComponent }: TopologyMapProps) {
         })}
       </svg>
       
-      {/* Target reticle for failing component if applicable */}
       {failingComponent && (
         <div className="absolute bottom-4 right-4 text-[var(--accent)] font-mono text-xs uppercase tracking-widest flex items-center gap-2">
           <span className="w-2 h-2 bg-[var(--accent)] block" />
