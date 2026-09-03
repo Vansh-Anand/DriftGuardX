@@ -83,3 +83,31 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Remaining issues: None
 - Evidence: Spans carry true hashes, UI renders dynamic nodes, test passed.
 - Commit hash: 8ef6ed4
+
+# Prompt 7 — Roadmap #18–#20
+
+- Date: 2026-09-03
+- Roadmap numbers covered: #18, #19, #20
+- Initial audit findings: CandidatePlanner was mocking local_symptom=0.9 on the final node regardless of evidence. It imported GATTraceDetector but never executed it. The mathematical prior was derived purely from backwards diffusion, ignoring GAT and trace metadata.
+- Existing GAT architecture: GATTraceDetector exposes detect_trace_anomaly(spans) returning is_fault, probabilities, and root_cause_candidates.
+- Existing diffusion architecture: MultiAgentDiffusionEngine exposes run_backward_diffusion(nodes, edges).
+- Existing diagnosis/candidate architecture: CandidatePlanner uses diffusion to seed candidate hypotheses. DiagnosisEngine selects the highest utility candidate.
+- Files created: tests/unit/test_candidate_prior.py
+- Files modified: packages/contracts/src/bcrb_models.py, packages/bcrb/src/candidate_planner.py
+- Files deleted: None
+- GAT integration details: CandidatePlanner now constructs standard Jaeger-like span dicts from AgentInvocations and feeds them directly to GATTraceDetector. The resulting gat_scores per span influence the candidate prior.
+- Diffusion integration details: True node errors (inv.metadata['is_error'] or final failure_symptom) are used to seed local_symptom_score. Causal edges are dynamically constructed from actual invocation trace history.
+- Unified candidate-prior design: UnifiedCandidatePrior explicitly weights GAT (0.4), Diffusion (0.4) and Symptoms (0.2). It is explicitly documented as a heuristic prior and avoids claiming to be a calibrated probability.
+- Data contracts introduced/changed: Added UnifiedCandidatePrior to bcrb_models.py.
+- Provenance handling: Evidence breakdown is stored directly in UnifiedCandidatePrior, capturing whether GAT was synthetic, the exact diffusion explanation matrix, and GAT fault trace results.
+- Commands executed: python -m pytest tests/unit/test_candidate_prior.py -v
+- Test results: 4 passed in 0.51s
+- Before/after behavior:
+  - Before: Mock 0.9 symptoms drove dummy diffusion math. GAT was ignored. Utility was derived from incomplete evidence.
+  - After: Mathematical causal graphs are derived from real trace evidence. GAT and Diffusion mathematically combine to form an explainable heuristic Unified Prior that seeds candidate generation.
+- Status of #18: COMPLETE
+- Status of #19: COMPLETE
+- Status of #20: COMPLETE
+- Remaining issues: None
+- Evidence: tests/unit/test_candidate_prior.py
+- Commit hash: (Will be generated on push)

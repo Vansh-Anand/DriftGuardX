@@ -27,6 +27,14 @@ class BCRBStepStatus(str, enum.Enum):
     SKIPPED = "skipped"
 
 
+class UnifiedCandidatePrior(DGXBaseModel):
+    candidate_component: str
+    gat_score: float
+    diffusion_score: float
+    symptom_evidence: float
+    combined_prior: float
+    evidence_breakdown: dict[str, Any]
+
 class BCRBCandidate(DGXBaseModel):
     candidate_id: UUID = Field(default_factory=_new_uuid)
     component_type: ComponentType

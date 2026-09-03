@@ -7,7 +7,7 @@ import uuid
 
 from packages.bcrb.src.utility_function import calculate_candidate_utility
 from packages.contracts.src.agent_models import AgentInvocation
-from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBSession, StoppingCondition
+from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBSession, StoppingCondition, UnifiedCandidatePrior
 from packages.contracts.src.graph import EdgeType, NodeType
 from packages.contracts.src.models import ComponentType, InterventionType
 from packages.detectors.src.gat_inference import GATTraceDetector
@@ -37,56 +37,98 @@ class CandidatePlanner:
         if not invocations:
             return candidates
 
-        # Phase 4: Use GAT + Diffusion to calculate the causal prior (P(cause_i))
-
-        # 1. Build the mathematical graph from the invocation trace
+        # 1. Build the mathematically accurate graph and spans from the invocation trace
         nodes = []
         edges = []
+        spans = []
 
         for i, inv in enumerate(invocations):
             role_type = inv.agent_identity.agent_type if inv.agent_identity else inv.agent_name
 
-            # Map role to Item 18 NodeType taxonomy
             node_type = NodeType.COMPUTATION
             if role_type in ["retriever", "retrieval"]:
                 node_type = NodeType.INFORMATION
             elif role_type == "policy":
                 node_type = NodeType.POLICY
 
-            # Use GAT or localized symptom score. (Mocking local symptom based on position/failure)
-            local_symptom = 0.9 if (i == len(invocations) - 1 and failure_symptom) else 0.0
+            # Extract true trace errors rather than mocking local symptom
+            is_error = inv.metadata.get("is_error", False)
+            if i == len(invocations) - 1 and failure_symptom:
+                is_error = True
+                
+            local_symptom = 1.0 if is_error else 0.0
 
+            node_id = f"node_{i}_{role_type}"
             nodes.append(
                 NodeState(
-                    node_id=f"node_{i}_{role_type}",
+                    node_id=node_id,
                     local_symptom_score=local_symptom,
                     severity_weight=1.0,
                     node_type=node_type,
                 )
             )
 
-            # Link sequence as causal edges
+            # Build GAT compatible span
+            dur = 0.0
+            if inv.start_time and inv.end_time:
+                dur = (inv.end_time - inv.start_time).total_seconds() * 1000.0
+
+            parent_id = None
             if i > 0:
+                prev_inv = invocations[i-1]
+                prev_role = prev_inv.agent_identity.agent_type if prev_inv.agent_identity else prev_inv.agent_name
+                parent_id = f"node_{i-1}_{prev_role}"
+
+            span = {
+                "span_id": node_id,
+                "duration_ms": dur,
+                "operation_name": role_type,
+                "is_error": is_error,
+                "parent_id": parent_id
+            }
+            spans.append(span)
+
+            # Link sequence as causal edges
+            if parent_id:
                 edges.append(
                     EdgeFeatures(
-                        source_id=f"node_{i-1}_{invocations[i-1].agent_name}",
-                        target_id=f"node_{i}_{role_type}",
+                        source_id=parent_id,
+                        target_id=node_id,
                         edge_type=EdgeType.CONTROL_FLOW,
                         confidence=0.9,
                         directionality=1.0,
                     )
                 )
 
-        diffusion_input = DiffusionInput(nodes=nodes, edges=edges)
+        # 2. Run GAT Trace Anomaly Detection
+        gat_result = self.gat_detector.detect_trace_anomaly(spans)
+        gat_candidates = gat_result.get("root_cause_candidates", [])
+        
+        # Build GAT score map for easy lookup
+        gat_scores = {}
+        for gc in gat_candidates:
+            # GAT uses a combination of error and self time to rank candidates.
+            gat_scores[gc["span_id"]] = gc["self_time_ratio"] * (1.0 if not gc["is_error"] else 2.0)
 
-        # 2. Run backward diffusion to propagate anomaly scores
+        # 3. Run backward diffusion to propagate anomaly scores
+        diffusion_input = DiffusionInput(nodes=nodes, edges=edges)
         diffusion_result = self.diffusion_engine.run_backward_diffusion(diffusion_input)
 
-        # 3. Create candidates based on the mathematically derived prior
+        # 4. Create UnifiedCandidatePrior
         for node_id, output in diffusion_result.node_outputs.items():
-            if output.root_probability > 0.1:  # Only propose if mathematically plausible
+            diff_score = output.root_probability
+            gat_score = gat_scores.get(node_id, 0.0)
+            
+            # Find matching node state
+            node_state = next((n for n in nodes if n.node_id == node_id), None)
+            symptom_score = node_state.local_symptom_score if node_state else 0.0
 
-                # Determine component type from node ID string for legacy mapping
+            # Heuristic Unified Prior calculation
+            # NOT calibrated probability. This is a heuristic prior combining causal signals.
+            combined_prior = (gat_score * 0.4) + (diff_score * 0.4) + (symptom_score * 0.2)
+            combined_prior = min(1.0, max(0.0, combined_prior))
+
+            if combined_prior > 0.05:  # Plausible candidate threshold
                 comp_type = ComponentType.GENERATOR
                 int_type = InterventionType.ALTERNATE_STABLE
                 if "retriev" in node_id:
@@ -96,9 +138,22 @@ class CandidatePlanner:
                     comp_type = ComponentType.POLICY_CHECK
                     int_type = InterventionType.CONFIG_PATCH
 
-                # 4. Calculate true BCRB Utility
+                unified_prior = UnifiedCandidatePrior(
+                    candidate_component=comp_type.value,
+                    gat_score=gat_score,
+                    diffusion_score=diff_score,
+                    symptom_evidence=symptom_score,
+                    combined_prior=combined_prior,
+                    evidence_breakdown={
+                        "gat_is_fault_trace": gat_result.get("is_fault", False),
+                        "diffusion_explanation": output.explanation.model_dump(),
+                        "is_synthetic_gat": not self.gat_detector.is_loaded
+                    }
+                )
+
+                # Calculate true BCRB Utility based on unified prior
                 utility = calculate_candidate_utility(
-                    probability=output.root_probability,
+                    probability=combined_prior,
                     expected_reliability_delta=0.8,
                     information_gain=0.6,
                     cost=0.02,
@@ -114,9 +169,8 @@ class CandidatePlanner:
                         estimated_utility=utility,
                         cost_estimate=0.02,
                         metadata={
-                            "rationale": f"Diffusion engine flagged root probability: {output.root_probability:.2f}",
-                            "prior": output.root_probability,
-                            "explanation": output.explanation.model_dump(),
+                            "rationale": f"Unified Prior calculated: {combined_prior:.2f}",
+                            "prior_evidence": unified_prior.model_dump(),
                         },
                     )
                 )
