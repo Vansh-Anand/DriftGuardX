@@ -224,6 +224,17 @@ class SpanBuilder:
             self._name = f"{component_type.value}/{version_tag}"
         return self
 
+    def set_component_type(self, component_type: ComponentType | str) -> SpanBuilder:
+        """Sets the component type for external integrations where version tags are handled differently."""
+        if isinstance(component_type, ComponentType):
+            self._component_type = component_type
+        else:
+            try:
+                self._component_type = ComponentType(component_type)
+            except ValueError:
+                pass
+        return self
+
     def set_input(self, payload: Any) -> SpanBuilder:
         """Hash the input; do not store raw payload."""
         self._input_hash = hash_payload(payload)

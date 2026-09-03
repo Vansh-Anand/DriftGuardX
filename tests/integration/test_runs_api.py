@@ -1,0 +1,86 @@
+import pytest
+import uuid
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+from apps.api.src.models import RequestRunORM
+from datetime import UTC, datetime
+
+pytestmark = pytest.mark.asyncio
+
+async def test_finalize_run_idempotency_and_validation(client: AsyncClient, db_session: AsyncSession):
+    # Setup test run in DB
+    run_id = uuid.uuid4()
+    tenant_id = uuid.UUID("00000000-0000-0000-FFFF-000000000001") # matches make_tenant_id() in conftest.py
+    
+    run = RequestRunORM(
+        id=run_id,
+        tenant_id=tenant_id,
+        pipeline_id=uuid.uuid4(),
+        status="RUNNING",
+        is_synthetic=True,
+        created_at=datetime.now(UTC)
+    )
+    db_session.add(run)
+    await db_session.commit()
+    
+    # 1. 422 Negative token validation
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "COMPLETED",
+            "total_tokens": -5,
+        }
+    )
+    assert res.status_code == 422
+    assert "negative" in res.json()["detail"].lower()
+
+    # 2. 422 Negative cost validation
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "COMPLETED",
+            "total_cost_usd": -10.0,
+        }
+    )
+    assert res.status_code == 422
+    
+    # 3. 422 Negative latency validation
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "COMPLETED",
+            "total_latency_ms": -1.0,
+        }
+    )
+    assert res.status_code == 422
+    
+    # 4. Valid finalize
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "COMPLETED",
+            "total_tokens": 100,
+        }
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "COMPLETED"
+    
+    # 5. Idempotent finalize
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "COMPLETED",
+            "total_tokens": 100,
+        }
+    )
+    assert res.status_code == 200
+    
+    # 6. Reject invalid transition
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "FAILED",
+        }
+    )
+    assert res.status_code == 409
+

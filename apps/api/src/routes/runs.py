@@ -1005,10 +1005,16 @@ async def finalize_run(
     if request.reliability_vector:
         run_orm.reliability_vector = request.reliability_vector
     if request.total_tokens is not None:
+        if request.total_tokens < 0:
+            raise HTTPException(status_code=422, detail="total_tokens cannot be negative")
         run_orm.total_tokens = request.total_tokens
     if request.total_cost_usd is not None:
+        if request.total_cost_usd < 0:
+            raise HTTPException(status_code=422, detail="total_cost_usd cannot be negative")
         run_orm.total_cost_usd = request.total_cost_usd
     if request.total_latency_ms is not None:
+        if request.total_latency_ms < 0:
+            raise HTTPException(status_code=422, detail="total_latency_ms cannot be negative")
         run_orm.total_latency_ms = request.total_latency_ms
 
     run_orm.completed_at = datetime.now(UTC)

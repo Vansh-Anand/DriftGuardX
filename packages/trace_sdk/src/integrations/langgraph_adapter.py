@@ -35,7 +35,7 @@ def langgraph_node(
                 builder.set_attribute("dgx.component.type", str(ComponentType.AGENT.value))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
                 builder.set_attribute("dgx.agent.type", "langgraph_node")
-                builder._component_type = ComponentType.AGENT
+                builder.set_component_type(ComponentType.AGENT)
                 
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
@@ -70,7 +70,7 @@ def langgraph_node(
                 builder.set_attribute("dgx.component.type", str(ComponentType.AGENT.value))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
                 builder.set_attribute("dgx.agent.type", "langgraph_node")
-                builder._component_type = ComponentType.AGENT
+                builder.set_component_type(ComponentType.AGENT)
                 
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)

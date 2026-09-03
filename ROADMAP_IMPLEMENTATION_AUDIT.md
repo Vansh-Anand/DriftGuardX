@@ -52,7 +52,7 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 6. **Agent Decision Preservation**
    - Recorded internal agent decisions and provenance signals (e.g. dgx.decision.outcome = 'allow', dgx.evidence.classification = 'synthetic_simulation') in the span output.
 
-# Prompt 6 — Roadmap #11–#17
+# Prompt 6  Roadmap #11#17
 
 - Date: 2026-09-03
 - Roadmap numbers covered: #11, #12, #13, #14, #15, #16, #17
@@ -84,7 +84,7 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Evidence: Spans carry true hashes, UI renders dynamic nodes, test passed.
 - Commit hash: 8ef6ed4
 
-# Prompt 7 — Roadmap #18–#20
+# Prompt 7  Roadmap #18#20
 
 - Date: 2026-09-03
 - Roadmap numbers covered: #18, #19, #20
@@ -112,12 +112,12 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Evidence: tests/unit/test_candidate_prior.py
 - Commit hash: (Will be generated on push)
 
-# Prompt 8 — Roadmap #21–#31
+# Prompt 8  Roadmap #21#31
 
 - Date: 2026-09-03
 - Roadmap numbers covered: #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31
-- Verification of #18–#20: Verified gat_score was a heuristic, edges were execution order.
-- Any corrections to #18–#20: Renamed gat_score to derived_gat_signal, extracted true detector_probability if available, and marked edges correctly as EXECUTION_ORDER.
+- Verification of #18#20: Verified gat_score was a heuristic, edges were execution order.
+- Any corrections to #18#20: Renamed gat_score to derived_gat_signal, extracted true detector_probability if available, and marked edges correctly as EXECUTION_ORDER.
 - Initial BCRB architecture findings: EndToEndRecoveryPipeline used a static loop enumerating candidates without updating state or tracking budgets. Diagnosis Engine equated high utility with root cause.
 - Files created: packages/bcrb/src/orchestrator.py, tests/unit/test_bcrb_orchestrator.py
 - Files modified: packages/contracts/src/bcrb_models.py, packages/bcrb/src/candidate_planner.py, packages/replay/src/test_framework.py, packages/diagnosis/src/engine.py, apps/api/src/services/recovery_pipeline.py
@@ -235,9 +235,9 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Evidence/commit hash: (Will be generated on push)
 
 
-## Prompt 12 — Reproducibility, Manifest Integrity, and Isolated Replay
+## Prompt 12  Reproducibility, Manifest Integrity, and Isolated Replay
 **Date**: 2026-09-03
-**Roadmap Coverage**: #32–#35
+**Roadmap Coverage**: #32#35
 **Objective**: Harden ReplayEngine isolation, make manifests strictly immutable via cryptographic constraints and database safeguards, and demonstrate deterministic replay.
 
 **Pre-change findings**:

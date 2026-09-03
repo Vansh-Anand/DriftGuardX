@@ -142,3 +142,78 @@ async def test_langgraph_adapter():
     assert spans[0].status_code == "OK"
 
     set_active_trace_context(None)
+
+async def test_sdk_batching():
+    from packages.sdk.src.client import DriftGuardClient
+    from packages.contracts.src.sdk_models import SpanIngestItem
+    
+    class MockClient(DriftGuardClient):
+        def __init__(self):
+            self._max_batch_size = 3
+            self.posted = []
+            
+        def post(self, url, json):
+            self.posted.append(json)
+            # mock successful response
+            class Response:
+                status_code = 200
+                def raise_for_status(self): pass
+                def json(self): return {"ingested": len(json["spans"]), "skipped": 0, "errors": []}
+            return Response()
+            
+    client = MockClient()
+    # Replace internal httpx client with mock
+    client.client = client
+    
+    spans = []
+    for i in range(10):
+        spans.append(SpanIngestItem(
+            trace_id="1"*32,
+            span_id=f"{i:016x}",
+            name=f"span_{i}",
+            start_time="2023-01-01T00:00:00Z",
+            run_id="1"*32,
+            tenant_id="2"*32,
+            pipeline_id="3"*32
+        ))
+        
+    res = client.batch_spans(spans)
+    assert res["ingested"] == 10
+    assert len(client.posted) == 4 # 10 / 3 = 4 batches (3, 3, 3, 1)
+    assert len(client.posted[0]["spans"]) == 3
+    assert len(client.posted[-1]["spans"]) == 1
+
+async def test_causal_trace_propagation():
+    tenant_id = uuid.uuid4()
+    pipeline_id = uuid.uuid4()
+    run_id = uuid.uuid4()
+    
+    ctx = TraceContext(
+        tenant_id=tenant_id,
+        pipeline_id=pipeline_id,
+        run_id=run_id,
+    )
+    
+    set_active_trace_context(ctx)
+
+    @trace_component(ComponentType.AGENT, name="ParentAgent", version_tag="v1")
+    def parent_agent():
+        return child_tool()
+        
+    @trace_component(ComponentType.TOOL, name="ChildTool", version_tag="v1")
+    def child_tool():
+        return "success"
+        
+    parent_agent()
+    
+    spans = ctx.get_spans()
+    assert len(spans) == 2
+    
+    # Parent span should have no parent
+    assert spans[0].name == "ChildTool" # Child finishes first
+    assert spans[1].name == "ParentAgent"
+    
+    assert spans[0].parent_span_id == spans[1].span_id
+    assert spans[0].attributes["dgx.causal.source_span_id"] == spans[1].span_id
+    
+    set_active_trace_context(None)

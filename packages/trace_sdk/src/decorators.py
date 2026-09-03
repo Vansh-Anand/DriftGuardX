@@ -56,13 +56,7 @@ def trace_component(
                 builder.set_attribute("dgx.component.version_tag", version_tag)
                 
                 # Explicitly set the private component type for building the contract
-                if isinstance(component_type, ComponentType):
-                    builder._component_type = component_type
-                else:
-                    try:
-                        builder._component_type = ComponentType(component_type)
-                    except ValueError:
-                        pass
+                builder.set_component_type(component_type)
                 
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
@@ -97,13 +91,7 @@ def trace_component(
                 builder.set_attribute("dgx.component.type", str(component_type))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
                 
-                if isinstance(component_type, ComponentType):
-                    builder._component_type = component_type
-                else:
-                    try:
-                        builder._component_type = ComponentType(component_type)
-                    except ValueError:
-                        pass
+                builder.set_component_type(component_type)
                 
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
