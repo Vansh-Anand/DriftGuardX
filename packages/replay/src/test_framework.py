@@ -183,8 +183,9 @@ class CanaryTestFramework:
         original_trace = TraceArtifact(
             id=trace_orm.id,
             run_id=trace_orm.run_id,
-            payload=trace_orm.payload,
-            payload_hash=trace_orm.payload_hash,
+            tenant_id=tenant_id_uuid,
+            pipeline_id=original_run_orm.pipeline_id,
+            spans=[],
             created_at=trace_orm.created_at,
         )
 
@@ -194,12 +195,15 @@ class CanaryTestFramework:
             intervention_type=candidate.intervention_type,
         )
 
+        import hashlib
+        intervention_hash = hashlib.sha256(f"{spec.target_component}:{spec.intervention_type}".encode("utf-8")).hexdigest()
+
         registry = VersionRegistry()
         to_version = ComponentVersion(
             id=uuid.uuid4(),
-            component_type=spec.target_component,
+            component_type=ComponentType(spec.target_component),
             version_tag="replay-intervention",
-            config_hash="intervention-hash"
+            config_hash=intervention_hash
         )
         registry.register(to_version)
 
@@ -231,8 +235,41 @@ class CanaryTestFramework:
             )
 
         # 5. Calculate evidence
+        from packages.contracts.src.evidence import RecoveryEvidenceKind
+
+        # Populate counterfactual support
+        candidate.causal_evidence.counterfactual_support = CounterfactualSupport(
+            baseline_available=True,
+            intervention_available=True,
+            negative_control_available=False,
+            alternative_intervention_available=False,
+            repeated_replay_count=1
+        )
+        
+        candidate.causal_evidence.evidence_provenance = episode.evidence_kind.value
+
+        # Gating: Reject synthetic/mock evidence for posterior update
+        if episode.evidence_kind in (
+            RecoveryEvidenceKind.SYNTHETIC_DEMO,
+            RecoveryEvidenceKind.TEST_FIXTURE,
+            RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+        ):
+            return BCRBStep(
+                step_id=uuid.uuid4(),
+                session_id=uuid.UUID(session_id),
+                candidate_id=candidate.candidate_id,
+                status=BCRBStepStatus.FAILED,
+                replay_episode_id=episode.replay_id,
+                utility_observed=None,
+                cost_incurred=ReplayCost(measurement_status="UNAVAILABLE", total_cost=0.0),
+                recovery_effect=None,
+                start_time=start,
+                end_time=_utcnow(),
+                decision_reason=f"SYNTHETIC_EVIDENCE_ONLY: Provenance is {episode.evidence_kind.value}."
+            )
+
         # Map actual cost from episode
-        api_cost = episode.cost_usd
+        api_cost = getattr(episode, "cost_usd", None)
         if api_cost is not None and api_cost > 0.0:
             cost_incurred = ReplayCost(
                 measurement_status="ACTUAL",

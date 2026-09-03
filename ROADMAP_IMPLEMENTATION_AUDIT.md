@@ -216,3 +216,20 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Roadmap status #5-#8: FULLY INTEGRATED with #20-#31
 - Remaining limitations: The ReplayEngine's internal sandbox capabilities might still require extension to support negative controls and alternative repetition explicitly.
 - Evidence/commit hash: (Will be generated on push)
+
+# Prompt 11 — Audit and Harden ReplayEngine (Provenance Tracking)
+
+- Date: 2026-09-03
+- Roadmap numbers covered: Remediation and hardening of ReplayEngine integration (#5–#8 and BCRB gating).
+- ReplayEngine Executors: Audited `ReplayEngine` and executors in `packages/replay/src/engine.py`. Added an explicit `is_synthetic = True` flag to `MockComponentExecutor` base class.
+- Replay Provenance Identification: Modified `execute_replay` to dynamically track if any mock executors are invoked during the pipeline. If `has_synthetic_executor` is true, it overrides the output episode's `evidence_kind` to `RecoveryEvidenceKind.SYNTHETIC_DEMO`.
+- Deterministic Identity Hashing: Implemented deterministic SHA-256 intervention hashing in `test_framework.py` based on `target_component` and `intervention_type` to securely identify dynamic intervention versions.
+- BCRB Scientific Integrity Gate: Implemented explicit rejection filters in `CanaryTestFramework`. If the generated replay episode reports `SYNTHETIC_DEMO`, `TEST_FIXTURE`, or `SYNTHETIC_SIMULATION`, the execution halts and fails the candidate with `decision_reason="SYNTHETIC_EVIDENCE_ONLY"`.
+- Pydantic Validation Integrity: Discovered and patched `test_framework.py` validation errors related to `RequestRun.status` mapping and `TraceArtifact` initialization using the underlying ORM objects.
+- Commands executed: python -m pytest tests/unit/test_replay_provenance.py -v
+- Exact test results: 2 passed in 3.22s
+- Before/after behavior:
+  - Before: ReplayEngine utilized Mock components but returned generic, unflagged evidence, allowing BCRB to ingest synthetic results as if they were real, breaking scientific rigor.
+  - After: ReplayEngine explicitly taints episodes generated from Mock executors with `SYNTHETIC_DEMO` provenance. The BCRB test framework detects this taint and completely rejects the episode, preventing the Bayesian posterior from updating on fabricated evidence.
+- Remaining limitations: The system successfully blocks synthetic evidence but currently requires real execution components (e.g. LLMs/Agents) connected to the pipeline to produce `REAL_EXECUTION` evidence.
+- Evidence/commit hash: (Will be generated on push)

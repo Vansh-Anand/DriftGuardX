@@ -80,6 +80,10 @@ class ComponentExecutor:
     All implementations must be deterministic given the same input + seed.
     """
 
+    @property
+    def is_synthetic(self) -> bool:
+        return False
+
     def execute(
         self,
         inputs: dict[str, Any],
@@ -235,12 +239,17 @@ def _execute_component_isolated(
 
 # ─── Mock Component Executors (Prompt 01) ─────────────────────────────────────
 
+class MockComponentExecutor(ComponentExecutor):
+    @property
+    def is_synthetic(self) -> bool:
+        return True
+
 MOCK_RAG_CORPUS_VERSION_ID = "mock-rag-corpus-v1"
 MOCK_RAG_EMBEDDING_MODEL_VERSION = "no-embedding-deterministic-v1"
 MOCK_RETRIEVER_V1_DOCUMENT_IDS = ("doc-001", "doc-002")
 
 
-class MockRetrieverV1(ComponentExecutor):
+class MockRetrieverV1(MockComponentExecutor):
     """Stable retriever — returns fresh, accurate documents."""
 
     def execute(
@@ -266,7 +275,7 @@ class MockRetrieverV1(ComponentExecutor):
         }
 
 
-class MockRetrieverV2Experimental(ComponentExecutor):
+class MockRetrieverV2Experimental(MockComponentExecutor):
     """
     Experimental retriever v2 — KNOWN ISSUE: returns stale evidence.
     This is the component that triggers the golden demo reliability failure.
@@ -295,7 +304,7 @@ class MockRetrieverV2Experimental(ComponentExecutor):
         }
 
 
-class MockRerankerV1(ComponentExecutor):
+class MockRerankerV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
@@ -305,7 +314,7 @@ class MockRerankerV1(ComponentExecutor):
         return {"ranked_documents": sorted_docs, "reranker_version": version.version_tag}
 
 
-class MockGeneratorV1(ComponentExecutor):
+class MockGeneratorV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
@@ -323,7 +332,7 @@ class MockGeneratorV1(ComponentExecutor):
         }
 
 
-class MockMemoryReadV1(ComponentExecutor):
+class MockMemoryReadV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
@@ -349,7 +358,7 @@ class MockMemoryReadV1(ComponentExecutor):
         return {"memory_entries": entries, "memory_read_version": version.version_tag}
 
 
-class MockMemoryWriteV1(ComponentExecutor):
+class MockMemoryWriteV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
@@ -361,14 +370,14 @@ class MockMemoryWriteV1(ComponentExecutor):
         }
 
 
-class MockToolCallV1(ComponentExecutor):
+class MockToolCallV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
         return {"tool_result": None, "tool_called": False, "tool_call_version": version.version_tag}
 
 
-class MockPolicyCheckV1(ComponentExecutor):
+class MockPolicyCheckV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
@@ -379,7 +388,7 @@ class MockPolicyCheckV1(ComponentExecutor):
         }
 
 
-class MockFinalResponseV1(ComponentExecutor):
+class MockFinalResponseV1(MockComponentExecutor):
     def execute(
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
@@ -506,6 +515,7 @@ class ReplayEngine:
         root_span_id = root_builder.span_id
 
         faithfulness_score: float = 1.0
+        has_synthetic_executor: bool = False
 
         for component_type in pipeline_order:
             # Determine which version to use
@@ -524,6 +534,9 @@ class ReplayEngine:
                     continue  # skip components not in original
 
             executor = get_executor(component_type, cv.version_tag)
+            
+            if executor.is_synthetic:
+                has_synthetic_executor = True
 
             # Time and execute with strict timeout enforcement
             start = datetime.now(UTC)
@@ -645,11 +658,15 @@ class ReplayEngine:
             replay_response_hash=hash_payload(current_inputs.get("final_response", "")),
             seed=seed,
             completed_at=datetime.now(UTC),
-            is_synthetic=original_run.is_synthetic,
+            is_synthetic=original_run.is_synthetic or has_synthetic_executor,
             evidence_kind=(
-                RecoveryEvidenceKind.SYNTHETIC_SIMULATION
-                if original_run.is_synthetic
-                else RecoveryEvidenceKind.CONTROLLED_REPLAY
+                RecoveryEvidenceKind.SYNTHETIC_DEMO
+                if has_synthetic_executor
+                else (
+                    RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+                    if original_run.is_synthetic
+                    else RecoveryEvidenceKind.REAL_EXECUTION
+                )
             ),
             status=ReplayStatus.COMPLETED,
             manifest_id=manifest.id,
