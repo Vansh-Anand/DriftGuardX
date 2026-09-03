@@ -23,7 +23,8 @@ def create_mock_invocations(tenant_id, run_id, count=3):
         invocations.append(inv)
     return invocations
 
-def test_sequential_execution_and_budget_exhaustion():
+@pytest.mark.asyncio
+async def test_sequential_execution_and_budget_exhaustion():
     tenant_id = str(uuid.uuid4())
     run_id = str(uuid.uuid4())
     orchestrator = BCRBOrchestrator(tenant_id)
@@ -39,13 +40,14 @@ def test_sequential_execution_and_budget_exhaustion():
     invocations[-1].metadata["is_error"] = True
     
     # Execute
-    result_session = orchestrator.execute_session(session, invocations, "test symptom")
+    result_session = await orchestrator.execute_session(session, invocations, "test symptom", None)
     
     # Since cost is UNAVAILABLE, we never accrue actual spend, so it tests all candidates.
     assert result_session.stopping_condition_met == StoppingCondition.ALL_SAFE_CANDIDATES_TESTED
     assert len(result_session.steps) >= 1
 
-def test_no_fake_posterior_update():
+@pytest.mark.asyncio
+async def test_no_fake_posterior_update():
     tenant_id = str(uuid.uuid4())
     run_id = str(uuid.uuid4())
     orchestrator = BCRBOrchestrator(tenant_id)
@@ -60,7 +62,7 @@ def test_no_fake_posterior_update():
     invocations[-1].metadata["is_error"] = True
     
     # The default test_framework now returns UNAVAILABLE cost and FAILED steps with NO recovery effect.
-    result_session = orchestrator.execute_session(session, invocations, "test symptom")
+    result_session = await orchestrator.execute_session(session, invocations, "test symptom", None)
     
     # Assert stopping condition is ALL_SAFE_CANDIDATES_TESTED because no one reached confidence
     assert result_session.stopping_condition_met == StoppingCondition.ALL_SAFE_CANDIDATES_TESTED

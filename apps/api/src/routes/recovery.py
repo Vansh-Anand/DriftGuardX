@@ -2,8 +2,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.api.src.database import get_db
 from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
 from packages.contracts.src.agent_models import AgentInvocation
 from packages.contracts.src.models import RecoveryCertificate
@@ -24,7 +26,7 @@ def list_certificates():
 
 
 @router.post("/trigger", response_model=RecoveryCertificate)
-def trigger_recovery(payload: dict[str, Any]):
+async def trigger_recovery(payload: dict[str, Any], db: AsyncSession = Depends(get_db)):
     """
     Manually triggers the recovery pipeline for a given run and failure symptom.
     Expects JSON: {"tenant_id": "...", "run_id": "...", "failure_symptom": "..."}
@@ -55,7 +57,7 @@ def trigger_recovery(payload: dict[str, Any]):
         ),
     ]
 
-    cert = pipeline.execute_recovery_loop(run_id, invocations, failure_symptom)
+    cert = await pipeline.execute_recovery_loop(run_id, invocations, failure_symptom, db)
 
     if not cert:
         raise HTTPException(status_code=500, detail="Failed to generate recovery certificate.")

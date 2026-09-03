@@ -29,8 +29,8 @@ class EndToEndRecoveryPipeline:
         self.canary_framework = CanaryTestFramework(tenant_id=tenant_id)
         self.isolator = CausalIsolator(tenant_id=tenant_id)
 
-    def execute_recovery_loop(
-        self, run_id: str, invocations: Sequence[AgentInvocation], failure_symptom: str
+    async def execute_recovery_loop(
+        self, run_id: str, invocations: Sequence[AgentInvocation], failure_symptom: str, db=None
     ) -> RecoveryCertificate | None:
         """
         Executes the full recovery pipeline.
@@ -50,7 +50,7 @@ class EndToEndRecoveryPipeline:
 
         # 2. Execute BCRB loop using the orchestrator
         orchestrator = BCRBOrchestrator(self.tenant_id)
-        session = orchestrator.execute_session(session, list(invocations), failure_symptom)
+        session = await orchestrator.execute_session(session, list(invocations), failure_symptom, db)
         
         candidates = session.candidates
         evaluated_steps = session.steps

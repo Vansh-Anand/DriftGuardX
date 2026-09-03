@@ -192,3 +192,27 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Remaining issues: Integration of true ReplayEngine manifests is pending a future roadmap step, currently correctly flagged as UNAVAILABLE.
 - Evidence: tests/unit/test_bcrb_orchestrator.py
 - Commit hash: (Will be generated on push)
+
+# Prompt 10 — Real ReplayEngine Integration for BCRB
+
+- Date: 2026-09-03
+- Roadmap numbers covered: Integration of #5–#8 with BCRB Orchestrator.
+- Existing replay architecture discovered: ReplayEngine expects `RequestRun`, `TraceArtifact`, `ReplayStateManifest`, and `InterventionSpec` to perform deterministic evaluation.
+- ReplayEngine integration path: The BCRB test framework (`CanaryTestFramework`) was converted to be fully `async` in order to fetch necessary components from the actual DriftGuard database via SQLAlchemy `AsyncSession`.
+- ReplayStateManifest linkage: `CanaryTestFramework` now explicitly queries the `ReplayStateManifestORM` for the original trace run. If missing or not fully pinned, the framework correctly aborts the test with `INSUFFICIENT_EVIDENCE` or `CONTAMINATED` reasons.
+- InterventionSpec linkage: Automatically maps the evaluated `BCRBCandidate` to a strict `InterventionSpec` which is passed into the `ReplayEngine`.
+- Baseline/intervention implementation: Validated that baseline is evaluated via original run and the intervention is evaluated on a dynamically registered `ComponentVersion`.
+- Actual cost telemetry implementation: Fetched `episode.cost_usd` after `ReplayEngine` execution. ReplayCost correctly toggles `MEASUREMENT_STATUS="ACTUAL"`.
+- Contamination/confounding implementation: Handled by enforcing `is_fully_pinned()` validation on the retrieved `ReplayStateManifest`.
+- Counterfactual evidence implementation: `CounterfactualSupport` defaults to baseline available if the manifest and original run fetch successfully.
+- Bayesian update behavior: The posterior update uses actual reliability_delta if `RecoveryEffect` was measured successfully.
+- Stopping behavior: State Machine stops successfully when budget is depleted or all plausible candidates fail/exhausted, returning deterministic responses.
+- Files modified: `apps/api/src/routes/recovery.py`, `apps/api/src/services/recovery_pipeline.py`, `packages/bcrb/src/orchestrator.py`, `packages/replay/src/test_framework.py`, `tests/unit/test_bcrb_orchestrator.py`
+- Commands executed: python -m pytest tests/unit/test_bcrb_orchestrator.py -v
+- Exact test results: 4 passed in 1.10s
+- Before/after behavior:
+  - Before: BCRB Orchestrator operated entirely synchronously and returned a hardcoded FAILED/UNAVAILABLE result for Replay Engine interactions.
+  - After: BCRB Orchestrator evaluates asynchronously against the actual `ReplayEngine` and original telemetry via Database lookup.
+- Roadmap status #5-#8: FULLY INTEGRATED with #20-#31
+- Remaining limitations: The ReplayEngine's internal sandbox capabilities might still require extension to support negative controls and alternative repetition explicitly.
+- Evidence/commit hash: (Will be generated on push)

@@ -24,8 +24,8 @@ class BCRBOrchestrator:
         self.planner = CandidatePlanner(tenant_id)
         self.test_framework = CanaryTestFramework(tenant_id)
 
-    def execute_session(
-        self, session: BCRBSession, invocations: list[AgentInvocation], failure_symptom: str
+    async def execute_session(
+        self, session: BCRBSession, invocations: list[AgentInvocation], failure_symptom: str, db=None
     ) -> BCRBSession:
         """
         Executes the BCRB sequential decision process.
@@ -70,7 +70,7 @@ class BCRBOrchestrator:
             tested_candidate_ids.add(best_candidate.candidate_id)
             
             # Step 2: Execute Replay / Canary
-            step = self.test_framework.execute_canary(best_candidate, str(session.run_id), str(session.session_id))
+            step = await self.test_framework.execute_canary(best_candidate, str(session.run_id), str(session.session_id), db)
             session.steps.append(step)
             
             # Step 3: Record Costs
