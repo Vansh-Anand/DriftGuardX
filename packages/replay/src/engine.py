@@ -620,6 +620,7 @@ class ReplayEngine:
             pipeline_id=pipeline_id,
             spans=all_spans,
             root_span_id=root_span.span_id,
+            is_synthetic=original_run.is_synthetic or has_synthetic_executor,
         )
 
         # Compute reliability vectors

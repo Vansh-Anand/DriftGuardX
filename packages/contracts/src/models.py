@@ -351,6 +351,8 @@ class TraceArtifact(DGXBaseModel):
     completeness_score: float | None = None
     retention_days: int | None = None
     tenant_sampling_rate: float | None = None
+    is_synthetic: bool = False
+
 
     @model_validator(mode="after")
     def compute_span_count(self) -> TraceArtifact:
