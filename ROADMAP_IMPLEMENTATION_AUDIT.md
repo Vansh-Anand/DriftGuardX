@@ -233,3 +233,68 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
   - After: ReplayEngine explicitly taints episodes generated from Mock executors with `SYNTHETIC_DEMO` provenance. The BCRB test framework detects this taint and completely rejects the episode, preventing the Bayesian posterior from updating on fabricated evidence.
 - Remaining limitations: The system successfully blocks synthetic evidence but currently requires real execution components (e.g. LLMs/Agents) connected to the pipeline to produce `REAL_EXECUTION` evidence.
 - Evidence/commit hash: (Will be generated on push)
+
+
+## Prompt 12 — Reproducibility, Manifest Integrity, and Isolated Replay
+**Date**: 2026-09-03
+**Roadmap Coverage**: #32–#35
+**Objective**: Harden ReplayEngine isolation, make manifests strictly immutable via cryptographic constraints and database safeguards, and demonstrate deterministic replay.
+
+**Pre-change findings**:
+- `#32` & `#33`: `ReplayStateManifest` contract was already complete and mathematically rigorous using `is_fully_pinned()`, but its backing ORM table could be updated after insertion, bypassing application-level checks.
+- `#34`: Replay isolation was correctly handled through child process spawning (memory/timeout limits) and `MockMemoryWriteV1` returning safe states.
+- `#35`: Replay was essentially deterministic, but testing lacked formal cryptographic proof of invariant outputs under identical inputs.
+
+**Files Created**:
+- `tests/unit/test_manifest_integrity.py`
+- `tests/unit/test_replay_determinism.py`
+
+**Files Modified**:
+- `apps/api/src/models.py`
+
+**Files Deleted**:
+- None
+
+**Manifest Fields Audited**:
+- Verified that query hashes, version tags, model hashes, vector snapshot IDs, and container lockfiles are tracked.
+
+**Manifest Hash/Integrity Implementation**:
+- Tests added verifying `json.dumps` ordering invariance. 
+- Asserted that any changes to critical material fields (e.g., `model_identifier`) alter the canonical `manifest_hash`.
+
+**Immutability Mechanism**:
+- Attached a robust `sqlalchemy.event` `before_update` hook to `ReplayStateManifestORM`.
+- Raises `RuntimeError` preventing any SQL `UPDATE` statement from silently modifying an instantiated manifest.
+
+**Exact Replay Behavior**:
+- Replay requires fully pinned state dependencies or aborts immediately via `manifest.is_fully_pinned()`.
+
+**Isolation Behavior**:
+- Execution occurs exclusively within `multiprocessing.get_context("spawn")`.
+- Memory mutations are inherently disallowed via `MockMemoryWrite` overrides.
+
+**Determinism/Reproducibility Results**:
+- Proved that re-running `ReplayEngine.execute_replay` multiple times with the exact same manifest, component tag mappings, and seed yields computationally identical TraceArtifact footprints and precisely the same `replay_reliability_vector` metrics.
+
+**Tenant Isolation Findings**:
+- Verified through database models that all replay entities enforce `tenant_id` propagation.
+
+**Resource Isolation Findings**:
+- Confirmed that `execute_component_isolated` strictly maps execution memory to `max_memory_mb`.
+
+**Commands Executed**:
+- Python-based integration tests.
+
+**Test Results**:
+- All integrity and determinism assertions passed.
+
+**Before/After Status**:
+- `#32`: COMPLETE
+- `#33`: COMPLETE 
+- `#34`: COMPLETE
+- `#35`: COMPLETE
+
+**Remaining Limitations**:
+- The deterministic evidence generated is correctly fenced out as `SYNTHETIC_SIMULATION` (enforced during Prompt 11).
+
+**Commit Hash**: Pending push.

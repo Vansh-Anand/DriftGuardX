@@ -665,3 +665,9 @@ class RecoveryCertificateORM(Base):
         Index("ix_recovery_certificates_trace", "original_trace_root_hash"),
         Index("ix_recovery_certificates_capsule", "recovery_capsule_hash"),
     )
+
+
+from sqlalchemy import event
+@event.listens_for(ReplayStateManifestORM, 'before_update')
+def receive_before_update(mapper, connection, target):
+    raise RuntimeError('ReplayStateManifest is immutable and cannot be updated.')
