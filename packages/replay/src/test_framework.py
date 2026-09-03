@@ -4,9 +4,8 @@ PRIVATE — All Rights Reserved.
 """
 
 import uuid
-import random
 
-from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBStep, BCRBStepStatus, ReplayCost, RecoveryEffect, ContaminationState, CausalEvidence
+from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBStep, BCRBStepStatus, ReplayCost, RecoveryEffect, ContaminationState
 from packages.contracts.src.models import ComponentType, _utcnow
 from packages.isolation.src.isolator import QuarantineRule
 
@@ -23,52 +22,39 @@ class CanaryTestFramework:
     def execute_canary(self, candidate: BCRBCandidate, original_run_id: str, session_id: str) -> BCRBStep:
         """
         Run the candidate in an isolated replay to validate its utility.
+        Currently represents missing replay telemetry by explicitly returning UNAVAILABLE
+        instead of fabricating synthetic simulated evidence.
         """
-        # In a real execution, this would spawn a ReplayCapsule and run through the ReplayEngine.
-        # Here we mock the result of the isolated execution.
-
         replay_id = uuid.uuid4()
         start = _utcnow()
 
-        # Simulate replay cost based on expected cost, slightly randomized
-        cost_usd = candidate.cost_estimate.total_cost * random.uniform(0.9, 1.1) if candidate.cost_estimate else 0.05
+        # Since we do not yet have integration with the ReplayEngine inside the BCRB loop,
+        # we explicitly mark actual cost as UNAVAILABLE rather than faking it.
+        cost_incurred = ReplayCost(
+            measurement_status="UNAVAILABLE",
+            total_cost=0.0
+        )
         
-        # Simulate measuring contamination (e.g. comparing ReplayStateManifest hashes)
-        # For simulation, we randomly inject contamination 10% of the time, else CLEAN
-        is_contaminated = random.random() < 0.1
-        contamination_state = ContaminationState.CONTAMINATED if is_contaminated else ContaminationState.CLEAN
-        confounding_reason = "Model version drift detected during replay" if is_contaminated else None
+        # We don't fake contamination either.
+        contamination_state = ContaminationState.INSUFFICIENT_EVIDENCE
+        confounding_reason = "Replay execution state manifests unavailable for comparison."
+        
+        # We also don't fake reliability deltas.
+        # Since it failed due to missing ReplayEngine, recovery effect is None
+        recovery_effect = None
 
-        # Simulate baseline vs intervention counterfactual comparison
-        simulated_reliability_delta = candidate.expected_reliability_delta * random.uniform(0.8, 1.2)
-        
-        # If contaminated, we shouldn't claim reliability improvements are causal
-        if is_contaminated:
-            simulated_reliability_delta = 0.0
-
-        simulated_utility = None
-        # We don't automatically fabricate utility! The BCRBOrchestrator will calculate utility
-        # based on the returned RecoveryEffect and Bayesian update.
-        
         return BCRBStep(
             step_id=uuid.uuid4(),
             session_id=uuid.UUID(session_id),
             candidate_id=candidate.candidate_id,
-            status=BCRBStepStatus.COMPLETED,
+            status=BCRBStepStatus.FAILED, # Fails because we don't have the real engine connected yet
             replay_episode_id=replay_id,
-            utility_observed=simulated_utility,
-            cost_incurred=ReplayCost(
-                total_cost=cost_usd,
-                compute_seconds=1.5,
-                measurement_status="ACTUAL"
-            ),
-            recovery_effect=RecoveryEffect(
-                reliability_delta=simulated_reliability_delta,
-                latency_delta=-5.0, # 5ms faster
-            ),
+            utility_observed=None,
+            cost_incurred=cost_incurred,
+            recovery_effect=recovery_effect,
             start_time=start,
             end_time=_utcnow(),
-            decision_reason=confounding_reason if is_contaminated else "Completed cleanly"
+            decision_reason=confounding_reason
         )
 
     def validate_quarantine(self, rule: QuarantineRule, original_run_id: str) -> bool:

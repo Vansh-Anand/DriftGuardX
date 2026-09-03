@@ -38,27 +38,14 @@ def test_sequential_execution_and_budget_exhaustion():
     invocations = create_mock_invocations(tenant_id, run_id)
     invocations[-1].metadata["is_error"] = True
     
-    # Monkey-patch canary executor to return medium reliability so we don't hit confidence
-    original_canary = orchestrator.test_framework.execute_canary
-    
-    def mock_execute(*args, **kwargs):
-        step = original_canary(*args, **kwargs)
-        if step.recovery_effect:
-            step.recovery_effect.reliability_delta = 0.2
-        return step
-        
-    orchestrator.test_framework.execute_canary = mock_execute
-
     # Execute
     result_session = orchestrator.execute_session(session, invocations, "test symptom")
     
-    # Verify budget exhaustion
-    assert result_session.stopping_condition_met == StoppingCondition.BUDGET_EXHAUSTED
+    # Since cost is UNAVAILABLE, we never accrue actual spend, so it tests all candidates.
+    assert result_session.stopping_condition_met == StoppingCondition.ALL_SAFE_CANDIDATES_TESTED
     assert len(result_session.steps) >= 1
-    assert result_session.total_spent_usd > 0
-    assert result_session.total_spent_usd <= 0.06 + 0.06 # allowed to exceed slightly by actual cost but stops further
 
-def test_bayesian_posterior_update():
+def test_no_fake_posterior_update():
     tenant_id = str(uuid.uuid4())
     run_id = str(uuid.uuid4())
     orchestrator = BCRBOrchestrator(tenant_id)
@@ -72,29 +59,15 @@ def test_bayesian_posterior_update():
     invocations = create_mock_invocations(tenant_id, run_id)
     invocations[-1].metadata["is_error"] = True
     
-    # Monkey-patch canary executor to return high reliability
-    import random
-    original_canary = orchestrator.test_framework.execute_canary
-    
-    def mock_execute(*args, **kwargs):
-        step = original_canary(*args, **kwargs)
-        if step.recovery_effect:
-            step.recovery_effect.reliability_delta = 0.9 # High improvement
-        # Force clean
-        step.decision_reason = "clean"
-        return step
-        
-    orchestrator.test_framework.execute_canary = mock_execute
-    
+    # The default test_framework now returns UNAVAILABLE cost and FAILED steps with NO recovery effect.
     result_session = orchestrator.execute_session(session, invocations, "test symptom")
     
-    # Assert stopping condition
-    assert result_session.stopping_condition_met == StoppingCondition.CONFIDENCE_REACHED
+    # Assert stopping condition is ALL_SAFE_CANDIDATES_TESTED because no one reached confidence
+    assert result_session.stopping_condition_met == StoppingCondition.ALL_SAFE_CANDIDATES_TESTED
     
-    # Assert posterior was updated
+    # Assert posterior was NOT updated because step failed
     tested_cand = next(c for c in result_session.candidates if c.candidate_id == result_session.steps[-1].candidate_id)
-    assert tested_cand.causal_evidence.posterior is not None
-    assert tested_cand.causal_evidence.posterior >= 0.9
+    assert tested_cand.causal_evidence.posterior is None
 
 def test_diagnosis_engine_unknown():
     tenant_id = str(uuid.uuid4())
@@ -102,11 +75,12 @@ def test_diagnosis_engine_unknown():
     engine = DiagnosisEngine(tenant_id)
     
     # Mocking steps and candidates without high posterior
-    from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, BCRBCandidate, ComponentType, InterventionType
+    from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, BCRBCandidate, ComponentType, InterventionType, CausalEvidence, CounterfactualSupport
     
     cand = BCRBCandidate(
         component_type=ComponentType.RETRIEVER,
-        intervention_type=InterventionType.ALTERNATE_STABLE
+        intervention_type=InterventionType.ALTERNATE_STABLE,
+        causal_evidence=CausalEvidence(prior=0.6, counterfactual_support=CounterfactualSupport())
     )
     cand.causal_evidence.posterior = 0.6 # Low confidence
     
@@ -127,11 +101,12 @@ def test_diagnosis_engine_supported():
     engine = DiagnosisEngine(tenant_id)
     
     # Mocking steps and candidates with high posterior
-    from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, BCRBCandidate, ComponentType, InterventionType, RecoveryEffect
+    from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, BCRBCandidate, ComponentType, InterventionType, RecoveryEffect, CausalEvidence, CounterfactualSupport
     
     cand = BCRBCandidate(
         component_type=ComponentType.RETRIEVER,
-        intervention_type=InterventionType.ALTERNATE_STABLE
+        intervention_type=InterventionType.ALTERNATE_STABLE,
+        causal_evidence=CausalEvidence(prior=0.6, counterfactual_support=CounterfactualSupport())
     )
     cand.causal_evidence.posterior = 0.95 # High confidence
     

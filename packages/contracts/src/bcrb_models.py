@@ -45,7 +45,7 @@ class ReplayCost(DGXBaseModel):
     compute_seconds: float | None = None
     infrastructure_cost: float | None = None
     total_cost: float = 0.0
-    measurement_status: str = "ESTIMATED"  # ESTIMATED or ACTUAL
+    measurement_status: str = "ESTIMATED"  # ESTIMATED, ACTUAL, or UNAVAILABLE
 
 
 class RecoveryEffect(DGXBaseModel):
@@ -62,13 +62,22 @@ class ContaminationState(str, enum.Enum):
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 
 
+class CounterfactualSupport(DGXBaseModel):
+    baseline_available: bool = False
+    intervention_available: bool = False
+    negative_control_available: bool = False
+    alternative_intervention_available: bool = False
+    repeated_replay_count: int = 0
+    observed_effect: dict[str, Any] | None = None
+
 class CausalEvidence(DGXBaseModel):
     prior: float
     posterior: float | None = None
     intervention_evidence: dict[str, Any] = Field(default_factory=dict)
-    counterfactual_support: dict[str, Any] | None = None
+    counterfactual_support: CounterfactualSupport = Field(default_factory=CounterfactualSupport)
     contamination_status: ContaminationState = ContaminationState.INSUFFICIENT_EVIDENCE
     confounding_reason: str | None = None
+    evidence_provenance: str | None = None
 
 
 class BCRBCandidate(DGXBaseModel):

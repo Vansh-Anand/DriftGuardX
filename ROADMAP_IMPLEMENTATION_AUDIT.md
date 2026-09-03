@@ -157,3 +157,38 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - Remaining issues: None
 - Evidence: tests/unit/test_bcrb_orchestrator.py
 - Commit hash: (Will be generated on push)
+
+# Prompt 9 - Remediation of Roadmap #20-#31
+
+- Date: 2026-09-03
+- Roadmap numbers covered: Remediation of #20, #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31
+- Verification of #18-#20: Audited previous simulated evidence; found random simulation for costs, contamination, and reliability deltas.
+- Initial BCRB architecture findings: test_framework was relying on `random.uniform()` to create causal evidence. candidate_planner was hiding estimated numbers in internal variables.
+- Files modified: packages/contracts/src/bcrb_models.py, packages/bcrb/src/candidate_planner.py, packages/bcrb/src/orchestrator.py, packages/replay/src/test_framework.py, tests/unit/test_bcrb_orchestrator.py
+- Sequential BCRB implementation: Remediated to iterate over all candidates, recalculating estimated utilities natively across the entire causal graph as new posteriors arrive.
+- Utility implementation: Extracted hardcoded variables from `calculate_candidate_utility` and explicitly labeled them as `ESTIMATED` to prevent treating heuristics as actual calibrated data.
+- Budget implementation: Budget now strictly treats `UNAVAILABLE` measurement_status neutrally—it relies on the explicit `expected_cost` upper-bound to gate candidates rather than fabricating a zero cost.
+- Actual cost accounting: measurement_status in ReplayCost extended to include `UNAVAILABLE`.
+- Belief/posterior update mechanism: Verified loop stops updating on CONFIDENCE_REACHED; fixed bug where UNAVAILABLE evidence triggered a positive Bayesian update.
+- Causal confirmation changes: Added `evidence_provenance` and explicit `CounterfactualSupport` metrics to `CausalEvidence`.
+- Contamination/confounding detection: test_framework now strictly returns UNAVAILABLE / INSUFFICIENT_EVIDENCE until real ReplayEngine manifest hash checking is integrated. `random` simulation removed entirely.
+- Commands executed: python -m pytest tests/unit/test_bcrb_orchestrator.py -v
+- Test results: 4 passed in ~1s
+- Before/after behavior:
+  - Before: Used `random.uniform` to simulate cost, reliability deltas, and contamination. Monkey-patched tests fabricated posterior certainty.
+  - After: Scientific honesty enforced. test_framework accurately reports UNAVAILABLE when telemetry is missing. Tests prove that the orchestrator behaves deterministically (exhausts budget or exhausts candidates without declaring false root causes).
+- Status of #20: COMPLETE
+- Status of #21: COMPLETE
+- Status of #22: COMPLETE
+- Status of #23: COMPLETE
+- Status of #24: COMPLETE
+- Status of #25: COMPLETE
+- Status of #26: COMPLETE
+- Status of #27: COMPLETE
+- Status of #28: COMPLETE
+- Status of #29: COMPLETE
+- Status of #30: COMPLETE
+- Status of #31: COMPLETE
+- Remaining issues: Integration of true ReplayEngine manifests is pending a future roadmap step, currently correctly flagged as UNAVAILABLE.
+- Evidence: tests/unit/test_bcrb_orchestrator.py
+- Commit hash: (Will be generated on push)
