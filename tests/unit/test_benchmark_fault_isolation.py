@@ -14,7 +14,6 @@ from packages.rag_benchmark.src.fault_injection import (
 from packages.rag_benchmark.src.fault_models import FaultScenario, FaultType
 from packages.rag_benchmark.src.rag_pipeline import RAGPipeline
 
-
 HEALTHY_ENV = {
     "healthy_corpus": ["healthy one", "healthy two", "healthy three"],
     "healthy_prompt": "You are a helpful assistant. Use the context.",

@@ -4,15 +4,19 @@ PRIVATE — All Rights Reserved.
 
 Defines schemas for deterministic and LLM-generated rationale inputs/outputs.
 """
+
 from __future__ import annotations
 
 import enum
-from datetime import datetime
-from uuid import UUID
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
 from packages.contracts.src.models import ComponentType, DGXBaseModel, _new_uuid, _utcnow
+
+if TYPE_CHECKING:
+    from datetime import datetime
+    from uuid import UUID
 
 
 class RationaleStyle(str, enum.Enum):
@@ -27,6 +31,7 @@ class RationaleInputContract(DGXBaseModel):
     Strict evidence payload provided to the rationale generator.
     No free-form data; everything is typed and bounded.
     """
+
     id: UUID = Field(default_factory=_new_uuid)
     run_id: UUID
     tenant_id: UUID
@@ -58,6 +63,7 @@ class RationaleOutput(DGXBaseModel):
     """
     The generated rationale output, with factual claims structurally mapped.
     """
+
     id: UUID = Field(default_factory=_new_uuid)
     input_contract_id: UUID
     style: RationaleStyle

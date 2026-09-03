@@ -12,25 +12,23 @@ import os
 import re
 import time
 import uuid
-from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import RequestResponseEndpoint
 
-from apps.api.src.database import create_all_tables
 from apps.api.src.config import settings
+from apps.api.src.database import create_all_tables
 from apps.api.src.middleware import RequestBodyLimitMiddleware
 from apps.api.src.routers import manifest
 from apps.api.src.routes import graph, ingest, runs, telemetry
 from apps.api.src.routes.detectors import router as detectors_router
 from apps.api.src.routes.jobs import router as jobs_router
 from apps.api.src.routes.providers import router as providers_router
-from apps.api.src.routes.replays import router as replays_router
 from apps.api.src.routes.recovery import router as recovery_router
+from apps.api.src.routes.replays import router as replays_router
 from apps.api.src.schemas import HealthResponse, ReadinessResponse
 from packages.utils.src.version import APP_VERSION
 
@@ -55,6 +53,12 @@ log = structlog.get_logger()
 APP_ENV = os.environ.get("APP_ENV", settings.environment)
 
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from starlette.middleware.base import RequestResponseEndpoint
 
 
 @asynccontextmanager

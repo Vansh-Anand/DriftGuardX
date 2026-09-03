@@ -19,6 +19,7 @@ Contents:
 A capsule is IMMUTABLE once sealed. Reverting using a sealed capsule is
 itself a policy-gated operation (risk_tier = action's tier, or at least MEDIUM).
 """
+
 from __future__ import annotations
 
 import enum
@@ -31,15 +32,16 @@ from uuid import uuid4
 
 
 class CapsuleStatus(str, enum.Enum):
-    ACTIVE   = "active"    # usable for rollback
-    USED     = "used"      # already consumed (prevents reuse)
-    EXPIRED  = "expired"   # past expires_at
-    VOIDED   = "voided"    # explicitly voided by operator (cannot be reused)
+    ACTIVE = "active"  # usable for rollback
+    USED = "used"  # already consumed (prevents reuse)
+    EXPIRED = "expired"  # past expires_at
+    VOIDED = "voided"  # explicitly voided by operator (cannot be reused)
 
 
 @dataclass
 class CompatibilityConstraint:
     """A condition that must be true for a rollback to be safe."""
+
     component_id: str
     expected_version_id: str
     description: str
@@ -53,10 +55,11 @@ class RollbackCapsule:
     created_by / proposal_id link the capsule to the recovery action that
     produced it so it can be surfaced in the audit trail.
     """
+
     # Identity
     capsule_id: str = field(default_factory=lambda: str(uuid4()))
-    proposal_id: str = ""       # recovery proposal that produced this capsule
-    action_type: str = ""       # RecoveryActionType value
+    proposal_id: str = ""  # recovery proposal that produced this capsule
+    action_type: str = ""  # RecoveryActionType value
     tenant_id: str = ""
     component_id: str = ""
 
@@ -79,9 +82,7 @@ class RollbackCapsule:
     # Lifecycle
     status: CapsuleStatus = CapsuleStatus.ACTIVE
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    expires_at: datetime = field(
-        default_factory=lambda: datetime.now(UTC) + timedelta(hours=72)
-    )
+    expires_at: datetime = field(default_factory=lambda: datetime.now(UTC) + timedelta(hours=72))
     used_at: datetime | None = None
     created_by: str = "system"
 
@@ -92,15 +93,19 @@ class RollbackCapsule:
         self._integrity_hash = self._compute_integrity()
 
     def _compute_integrity(self) -> str:
-        payload = json.dumps({
-            "capsule_id": self.capsule_id,
-            "proposal_id": self.proposal_id,
-            "action_type": self.action_type,
-            "tenant_id": self.tenant_id,
-            "component_id": self.component_id,
-            "previous_state": self.previous_state,
-            "rollback_params": self.rollback_params,
-        }, sort_keys=True, default=str)
+        payload = json.dumps(
+            {
+                "capsule_id": self.capsule_id,
+                "proposal_id": self.proposal_id,
+                "action_type": self.action_type,
+                "tenant_id": self.tenant_id,
+                "component_id": self.component_id,
+                "previous_state": self.previous_state,
+                "rollback_params": self.rollback_params,
+            },
+            sort_keys=True,
+            default=str,
+        )
         return hashlib.sha256(payload.encode()).hexdigest()
 
     @property
@@ -124,9 +129,7 @@ class RollbackCapsule:
             return False, "Capsule integrity check failed — possible tampering."
         return True, "ok"
 
-    def check_compatibility(
-        self, live_versions: dict[str, str]
-    ) -> list[str]:
+    def check_compatibility(self, live_versions: dict[str, str]) -> list[str]:
         """
         Check all compatibility constraints against live component versions.
         Returns list of constraint violation descriptions (empty = compatible).
@@ -149,6 +152,7 @@ class RollbackCapsule:
 
 
 # ─── Capsule Registry ─────────────────────────────────────────────────────────
+
 
 class CapsuleRegistry:
     """In-memory capsule store. Production: backed by DB table."""

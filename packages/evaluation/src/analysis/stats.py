@@ -1,9 +1,10 @@
-
 import numpy as np
 from scipy import stats
 
 
-def compute_confidence_intervals(data: list[float], confidence: float = 0.95) -> tuple[float, float]:
+def compute_confidence_intervals(
+    data: list[float], confidence: float = 0.95
+) -> tuple[float, float]:
     if len(data) == 0:
         return 0.0, 0.0
     a = 1.0 * np.array(data)
@@ -11,8 +12,9 @@ def compute_confidence_intervals(data: list[float], confidence: float = 0.95) ->
     m, se = np.mean(a), stats.sem(a)
     if se == 0:
         return m, m
-    h = se * stats.t.ppf((1 + confidence) / 2., n-1)
+    h = se * stats.t.ppf((1 + confidence) / 2.0, n - 1)
     return m - h, m + h
+
 
 def failure_subset_analysis(raw_predictions: list[dict]) -> dict[str, int]:
     """Identifies intersections and breakdown of failures."""
@@ -22,13 +24,19 @@ def failure_subset_analysis(raw_predictions: list[dict]) -> dict[str, int]:
             # Mock assigning blame to components based on metrics (in reality RCA provides this)
             if "relevance" in pred.get("metrics", {}) and pred["metrics"]["relevance"] < 0.5:
                 breakdown["retriever"] += 1
-            elif "tool_accuracy" in pred.get("metrics", {}) and pred["metrics"]["tool_accuracy"] < 0.5:
+            elif (
+                "tool_accuracy" in pred.get("metrics", {})
+                and pred["metrics"]["tool_accuracy"] < 0.5
+            ):
                 breakdown["tool"] += 1
             else:
                 breakdown["generator"] += 1
     return breakdown
 
-def paired_bootstrap_interval(data_a: list[float], data_b: list[float], n_bootstraps: int = 10000, alpha: float = 0.05) -> tuple[float, float]:
+
+def paired_bootstrap_interval(
+    data_a: list[float], data_b: list[float], n_bootstraps: int = 10000, alpha: float = 0.05
+) -> tuple[float, float]:
     """Computes a paired bootstrap confidence interval for the mean difference (A - B)."""
     assert len(data_a) == len(data_b), "Data must be paired"
     diffs = np.array(data_a) - np.array(data_b)
@@ -41,7 +49,10 @@ def paired_bootstrap_interval(data_a: list[float], data_b: list[float], n_bootst
     upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
     return float(lower), float(upper)
 
-def permutation_test(data_a: list[float], data_b: list[float], n_permutations: int = 10000) -> float:
+
+def permutation_test(
+    data_a: list[float], data_b: list[float], n_permutations: int = 10000
+) -> float:
     """Performs a paired permutation test and returns the p-value."""
     assert len(data_a) == len(data_b), "Data must be paired"
     diffs = np.array(data_a) - np.array(data_b)
@@ -57,6 +68,7 @@ def permutation_test(data_a: list[float], data_b: list[float], n_permutations: i
 
     return float(count / n_permutations)
 
+
 def cohens_d(data_a: list[float], data_b: list[float]) -> float:
     """Computes Cohen's d effect size for paired samples (using the standard deviation of differences)."""
     diffs = np.array(data_a) - np.array(data_b)
@@ -65,6 +77,7 @@ def cohens_d(data_a: list[float], data_b: list[float]) -> float:
     if std_diff == 0:
         return 0.0
     return float(mean_diff / std_diff)
+
 
 def bonferroni_correction(p_values: list[float]) -> list[float]:
     """Applies Bonferroni correction to a list of p-values."""

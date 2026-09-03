@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Policy Gate Tests (2 tests)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -21,7 +22,12 @@ def test_policy_default_deny_unknown_action() -> None:
 def test_policy_always_deny_high_risk() -> None:
     """High-risk actions like delete_memory are always denied."""
     gate = PolicyGate()
-    for dangerous in ["delete_memory", "mutate_production_kb", "grant_permissions", "execute_arbitrary_shell"]:
+    for dangerous in [
+        "delete_memory",
+        "mutate_production_kb",
+        "grant_permissions",
+        "execute_arbitrary_shell",
+    ]:
         result = gate.evaluate(PolicyRequest(action=dangerous, resource="system"))
         assert result.action == PolicyAction.DENY, f"Expected DENY for {dangerous}"
         assert result.rule_id == "ALWAYS_DENY"

@@ -32,7 +32,7 @@ class TestJITGraphHydration:
             "node_b": ["node_d"],
             "node_c": [],
             "node_d": [],
-            "node_e": [],   # Disconnected node — should NOT be hydrated
+            "node_e": [],  # Disconnected node — should NOT be hydrated
         }
         hydrator = JITGraphHydrator(graph, store)
         result = hydrator.hydrate_for_node("node_a", depth=1)
@@ -41,7 +41,7 @@ class TestJITGraphHydration:
         assert "node_a" in result
         assert "node_b" in result
         assert "node_c" in result
-        assert "node_e" not in result   # disconnected — zero RAM cost
+        assert "node_e" not in result  # disconnected — zero RAM cost
         assert store.hydrated_count == 3  # Only 3 of 5 variables were hydrated
 
     def test_jit_depth_2_extends_neighbourhood(self):
@@ -165,7 +165,7 @@ class TestMerkleDAGDeduplication:
 
     def test_parent_hash_changes_node_hash(self):
         store = MerkleDAGStore()
-        root = store.add_node("root", {"step": "retrieval"})
+        store.add_node("root", {"step": "retrieval"})
         child_a = store.add_node("child_a", {"step": "generation"}, parent_ids=["root"])
         child_b = store.add_node("child_b", {"step": "generation"})  # Same payload, no parent
 

@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Resource-Admitted Budget-Constrained Root-Cause Bandit (BCRB)
 PRIVATE — All Rights Reserved.
 """
+
 import math
 
 from packages.contracts.src.models import (
@@ -20,7 +21,7 @@ _UNCERTAINTY_K = 2.0  # ~95% confidence assuming Gaussian distribution
 class ResourceAdmittedBCRBController(BaseScheduler):
     """
     Measured Resource-Admission Controller (Prompt 6).
-    
+
     Instead of relying solely on declared prior costs, this controller tracks
     actual multi-dimensional physical resource consumption (CPU, GPU, memory,
     storage, tokens, wall-clock, queue-delay) and defines an explicit admission
@@ -28,7 +29,13 @@ class ResourceAdmittedBCRBController(BaseScheduler):
     and a static rollback reserve.
     """
 
-    def __init__(self, total_budget: float, exploration_constant: float = 1.0, execution_budget: ExecutionBudget | None = None, rollback_reserve_ratio: float = 0.1):
+    def __init__(
+        self,
+        total_budget: float,
+        exploration_constant: float = 1.0,
+        execution_budget: ExecutionBudget | None = None,
+        rollback_reserve_ratio: float = 0.1,
+    ):
         super().__init__(total_budget)
         self.c = exploration_constant
         self.execution_budget = execution_budget
@@ -82,7 +89,9 @@ class ResourceAdmittedBCRBController(BaseScheduler):
         predicted_cost + uncertainty_margin <= remaining_budget - rollback_reserve
         """
         mean_cost, uncertainty_margin = self._get_cost_statistics(arm)
-        admitted = (mean_cost + uncertainty_margin) <= (self.remaining_budget - self.rollback_reserve)
+        admitted = (mean_cost + uncertainty_margin) <= (
+            self.remaining_budget - self.rollback_reserve
+        )
         return not admitted
 
     # ── Arm Selection ─────────────────────────────────────────────────────────
@@ -165,9 +174,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
             self._cost_history[arm_id].append(cost)
 
     def select_pareto_set(
-        self,
-        arms: list[CandidateArm],
-        raeb_evaluations: dict[str, RAEBEvaluation]
+        self, arms: list[CandidateArm], raeb_evaluations: dict[str, RAEBEvaluation]
     ) -> ParetoReplaySet:
 
         admitted = []
@@ -193,7 +200,7 @@ class ResourceAdmittedBCRBController(BaseScheduler):
                     recovery_harm=eval_data.risk_score,
                     cost=mean_cost,
                     admissibility=AdmissibilityScore(eval_data.admissibility),
-                    is_pareto_optimal=False
+                    is_pareto_optimal=False,
                 )
             )
 

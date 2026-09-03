@@ -37,9 +37,7 @@ async def test_multi_agent_communication_edge():
                 start_time=datetime.now(UTC),
                 name="Researcher Agent Output",
                 component_type=ComponentType.AGENT,
-                attributes={
-                    "dgx.agent.message_to": "executor_b"
-                }
+                attributes={"dgx.agent.message_to": "executor_b"},
             ),
             SpanRecord(
                 trace_id="12345678901234561234567890123456",
@@ -51,9 +49,9 @@ async def test_multi_agent_communication_edge():
                 start_time=datetime.now(UTC),
                 name="Executor Agent Receive",
                 component_type=ComponentType.AGENT,
-                attributes={}
-            )
-        ]
+                attributes={},
+            ),
+        ],
     )
 
     graph = await builder.build(trace)

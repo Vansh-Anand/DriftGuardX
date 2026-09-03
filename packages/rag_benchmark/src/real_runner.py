@@ -112,13 +112,15 @@ class LocalArtifactStore:
         pass
 
 
-async def run_mocked_integration_benchmark():
+async def run_mocked_integration_benchmark() -> None:
     print("Initializing Benchmark Engine...")
 
     # 1. Initialize Pipeline
+    import tempfile
+    
     retriever = MockHybridRetriever()
     llm = MockLLMAdapter(model_name="gpt-3.5-turbo-mock")
-    artifact_store = LocalArtifactStore("/tmp/artifacts")
+    artifact_store = LocalArtifactStore(os.path.join(tempfile.gettempdir(), "artifacts"))
 
     pipeline = RealRAGPipeline(
         retriever=retriever,
@@ -130,7 +132,7 @@ async def run_mocked_integration_benchmark():
 
     # 2. Initialize Evaluators & Trackers
     metrics_engine = DeterministicMetricsEngine()
-    ragas_eval = RagasEvaluator()
+    RagasEvaluator()
     tracker = Tracker(experiment_name="SciFact-RAG-Eval-v1")
 
     # 3. Define Schedulers and Faults

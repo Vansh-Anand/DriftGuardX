@@ -19,6 +19,7 @@ def mock_retriever():
     retriever.retrieve.return_value = [chunk]
     return retriever
 
+
 @pytest.mark.asyncio
 async def test_safe_llm_adapter_fails_without_key():
     adapter = SafeLLMAdapter()
@@ -27,19 +28,22 @@ async def test_safe_llm_adapter_fails_without_key():
         with pytest.raises(RuntimeError, match="LLM API Key missing"):
             await adapter.generate("Test prompt", [])
 
+
 @pytest.mark.asyncio
 async def test_real_rag_pipeline_structure(mock_retriever):
     adapter = SafeLLMAdapter()
 
     # Mocking the generate method directly so we don't need a real key during test
-    adapter.generate = AsyncMock(return_value={
-        "text": "Simulated answer",
-        "tokens_input": 10,
-        "tokens_output": 5,
-        "latency_ms": 100,
-        "cost_usd": 0.001,
-        "model_metadata": {"model": "test-model", "provider": "test-provider"}
-    })
+    adapter.generate = AsyncMock(
+        return_value={
+            "text": "Simulated answer",
+            "tokens_input": 10,
+            "tokens_output": 5,
+            "latency_ms": 100,
+            "cost_usd": 0.001,
+            "model_metadata": {"model": "test-model", "provider": "test-provider"},
+        }
+    )
 
     pipeline = RealRAGPipeline(
         retriever=mock_retriever,
@@ -60,7 +64,7 @@ async def test_real_rag_pipeline_structure(mock_retriever):
         query="What is testing?",
         corpus_version_id="v1",
         run_id=uuid.uuid4(),
-        tenant_id=uuid.uuid4()
+        tenant_id=uuid.uuid4(),
     )
 
     assert "answer" in result

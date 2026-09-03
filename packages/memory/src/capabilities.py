@@ -6,6 +6,7 @@ Capabilities are cryptographically-signed authorization tokens bound to a
 specific (requester_id, tenant_id, resource, action) tuple.
 They support expiry and explicit revocation.
 """
+
 import base64
 import hashlib
 import hmac
@@ -23,13 +24,16 @@ class CapabilityRevocationStore:
     Thread-safe in-memory revocation store with file persistence.
     Revoked capability IDs are permanently rejected even if the HMAC is valid.
     """
+
     _instance: "CapabilityRevocationStore | None" = None
     _lock: threading.Lock = threading.Lock()
 
     def __init__(self, persist_path: str | None = None) -> None:
         self._revoked: set[str] = set()
         self._lock = threading.Lock()
-        self._persist_path = persist_path or os.environ.get("DGX_REVOCATION_LOG_PATH", "revoked_caps.log")
+        self._persist_path = persist_path or os.environ.get(
+            "DGX_REVOCATION_LOG_PATH", "revoked_caps.log"
+        )
         self._load_persisted()
 
     def _load_persisted(self) -> None:
@@ -103,7 +107,13 @@ class CapabilityVerifier:
         cap.signature = base64.b64encode(mac.digest()).decode("utf-8")
         return cap
 
-    def verify(self, cap: SignedCapability, context: AccessContext, required_action: str, required_resource: str) -> bool:
+    def verify(
+        self,
+        cap: SignedCapability,
+        context: AccessContext,
+        required_action: str,
+        required_resource: str,
+    ) -> bool:
         """
         Returns True iff:
         1. Context matches token bound requester/tenant
@@ -114,7 +124,9 @@ class CapabilityVerifier:
         6. Capability has not been revoked
         """
         if cap.requester_id != context.requester_id or cap.tenant_id != context.tenant_id:
-            print(f"DEBUG: req/tenant mismatch. cap: {cap.requester_id}/{cap.tenant_id} ctx: {context.requester_id}/{context.tenant_id}")
+            print(
+                f"DEBUG: req/tenant mismatch. cap: {cap.requester_id}/{cap.tenant_id} ctx: {context.requester_id}/{context.tenant_id}"
+            )
             return False
         if cap.action != required_action:
             print(f"DEBUG: action mismatch. cap: {cap.action} req: {required_action}")

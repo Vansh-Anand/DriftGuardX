@@ -1,13 +1,14 @@
 import uuid
+
 from packages.bcrb.src.candidate_planner import CandidatePlanner
-from packages.contracts.src.agent_models import AgentInvocation, AgentMessage, MessageRole
-from packages.contracts.src.models import ComponentType, InterventionType
-from packages.contracts.src.models import _utcnow
+from packages.contracts.src.agent_models import AgentInvocation
+from packages.contracts.src.models import InterventionType, _utcnow
+
 
 def test_candidate_planner_generation():
     planner = CandidatePlanner(tenant_id=str(uuid.uuid4()))
     run_id = str(uuid.uuid4())
-    
+
     # Mock invocation history
     invocations = [
         AgentInvocation(
@@ -35,12 +36,12 @@ def test_candidate_planner_generation():
             end_time=_utcnow(),
         ),
     ]
-    
+
     # Test generation for policy denial
     candidates = planner.generate_candidates(invocations, run_id, "policy_denial")
 
     assert len(candidates) >= 2
-    
+
     # We expect a rollback for retrieval and config patch for policy
     intervention_types = {c.intervention_type for c in candidates}
     assert InterventionType.ROLLBACK in intervention_types

@@ -4,6 +4,7 @@ DriftGuard-X v2 — Replay Isolation Tests (4 tests)
 Verifies that replays only swap exactly one component version
 and pin all other versions to the original run.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -57,8 +58,9 @@ def _make_fully_pinned_manifest(run_id, tenant_id) -> ReplayStateManifest:
         random_seed=42,
         container_image_digest="sha256:123",
         dependency_lockfile_hash="lock-hash",
-        trace_root_hash="trace-hash"
+        trace_root_hash="trace-hash",
     )
+
 
 def _make_registry() -> VersionRegistry:
     registry = VersionRegistry()
@@ -106,15 +108,12 @@ def test_replay_only_swaps_one_component() -> None:
     )
 
     # Check: retriever version in replay trace must be v1 (stable)
-    retriever_spans = [
-        s for s in replay_trace.spans
-        if s.component_type == ComponentType.RETRIEVER
-    ]
+    retriever_spans = [s for s in replay_trace.spans if s.component_type == ComponentType.RETRIEVER]
     assert len(retriever_spans) > 0, "No retriever span found in replay"
     for span in retriever_spans:
-        assert span.component_version_tag == "v1", (
-            f"Expected retriever v1 in replay, got {span.component_version_tag}"
-        )
+        assert (
+            span.component_version_tag == "v1"
+        ), f"Expected retriever v1 in replay, got {span.component_version_tag}"
 
 
 @pytest.mark.unit
@@ -151,9 +150,9 @@ def test_replay_pins_non_swapped_versions() -> None:
     # Generator, reranker must still be v1 in replay
     for span in replay_trace.spans:
         if span.component_type in (ComponentType.GENERATOR, ComponentType.RERANKER):
-            assert span.component_version_tag == "v1", (
-                f"{span.component_type} version changed unexpectedly in replay"
-            )
+            assert (
+                span.component_version_tag == "v1"
+            ), f"{span.component_type} version changed unexpectedly in replay"
 
 
 @pytest.mark.unit
@@ -188,9 +187,9 @@ def test_replay_improves_reliability_over_experimental() -> None:
     )
 
     assert episode.reliability_improvement is not None
-    assert episode.reliability_improvement > 0, (
-        f"Expected positive improvement, got {episode.reliability_improvement}"
-    )
+    assert (
+        episode.reliability_improvement > 0
+    ), f"Expected positive improvement, got {episode.reliability_improvement}"
 
 
 @pytest.mark.unit

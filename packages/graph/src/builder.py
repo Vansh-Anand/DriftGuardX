@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Causal Graph Builder
 PRIVATE — All Rights Reserved.
 """
+
 from uuid import UUID
 
 from packages.contracts.src.graph import CausalGraph, EdgeType, GraphEdge, GraphNode, NodeType
@@ -54,7 +55,7 @@ class GraphBuilder:
                 is_versioned=bool(version_id),
                 version_id=UUID(version_id) if version_id else None,
                 span_id=span.span_id,
-                features=features
+                features=features,
             )
             nodes[node_id] = node
 
@@ -69,18 +70,20 @@ class GraphBuilder:
                         is_versioned=True,
                         version_id=UUID(version_id),
                         span_id=None,
-                        features=features
+                        features=features,
                     )
                     nodes[comp_node_id] = comp_node
 
                 # Connect execution event -> version node
-                edges.append(GraphEdge(
-                    id=f"{node_id}->{comp_node_id}",
-                    source=node_id,
-                    target=comp_node_id,
-                    type=EdgeType.VERSION_LINEAGE,
-                    label="instance_of"
-                ))
+                edges.append(
+                    GraphEdge(
+                        id=f"{node_id}->{comp_node_id}",
+                        source=node_id,
+                        target=comp_node_id,
+                        type=EdgeType.VERSION_LINEAGE,
+                        label="instance_of",
+                    )
+                )
 
         # 3. Second Pass: Create temporal/causal edges
         span_by_id = {s.span_id: s for s in spans}
@@ -90,25 +93,29 @@ class GraphBuilder:
             if parent_id and parent_id in span_by_id:
                 parent_node_id = f"event:{parent_id}"
                 # Control flow edge from parent to child
-                edges.append(GraphEdge(
-                    id=f"{parent_node_id}->{node_id}",
-                    source=parent_node_id,
-                    target=node_id,
-                    type=EdgeType.CONTROL_FLOW,
-                    label="calls"
-                ))
+                edges.append(
+                    GraphEdge(
+                        id=f"{parent_node_id}->{node_id}",
+                        source=parent_node_id,
+                        target=node_id,
+                        type=EdgeType.CONTROL_FLOW,
+                        label="calls",
+                    )
+                )
 
             # If there's an evidence citation or memory influence in attributes, extract it
             attrs = span.attributes or {}
             if "dgx.memory.referenced" in attrs:
                 mem_id = attrs["dgx.memory.referenced"]
-                edges.append(GraphEdge(
-                    id=f"memory:{mem_id}->{node_id}",
-                    source=f"memory:{mem_id}",
-                    target=node_id,
-                    type=EdgeType.MEMORY_INFLUENCE,
-                    label="recalls"
-                ))
+                edges.append(
+                    GraphEdge(
+                        id=f"memory:{mem_id}->{node_id}",
+                        source=f"memory:{mem_id}",
+                        target=node_id,
+                        type=EdgeType.MEMORY_INFLUENCE,
+                        label="recalls",
+                    )
+                )
                 # Add memory node if missing
                 if f"memory:{mem_id}" not in nodes:
                     nodes[f"memory:{mem_id}"] = GraphNode(
@@ -121,13 +128,15 @@ class GraphBuilder:
                 target_agent_id = attrs["dgx.agent.message_to"]
                 target_node_id = f"agent:{target_agent_id}"
 
-                edges.append(GraphEdge(
-                    id=f"{node_id}->{target_node_id}",
-                    source=node_id,
-                    target=target_node_id,
-                    type=EdgeType.INTER_AGENT_COMMUNICATION,
-                    label="messages"
-                ))
+                edges.append(
+                    GraphEdge(
+                        id=f"{node_id}->{target_node_id}",
+                        source=node_id,
+                        target=target_node_id,
+                        type=EdgeType.INTER_AGENT_COMMUNICATION,
+                        label="messages",
+                    )
+                )
                 # Add target agent node if missing
                 if target_node_id not in nodes:
                     nodes[target_node_id] = GraphNode(
@@ -143,7 +152,7 @@ class GraphBuilder:
             nodes=list(nodes.values()),
             edges=edges,
             builder_version=BUILDER_VERSION,
-            trace_digest=getattr(trace, "trace_digest", "unknown")
+            trace_digest=getattr(trace, "trace_digest", "unknown"),
         )
         return graph
 
@@ -158,6 +167,6 @@ class GraphBuilder:
             "tool_call": NodeType.TOOL,
             "guardrail": NodeType.GUARDRAIL,
             "policy": NodeType.POLICY,
-            "agent": NodeType.AGENT
+            "agent": NodeType.AGENT,
         }
         return mapping.get(component_type.lower(), NodeType.OPERATIONAL_RESOURCE)

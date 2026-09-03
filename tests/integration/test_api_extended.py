@@ -2,12 +2,16 @@
 DriftGuard-X v2 — Additional API Tests (5 tests)
 Covers span ingestion, list runs, trace retrieval, replay GET, and list pagination.
 """
+
 from __future__ import annotations
 
 from datetime import UTC
+from typing import TYPE_CHECKING
 
 import pytest
-from httpx import AsyncClient
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
 
@@ -18,7 +22,12 @@ async def test_span_ingest_endpoint(client: AsyncClient) -> None:
     # Create a run first to get a valid run_id
     run_resp = await client.post(
         "/v1/runs",
-        json={"query": "ingest test", "use_experimental_retriever": False, "seed": 42, "is_synthetic": True},
+        json={
+            "query": "ingest test",
+            "use_experimental_retriever": False,
+            "seed": 42,
+            "is_synthetic": True,
+        },
     )
     assert run_resp.status_code == 201
     run_id = run_resp.json()["id"]
@@ -26,6 +35,7 @@ async def test_span_ingest_endpoint(client: AsyncClient) -> None:
     pipeline_id = run_resp.json()["pipeline_id"]
 
     from datetime import datetime
+
     now = datetime.now(UTC).isoformat()
 
     resp = await client.post(
@@ -62,7 +72,12 @@ async def test_list_runs_pagination(client: AsyncClient) -> None:
     for i in range(3):
         await client.post(
             "/v1/runs",
-            json={"query": f"page test {i}", "use_experimental_retriever": False, "seed": 42, "is_synthetic": True},
+            json={
+                "query": f"page test {i}",
+                "use_experimental_retriever": False,
+                "seed": 42,
+                "is_synthetic": True,
+            },
         )
 
     resp = await client.get("/v1/runs", params={"skip": 2, "limit": 2})
@@ -80,7 +95,12 @@ async def test_get_run_trace_endpoint(client: AsyncClient) -> None:
     """GET /v1/runs/{id}/trace returns normalized trace."""
     run_resp = await client.post(
         "/v1/runs",
-        json={"query": "trace test", "use_experimental_retriever": False, "seed": 42, "is_synthetic": True},
+        json={
+            "query": "trace test",
+            "use_experimental_retriever": False,
+            "seed": 42,
+            "is_synthetic": True,
+        },
     )
     run_id = run_resp.json()["id"]
 
@@ -99,7 +119,12 @@ async def test_replay_endpoint_full_flow(client: AsyncClient) -> None:
     # Create experimental run
     run_resp = await client.post(
         "/v1/runs",
-        json={"query": "full replay test", "use_experimental_retriever": True, "seed": 42, "is_synthetic": True},
+        json={
+            "query": "full replay test",
+            "use_experimental_retriever": True,
+            "seed": 42,
+            "is_synthetic": True,
+        },
     )
     assert run_resp.status_code == 201
     run_id = run_resp.json()["id"]
@@ -126,7 +151,12 @@ async def test_non_synthetic_run_replay_blocked(client: AsyncClient) -> None:
     """The mock API must not label a deterministic simulation as real evidence."""
     run_resp = await client.post(
         "/v1/runs",
-        json={"query": "non-synthetic", "use_experimental_retriever": True, "seed": 42, "is_synthetic": False},
+        json={
+            "query": "non-synthetic",
+            "use_experimental_retriever": True,
+            "seed": 42,
+            "is_synthetic": False,
+        },
     )
     assert run_resp.status_code == 400
     assert "non-synthetic" in run_resp.json()["detail"].lower()

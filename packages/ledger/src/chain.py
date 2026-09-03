@@ -4,6 +4,7 @@ PRIVATE — All Rights Reserved.
 
 Implements the append-only SQLite storage, hash chaining, and verification.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,12 +31,13 @@ class LedgerChain:
         self._head_hash: str | None = None
         self._size: int = 0
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize the database schema."""
         async with aiosqlite.connect(self.db_path) as db:
             # We strictly prevent updates and deletes at the application level by design.
             # In a production DB, this table would have triggers or role permissions enforcing append-only.
-            await db.execute("""
+            await db.execute(
+                """
                 CREATE TABLE IF NOT EXISTS ledger (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cert_id TEXT UNIQUE NOT NULL,
@@ -46,11 +48,12 @@ class LedgerChain:
                     signer_pub_key TEXT NOT NULL,
                     timestamp TEXT NOT NULL
                 )
-            """)
+            """
+            )
             await db.commit()
             await self._load_head(db)
 
-    async def _load_head(self, db: aiosqlite.Connection):
+    async def _load_head(self, db: aiosqlite.Connection) -> None:
         """Load the latest hash and chain size."""
         async with db.execute("SELECT cert_hash FROM ledger ORDER BY id DESC LIMIT 1") as cursor:
             row = await cursor.fetchone()
@@ -89,7 +92,7 @@ class LedgerChain:
             try:
                 await db.execute(
                     """
-                    INSERT INTO ledger 
+                    INSERT INTO ledger
                     (cert_id, cert_hash, previous_hash, payload, signature, signer_pub_key, timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -100,15 +103,17 @@ class LedgerChain:
                         payload_json,
                         cert.signature,
                         cert.signer_pub_key,
-                        cert.timestamp
-                    )
+                        cert.timestamp,
+                    ),
                 )
                 await db.commit()
                 self._head_hash = cert_hash
                 self._size += 1
                 return cert_hash
             except aiosqlite.IntegrityError as e:
-                raise CertificateValidationError(f"Integrity constraint violation (duplicate ID or Hash?): {e}")
+                raise CertificateValidationError(
+                    f"Integrity constraint violation (duplicate ID or Hash?): {e}"
+                )
 
     async def get_all_certificates(self) -> list[RecoveryCertificate]:
         """Fetch all certificates in order."""
@@ -130,7 +135,9 @@ class LedgerChain:
         for cert in certs:
             # 1. Check Linkage
             if cert.previous_cert_hash != expected_prev:
-                logger.error(f"Linkage broken at cert {cert.cert_id}: expected {expected_prev}, got {cert.previous_cert_hash}")
+                logger.error(
+                    f"Linkage broken at cert {cert.cert_id}: expected {expected_prev}, got {cert.previous_cert_hash}"
+                )
                 return False
 
             # 2. Check Signatures

@@ -8,6 +8,7 @@ def test_prompt_injection_rationale():
     # Mocking rationale input checking
     assert "hacked" not in malicious_input.replace("hacked", "REDACTED")
 
+
 @pytest.mark.security
 def test_malicious_tool_output():
     """Validates that ToolBench responses don't break the JSON parser or executor."""
@@ -17,26 +18,29 @@ def test_malicious_tool_output():
     is_blocked = True
     assert is_blocked
 
+
 @pytest.mark.security
 def test_trace_spoofing():
     """Ensures signatures fail for tampered replay episodes."""
     tampered_signature = "bad_signature"
-    is_valid = (tampered_signature == "valid_signature")
+    is_valid = tampered_signature == "valid_signature"
     assert not is_valid
+
 
 @pytest.mark.security
 def test_privilege_escalation():
     """Asserts tenant isolation across episodes."""
-    tenant_a_token = "token_a"
-    tenant_b_data_access = False # Blocked
+    tenant_b_data_access = False  # Blocked
     assert not tenant_b_data_access
+
 
 @pytest.mark.security
 def test_ssrf_path_traversal():
     """Asserts local file inclusions (LFI) are blocked in adapters."""
     malicious_path = "../../../etc/passwd"
-    is_blocked = (".." in malicious_path)
+    is_blocked = ".." in malicious_path
     assert is_blocked
+
 
 @pytest.mark.security
 def test_secret_leakage():
@@ -45,13 +49,16 @@ def test_secret_leakage():
     redacted = output.replace("sk-12345", "REDACTED")
     assert "sk-" not in redacted
 
+
 @pytest.mark.security
 def test_deserialization_safety():
     """Validates that unsafe deserialization is blocked (e.g., pickle vs json)."""
     import json
+
     payload = '{"safe": "data"}'
     parsed = json.loads(payload)
     assert parsed["safe"] == "data"
+
 
 @pytest.mark.security
 def test_replay_capsule_tampering():

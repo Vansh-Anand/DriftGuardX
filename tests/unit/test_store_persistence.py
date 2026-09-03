@@ -19,7 +19,7 @@ def test_sqlite_store_persistence(tmp_path):
         repair_decision_id=uuid4(),
         tenant_id=uuid4(),
         certificate_hash="test_hash_1",
-        issued_by="tester"
+        issued_by="tester",
     )
 
     commit_result = witness1.commit_certificates([cert], "policy_hash_1", True)
@@ -40,6 +40,7 @@ def test_sqlite_store_persistence(tmp_path):
     # 5. Detect database tampering (modify the DB directly)
     import json
     import sqlite3
+
     with sqlite3.connect(db_path) as conn:
         tampered_payload = {
             "timestamp": "some_time",
@@ -47,9 +48,15 @@ def test_sqlite_store_persistence(tmp_path):
             "merkle_root": "root",
             "certificate_count": 1,
             "policy_snapshot": "tampered",
-            "canary_passed": True
+            "canary_passed": True,
         }
-        conn.execute("UPDATE ledger SET payload = ? WHERE entry_hash = ?", (json.dumps(tampered_payload), commit_result.ledger_entry_hash,))
+        conn.execute(
+            "UPDATE ledger SET payload = ? WHERE entry_hash = ?",
+            (
+                json.dumps(tampered_payload),
+                commit_result.ledger_entry_hash,
+            ),
+        )
 
     # Reloading from store should show tampered data
     tampered_entry = store2.get(commit_result.ledger_entry_hash)

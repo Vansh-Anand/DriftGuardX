@@ -47,7 +47,10 @@ def calculate_trace_completeness(trace: TraceArtifact) -> float:
         penalties += min(0.2, time_inversions * 0.1)
 
     # Check 4: Has generator or final_response (topology heuristic)
-    has_terminal = any(s.component_type and s.component_type.value in ["generator", "final_response"] for s in trace.spans)
+    has_terminal = any(
+        s.component_type and s.component_type.value in ["generator", "final_response"]
+        for s in trace.spans
+    )
     if not has_terminal:
         penalties += 0.1
 

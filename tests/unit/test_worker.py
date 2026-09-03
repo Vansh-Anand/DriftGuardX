@@ -4,6 +4,7 @@ DriftGuard-X v2 — Worker / Background Job Tests (3 tests)
 Tests the ARQ-style job execution logic without requiring a live Redis instance.
 Uses deterministic mock execution.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -41,15 +42,19 @@ def test_mock_pipeline_experimental_run_has_lower_faithfulness() -> None:
     pipeline_exp = MockRAGPipeline(PIPELINE_WITH_EXPERIMENTAL_RETRIEVER)
     pipeline_stable = MockRAGPipeline(PIPELINE_WITH_STABLE_RETRIEVER)
 
-    run_exp, _ = pipeline_exp.execute(run_id=run_id_exp, query="AI safety?", seed=42, is_synthetic=True)
-    run_stable, _ = pipeline_stable.execute(run_id=run_id_stable, query="AI safety?", seed=42, is_synthetic=True)
+    run_exp, _ = pipeline_exp.execute(
+        run_id=run_id_exp, query="AI safety?", seed=42, is_synthetic=True
+    )
+    run_stable, _ = pipeline_stable.execute(
+        run_id=run_id_stable, query="AI safety?", seed=42, is_synthetic=True
+    )
 
     # Faithfulness dimension must be lower for experimental
     exp_fidelity = run_exp.reliability_vector.get("faithfulness", 1.0)
     stable_fidelity = run_stable.reliability_vector.get("faithfulness", 1.0)
-    assert exp_fidelity < stable_fidelity, (
-        f"Experimental faithfulness {exp_fidelity} should be < stable {stable_fidelity}"
-    )
+    assert (
+        exp_fidelity < stable_fidelity
+    ), f"Experimental faithfulness {exp_fidelity} should be < stable {stable_fidelity}"
 
 
 @pytest.mark.unit
@@ -59,7 +64,7 @@ def test_mock_pipeline_is_deterministic_same_seed() -> None:
     run1, _ = pipeline.execute(run_id=uuid.uuid4(), query="What is AI?", seed=42, is_synthetic=True)
     run2, _ = pipeline.execute(run_id=uuid.uuid4(), query="What is AI?", seed=42, is_synthetic=True)
 
-    assert run1.reliability_score == run2.reliability_score, (
-        f"Expected identical scores with same seed: {run1.reliability_score} vs {run2.reliability_score}"
-    )
+    assert (
+        run1.reliability_score == run2.reliability_score
+    ), f"Expected identical scores with same seed: {run1.reliability_score} vs {run2.reliability_score}"
     assert run1.reliability_vector == run2.reliability_vector

@@ -10,6 +10,7 @@ Includes:
 - DevelopmentSigner: Local Ed25519 signer using python cryptography.
 - KMSProviderSigner: Stub for production hardware/KMS signing.
 """
+
 from __future__ import annotations
 
 import abc
@@ -45,21 +46,22 @@ class DevelopmentSigner(SignerProtocol):
     DO NOT USE IN PRODUCTION.
     """
 
-    def __init__(self, private_key: ed25519.Ed25519PrivateKey | None = None, key_id: str = "dev-key-01"):
+    def __init__(
+        self, private_key: ed25519.Ed25519PrivateKey | None = None, key_id: str = "dev-key-01"
+    ):
         self._private_key = private_key or ed25519.Ed25519PrivateKey.generate()
         self._public_key = self._private_key.public_key()
         self._key_id = key_id
 
     def sign(self, payload: bytes) -> str:
         signature = self._private_key.sign(payload)
-        return base64.b64encode(signature).decode('utf-8')
+        return base64.b64encode(signature).decode("utf-8")
 
     def public_key_b64(self) -> str:
         pub_bytes = self._public_key.public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
-        return base64.b64encode(pub_bytes).decode('utf-8')
+        return base64.b64encode(pub_bytes).decode("utf-8")
 
     def key_id(self) -> str:
         return self._key_id
@@ -70,6 +72,7 @@ class KMSProviderSigner(SignerProtocol):
     Stub for production KMS signing.
     In a real environment, this would call AWS KMS, GCP KMS, or HashiCorp Vault.
     """
+
     def __init__(self, kms_key_arn: str):
         self._kms_key_arn = kms_key_arn
 

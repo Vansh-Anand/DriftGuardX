@@ -1,11 +1,11 @@
 """
 DriftGuard-X v2 — Shared test fixtures and configuration.
 """
+
 from __future__ import annotations
 
 import os
 import uuid
-from collections.abc import AsyncGenerator
 
 import pytest_asyncio
 from httpx import AsyncClient
@@ -26,8 +26,13 @@ os.environ.setdefault(
     "driftguardx-test-transport-secret-32-bytes-minimum",
 )
 
+from typing import TYPE_CHECKING
+
 from apps.api.src.database import Base, get_db
 from apps.api.src.main import app
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 # ─── Async Engine ─────────────────────────────────────────────────────────────
 
@@ -67,6 +72,7 @@ async def db_session(setup_test_db: None) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def client(setup_test_db: None) -> AsyncGenerator[AsyncClient, None]:
     """Async test client with DB override."""
+
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         async with TestSessionLocal() as session:
             try:
@@ -79,6 +85,7 @@ async def client(setup_test_db: None) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[get_db] = override_get_db
 
     from httpx import ASGITransport
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         ac.headers["Authorization"] = "Bearer mock-admin-token"
         yield ac
@@ -87,6 +94,7 @@ async def client(setup_test_db: None) -> AsyncGenerator[AsyncClient, None]:
 
 
 # ─── Test Data Builders ───────────────────────────────────────────────────────
+
 
 def make_tenant_id() -> uuid.UUID:
     return uuid.UUID("00000000-0000-0000-FFFF-000000000001")

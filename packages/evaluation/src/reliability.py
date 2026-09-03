@@ -13,16 +13,20 @@ Dimensions:
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from packages.contracts.src.models import TraceArtifact
+if TYPE_CHECKING:
+    from packages.contracts.src.models import TraceArtifact
 
 
 @dataclass
 class ReliabilityConfig:
     """Configurable thresholds for reliability scoring."""
+
     max_latency_ms: float = 5000.0
     max_tokens_total: int = 4096
     latency_weight: float = 0.2
@@ -81,10 +85,10 @@ def compute_reliability_vector(
     error_free = 1.0 if not error_spans else max(0.0, 1.0 - len(error_spans) / len(spans))
 
     # Token budget
-    total_tokens = sum(
-        (s.token_count_input or 0) + (s.token_count_output or 0) for s in spans
+    total_tokens = sum((s.token_count_input or 0) + (s.token_count_output or 0) for s in spans)
+    token_budget = (
+        min(1.0, config.max_tokens_total / max(total_tokens, 1)) if total_tokens > 0 else 1.0
     )
-    token_budget = min(1.0, config.max_tokens_total / max(total_tokens, 1)) if total_tokens > 0 else 1.0
 
     # Faithfulness (only meaningful in replay — passed in externally)
     faithfulness = faithfulness_score if faithfulness_score is not None else 1.0

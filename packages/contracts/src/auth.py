@@ -4,6 +4,7 @@ PRIVATE — All Rights Reserved.
 
 Defines schemas for Identity, Tenant, and RBAC models.
 """
+
 import enum
 from datetime import datetime
 from uuid import UUID

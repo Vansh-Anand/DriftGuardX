@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Tests for Causal Recovery Transportability Gate
 Updated for new CausalTransportGate and RiskLimitedSequentialCausalExperimentPlanner.
 """
+
 import os
 from datetime import UTC, datetime
 
@@ -30,7 +31,9 @@ def _make_evidence() -> StructuredCalibrationEvidence:
     )
 
 
-def _make_descriptor(tenant_id: str = "tenant_A", overrides: dict | None = None) -> CausalEnvironmentDescriptor:
+def _make_descriptor(
+    tenant_id: str = "tenant_A", overrides: dict | None = None
+) -> CausalEnvironmentDescriptor:
     base = dict(
         tenant_id=tenant_id,
         model="gpt-4",
@@ -65,6 +68,7 @@ def _make_footprint() -> RecoveryMechanismFootprint:
 
 
 # --- TESTS ---
+
 
 def test_1_identical_environment():
     gate = CausalTransportGate(SECRET_KEY)
@@ -163,7 +167,10 @@ def test_10_critical_mechanism_mismatch():
     ft.required_data_conditions = {"data_distribution": "hash_A"}
     decision = gate.evaluate_transportability(src, tgt, ft)
     # Should be NOT_TRANSPORTABLE or TARGET_VALIDATION_REQUIRED (both are acceptable)
-    assert decision.status in (TransportStatus.NOT_TRANSPORTABLE, TransportStatus.TARGET_VALIDATION_REQUIRED)
+    assert decision.status in (
+        TransportStatus.NOT_TRANSPORTABLE,
+        TransportStatus.TARGET_VALIDATION_REQUIRED,
+    )
 
 
 def test_11_cross_tenant_denied():

@@ -25,14 +25,14 @@ class MLflowTracker:
     def start_run(self, run_name: str):
         return mlflow.start_run(run_name=run_name) if mlflow is not None else nullcontext()
 
-    def log_params(self, params: dict[str, Any]):
+    def log_params(self, params: dict[str, Any]) -> None:
         if mlflow is not None:
             mlflow.log_params(params)
 
-    def log_metrics(self, metrics: dict[str, float]):
+    def log_metrics(self, metrics: dict[str, float]) -> None:
         if mlflow is not None:
             mlflow.log_metrics(metrics)
 
-    def log_artifact(self, local_path: str, artifact_path: str = None):
+    def log_artifact(self, local_path: str, artifact_path: str | None = None) -> None:
         if mlflow is not None:
             mlflow.log_artifact(local_path, artifact_path)

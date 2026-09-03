@@ -5,7 +5,7 @@ PRIVATE — All Rights Reserved.
 
 Verifies a machine export bundle independently of the main application database.
 Checks:
-1. Certificate signatures using the public key embedded in the certificate 
+1. Certificate signatures using the public key embedded in the certificate
    (in a production setting, this script would take a trusted root public key).
 2. Hash chaining (previous_cert_hash matches the actual hash of the prior cert).
 3. Hash consistency (cert_id and content match).
@@ -40,13 +40,9 @@ def get_canonical_bytes(cert_dict: dict[str, Any]) -> bytes:
     d.pop("signer_key_id", None)
     d.pop("signer_pub_key", None)
 
-    payload = {
-        "domain": DOMAIN_SEPARATOR,
-        "version": "1.0",
-        "data": d
-    }
-    json_str = json.dumps(payload, separators=(',', ':'), sort_keys=True, ensure_ascii=True)
-    return json_str.encode('utf-8')
+    payload = {"domain": DOMAIN_SEPARATOR, "version": "1.0", "data": d}
+    json_str = json.dumps(payload, separators=(",", ":"), sort_keys=True, ensure_ascii=True)
+    return json_str.encode("utf-8")
 
 
 def compute_hash(canonical_bytes: bytes) -> str:
@@ -64,7 +60,7 @@ def verify_signature(public_key_b64: str, payload: bytes, signature_b64: str) ->
         return False
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="DriftGuard-X Ledger Verifier")
     parser.add_argument("bundle", help="Path to machine verification JSON bundle")
     args = parser.parse_args()

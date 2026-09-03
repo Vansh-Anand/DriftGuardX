@@ -4,6 +4,7 @@ Abstracts execution between local multiprocess sandboxes and production containe
 """
 
 import asyncio
+import contextlib
 import json
 import os
 import re
@@ -132,7 +133,7 @@ class ContainerReplayExecutor(ReplayExecutor):
         if os.name == "posix":
             # The digest-pinned image runs as uid 10001 and needs access only to
             # this per-replay exchange directory.
-            os.chmod(temp_dir, 0o777)
+            os.chmod(temp_dir, 0o700)
         payload_path = os.path.join(temp_dir, "payload.pkl")
         result_path = os.path.join(temp_dir, "result.json")
 
@@ -163,13 +164,13 @@ def main():
     try:
         with open('/sandbox/payload.pkl', 'rb') as f:
             func, kwargs = cloudpickle.load(f)
-        
+
         # Add DriftGuard-X to python path
         sys.path.insert(0, '/app')
-        
+
         result = func(**kwargs)
         write_result({"status": "success", "payload": result})
-            
+
     except BaseException as e:
         try:
             write_result({"status": "error", "error": f"{type(e).__name__}: {e}"})
@@ -206,7 +207,7 @@ if __name__ == '__main__':
                 mem_limit="128m",  # Memory cap
                 nano_cpus=1000000000,  # 1 CPU core
                 pids_limit=10,  # Prevent fork bombs
-                tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},  # Storage limit
+                tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},  # nosec B108: Storage limit
                 detach=True,
                 remove=False,
             )
@@ -276,10 +277,8 @@ if __name__ == '__main__':
         # Cleanup temp dir (ignoring errors if files are locked)
         import shutil
 
-        try:
+        with contextlib.suppress(ValueError, RuntimeError, KeyError, TypeError, OSError):
             shutil.rmtree(temp_dir, ignore_errors=True)
-        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
-            pass
 
         return ReplayResult(
             payload=result_payload,

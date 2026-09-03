@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from starlette.exceptions import HTTPException
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+if TYPE_CHECKING:
+    from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class RequestBodyLimitMiddleware:

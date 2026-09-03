@@ -14,6 +14,7 @@ from packages.ingestion.src.storage import MinioStorage
 
 logger = logging.getLogger(__name__)
 
+
 class IngestionOrchestrator:
     def __init__(self, db_session: AsyncSession, storage: MinioStorage, tenant_id: uuid.UUID):
         self.db = db_session
@@ -23,7 +24,9 @@ class IngestionOrchestrator:
         self.embedder = LocalEmbedder()
         self.tenant_id = tenant_id
 
-    async def ingest_corpus(self, source_name: str, version_tag: str, documents: list[dict[str, Any]], license_info: str) -> str:
+    async def ingest_corpus(
+        self, source_name: str, version_tag: str, documents: list[dict[str, Any]], license_info: str
+    ) -> str:
         """
         Orchestrates full ingestion of a document corpus.
         Returns the corpus manifest_hash.
@@ -35,7 +38,9 @@ class IngestionOrchestrator:
             if not self.scanner.scan_text(text):
                 safe_docs.append(doc)
             else:
-                logger.warning(f"Document rejected due to PII/Secret detection: {doc.get('id', 'unknown')}")
+                logger.warning(
+                    f"Document rejected due to PII/Secret detection: {doc.get('id', 'unknown')}"
+                )
 
         if not safe_docs:
             raise ValueError("No safe documents to ingest after scanning.")
@@ -44,7 +49,9 @@ class IngestionOrchestrator:
         doc_records = []
         doc_hashes = []
         for doc in safe_docs:
-            doc_hash = self.storage.upload_document(f"raw/{source_name}/{version_tag}/{doc.get('id', uuid.uuid4())}.json", doc)
+            doc_hash = self.storage.upload_document(
+                f"raw/{source_name}/{version_tag}/{doc.get('id', uuid.uuid4())}.json", doc
+            )
             doc_hashes.append(doc_hash)
             doc_records.append({"hash": doc_hash, "data": doc})
 
@@ -56,10 +63,10 @@ class IngestionOrchestrator:
             "documents": doc_hashes,
             "chunk_size": self.chunker.chunk_size,
             "chunk_overlap": self.chunker.chunk_overlap,
-            "embedding_model": self.embedder.model_name
+            "embedding_model": self.embedder.model_name,
         }
         manifest_str = json.dumps(manifest, sort_keys=True)
-        manifest_hash = hashlib.sha256(manifest_str.encode('utf-8')).hexdigest()
+        manifest_hash = hashlib.sha256(manifest_str.encode("utf-8")).hexdigest()
 
         # 4. Upload manifest to MinIO
         self.storage.upload_manifest(version_tag, manifest)
@@ -70,7 +77,7 @@ class IngestionOrchestrator:
             source_name=source_name,
             version_tag=version_tag,
             manifest_hash=manifest_hash,
-            license_info=license_info
+            license_info=license_info,
         )
         self.db.add(corpus)
         await self.db.flush()
@@ -80,7 +87,10 @@ class IngestionOrchestrator:
             corpus_version_id=corpus.id,
             version_tag=version_tag,
             embedding_model_version=self.embedder.model_name,
-            chunking_config_json={"size": self.chunker.chunk_size, "overlap": self.chunker.chunk_overlap}
+            chunking_config_json={
+                "size": self.chunker.chunk_size,
+                "overlap": self.chunker.chunk_overlap,
+            },
         )
         self.db.add(index)
         await self.db.flush()
@@ -94,7 +104,7 @@ class IngestionOrchestrator:
                 document_hash=rec["hash"],
                 source_metadata_json={"title": doc_data.get("title", "")},
                 license_info=license_info,
-                minio_object_name=f"raw/{source_name}/{version_tag}/{doc_data.get('id', 'doc')}.json"
+                minio_object_name=f"raw/{source_name}/{version_tag}/{doc_data.get('id', 'doc')}.json",
             )
             self.db.add(doc_orm)
             await self.db.flush()
@@ -110,7 +120,7 @@ class IngestionOrchestrator:
                     index_version_id=index.id,
                     chunk_index=i,
                     text_content=chunk_text,
-                    embedding=emb
+                    embedding=emb,
                 )
                 self.db.add(chunk_orm)
 

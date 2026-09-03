@@ -3,6 +3,7 @@ DriftGuard-X v2 — Python Agent Loop Adapter
 
 Decorator and context manager for standard Python agent loop instrumentation.
 """
+
 import inspect
 from collections.abc import Callable
 from functools import wraps
@@ -21,6 +22,7 @@ def instrument_tool(
     """
     Decorator for tracking standard Python functions as Trace spans.
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -89,6 +91,7 @@ class AgentInstrumentor:
     """
     Provides context-manager based explicit instrumentation for manual agent loops.
     """
+
     def __init__(self, trace_ctx: TraceContext):
         self.trace_ctx = trace_ctx
 
@@ -104,5 +107,5 @@ class AgentInstrumentor:
         builder.set_component(component_type, version_id, version_tag)
         return builder
 
-    def record(self, builder):
+    def record(self, builder) -> None:
         self.trace_ctx.record_span(builder.build())

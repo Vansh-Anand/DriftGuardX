@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Rationale Evaluation Suite
 PRIVATE — All Rights Reserved.
 """
+
 import uuid
 
 import pytest
@@ -31,7 +32,7 @@ def base_contract():
         delta=0.01,
         policy_decision="APPROVED",
         action_type="ROLLBACK",
-        limitations=["Assumes independent queries"]
+        limitations=["Assumes independent queries"],
     )
 
 
@@ -110,7 +111,10 @@ def test_llm_success_path(monkeypatch, base_contract):
     """If LLM generates strictly valid text, it passes through."""
 
     def mock_invoke(*args, **kwargs):
-        return "The retriever component was fixed by moving from v1 to v2-exp, gaining 0.05 in quality.", 10.0
+        return (
+            "The retriever component was fixed by moving from v1 to v2-exp, gaining 0.05 in quality.",
+            10.0,
+        )
 
     monkeypatch.setattr("packages.rationale.src.llm.invoke_llm", mock_invoke)
 

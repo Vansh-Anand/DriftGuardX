@@ -8,6 +8,7 @@ class CryptographicEscrow:
     Simulates a secure container holding staged actions.
     The payload is hashed for integrity.
     """
+
     def __init__(self, trace_id: str, action_type: str, payload: dict[str, Any]):
         self.trace_id = trace_id
         self.action_type = action_type
@@ -18,18 +19,22 @@ class CryptographicEscrow:
         self.payload_hash = hashlib.sha256(serialized).hexdigest()
         self.status = "STAGED"
 
+
 class VTICoordinator:
     """
     Two-Phase Commit Database Coordinator for AI Agent execution.
     Acts as the boundary between the sandboxed VTI and the live environment.
     """
+
     def __init__(self):
         # In-memory storage for escrows mapping trace_id -> List[CryptographicEscrow]
         self._escrows: dict[str, list[CryptographicEscrow]] = {}
         # In-memory mock for committed actions (live environment simulation)
         self.committed_actions: list[CryptographicEscrow] = []
 
-    def stage_action(self, trace_id: str, action_type: str, payload: dict[str, Any]) -> CryptographicEscrow:
+    def stage_action(
+        self, trace_id: str, action_type: str, payload: dict[str, Any]
+    ) -> CryptographicEscrow:
         """
         Phase 1: Stage the action in a cryptographic escrow.
         """
@@ -48,7 +53,7 @@ class VTICoordinator:
 
         escrows = self._escrows.get(trace_id, [])
         if not escrows:
-            return False # Nothing to commit
+            return False  # Nothing to commit
 
         for escrow in escrows:
             if escrow.status == "STAGED":
@@ -75,6 +80,7 @@ class VTICoordinator:
 
     def get_staged_actions(self, trace_id: str) -> list[CryptographicEscrow]:
         return self._escrows.get(trace_id, [])
+
 
 # Global instance for simulation scope
 vti_coordinator = VTICoordinator()

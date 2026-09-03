@@ -6,7 +6,11 @@ from packages.recovery.src.mocks import MockBeliefModel
 
 
 @settings(suppress_health_check=[HealthCheck.too_slow], max_examples=50)
-@given(st.dictionaries(st.text(min_size=1), st.floats(min_value=0.0, max_value=1.0), min_size=1, max_size=10))
+@given(
+    st.dictionaries(
+        st.text(min_size=1), st.floats(min_value=0.0, max_value=1.0), min_size=1, max_size=10
+    )
+)
 def test_belief_summation_property(raw_probs):
     """
     Belief: probabilities sum to approximately 1.

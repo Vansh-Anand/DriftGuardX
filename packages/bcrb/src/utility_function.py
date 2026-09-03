@@ -3,6 +3,7 @@ DriftGuard-X v2 — BCRB Utility Function
 PRIVATE — All Rights Reserved.
 """
 
+
 def calculate_candidate_utility(
     probability: float,
     expected_reliability_delta: float,
@@ -17,9 +18,9 @@ def calculate_candidate_utility(
     """
     Calculates the true utility for a candidate intervention based on the
     budget-constrained causal selection formula:
-    
+
     U_i = (P_i * E[ΔR_i] * IG_i) / (C_i + λ*Risk_i + μ*BlastRadius_i)
-    
+
     Args:
         probability: P(cause_i), the causal prior/posterior.
         expected_reliability_delta: E[ΔR_i], expected reliability improvement.
@@ -30,11 +31,11 @@ def calculate_candidate_utility(
         lambda_risk: Weight for risk penalty.
         mu_blast: Weight for blast radius penalty.
         epsilon: Small constant to prevent division by zero.
-        
+
     Returns:
         The calculated utility value.
     """
     numerator = probability * expected_reliability_delta * information_gain
     denominator = cost + (lambda_risk * risk) + (mu_blast * blast_radius) + epsilon
-    
+
     return numerator / denominator

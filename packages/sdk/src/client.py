@@ -4,6 +4,7 @@ PRIVATE — All Rights Reserved.
 
 Provides a synchronous and asynchronous client for interacting with the DriftGuard-X API.
 """
+
 from typing import Any
 
 import httpx

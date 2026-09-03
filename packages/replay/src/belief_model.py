@@ -10,12 +10,14 @@ class LikelihoodEstimator(Protocol):
         """
         ...
 
+
 class HeuristicLikelihoodEstimator:
     """
     A clearly named heuristic estimator for prototype use.
     If we intervene on a node, and it WAS the root cause, it should heavily mitigate the failure.
     outcome in ["mitigated", "reproduced"]
     """
+
     def estimate_likelihood(self, intervention_node: str, root_cause: str, outcome: str) -> float:
         if intervention_node == root_cause:
             if outcome == "mitigated":
@@ -27,6 +29,7 @@ class HeuristicLikelihoodEstimator:
                 return 0.1  # low likelihood of fixing it if we didn't touch the root cause
             else:
                 return 0.9
+
 
 class DeterminismEstimator:
     """
@@ -49,7 +52,7 @@ class DeterminismEstimator:
         """Record an output hash for a component run."""
         self._run_counts[component_id] = self._run_counts.get(component_id, 0) + 1
         # We store last hash as a special key to avoid a separate dict
-        if not hasattr(self, '_last_hashes'):
+        if not hasattr(self, "_last_hashes"):
             self._last_hashes: dict[str, str] = {}
         prev = self._last_hashes.get(component_id)
         if prev is not None and prev == output_hash:
@@ -105,7 +108,9 @@ class RootCauseBeliefModel:
         unnormalized = {}
         total = 0.0
         for c, prior in self.beliefs.items():
-            likelihood = self._safe_prob(estimator.estimate_likelihood(intervention_node, c, outcome))
+            likelihood = self._safe_prob(
+                estimator.estimate_likelihood(intervention_node, c, outcome)
+            )
             posterior = likelihood * prior
             unnormalized[c] = posterior
             total += posterior
@@ -122,7 +127,9 @@ class RootCauseBeliefModel:
         if s > 0:
             self.beliefs = {c: v / s for c, v in self.beliefs.items()}
 
-    def expected_information_gain(self, intervention_node: str, estimator: LikelihoodEstimator) -> tuple[float, float]:
+    def expected_information_gain(
+        self, intervention_node: str, estimator: LikelihoodEstimator
+    ) -> tuple[float, float]:
         """
         IG = H(Prior) - E[H(Posterior)]
         E[H(Posterior)] = sum_{O} P(O) * H(Posterior | O)
@@ -142,7 +149,9 @@ class RootCauseBeliefModel:
                 # Calculate H(Posterior | O)
                 h_post_o = 0.0
                 for c, p_c in self.beliefs.items():
-                    p_o_given_c = self._safe_prob(estimator.estimate_likelihood(intervention_node, c, o))
+                    p_o_given_c = self._safe_prob(
+                        estimator.estimate_likelihood(intervention_node, c, o)
+                    )
                     p_c_given_o = (p_o_given_c * p_c) / p_o
                     if p_c_given_o > 0:
                         h_post_o -= p_c_given_o * math.log2(p_c_given_o)
@@ -151,7 +160,10 @@ class RootCauseBeliefModel:
 
         return max(0.0, h_prior - expected_h_post), expected_h_post
 
-def calculate_graph_impact(graph_nodes: list[str], graph_edges: list[dict[str, str]], intervention_node: str) -> float:
+
+def calculate_graph_impact(
+    graph_nodes: list[str], graph_edges: list[dict[str, str]], intervention_node: str
+) -> float:
     """
     Calculates impact based on actual DAG descendants.
     impact_ratio = affected_descendants / total_nodes

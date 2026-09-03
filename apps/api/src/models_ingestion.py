@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -13,11 +12,16 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
 from apps.api.src.models import _JSON_TYPE, Base, _utcnow
+
+from datetime import datetime
+
+if TYPE_CHECKING:
+    pass
 
 
 @compiles(Vector, "sqlite")

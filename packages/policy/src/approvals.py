@@ -15,6 +15,7 @@ Security invariants:
   - Break-glass overrides are logged with mandatory justification and treated
     as CRITICAL events for post-hoc review.
 """
+
 from __future__ import annotations
 
 import enum
@@ -23,6 +24,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 # ─── Types ────────────────────────────────────────────────────────────────────
+
 
 class ApprovalStatus(str, enum.Enum):
     PENDING = "pending"
@@ -39,7 +41,7 @@ class ApprovalRequest:
     requester_id: str
     tenant_id: str
     node_id: str
-    risk_tier: str                      # "low"|"medium"|"high"|"critical"
+    risk_tier: str  # "low"|"medium"|"high"|"critical"
     required_approvers: int = 1
     two_person_control: bool = True
     request_id: str = field(default_factory=lambda: str(uuid4()))
@@ -54,9 +56,10 @@ class ApprovalRequest:
 @dataclass
 class ApprovalDecision:
     """Immutable decision record — never mutated after creation."""
+
     request_id: str
     actor_id: str
-    decision: ApprovalStatus   # APPROVED | DENIED
+    decision: ApprovalStatus  # APPROVED | DENIED
     comment: str = ""
     decided_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     decision_id: str = field(default_factory=lambda: str(uuid4()))
@@ -66,27 +69,33 @@ class ApprovalDecision:
 
 # ─── Exceptions ───────────────────────────────────────────────────────────────
 
+
 class SelfApprovalError(ValueError):
     """Raised when the requester tries to approve their own request."""
+
     pass
 
 
 class InsufficientApproversError(ValueError):
     """Raised when not enough distinct approvers have approved."""
+
     pass
 
 
 class ApprovalExpiredError(ValueError):
     """Raised when trying to act on an expired approval request."""
+
     pass
 
 
 class UnauthorizedApproverError(PermissionError):
     """Raised when an actor outside the delegated approver set tries to approve."""
+
     pass
 
 
 # ─── Approval Service ─────────────────────────────────────────────────────────
+
 
 class ApprovalService:
     """
@@ -110,8 +119,12 @@ class ApprovalService:
 
     def create_request(self, request: ApprovalRequest) -> ApprovalRequest:
         self._requests[request.request_id] = request
-        self._audit(request.request_id, "CREATED", request.requester_id,
-                    f"Action={request.action} Tier={request.risk_tier}")
+        self._audit(
+            request.request_id,
+            "CREATED",
+            request.requester_id,
+            f"Action={request.action} Tier={request.risk_tier}",
+        )
         return request
 
     # ── Approve ───────────────────────────────────────────────────────────────
@@ -143,8 +156,12 @@ class ApprovalService:
         approved_by = {d.actor_id for d in req.approvals if d.decision == ApprovalStatus.APPROVED}
         if len(approved_by) >= req.required_approvers:
             req.status = ApprovalStatus.APPROVED
-            self._audit(request_id, "STATUS→APPROVED", "system",
-                        f"Reached {req.required_approvers} approver(s)")
+            self._audit(
+                request_id,
+                "STATUS→APPROVED",
+                "system",
+                f"Reached {req.required_approvers} approver(s)",
+            )
 
         return req
 
@@ -186,9 +203,7 @@ class ApprovalService:
         self._check_not_self_approval(req, actor_id)
 
         if not justification or len(justification.strip()) < 20:
-            raise ValueError(
-                "Break-glass justification must be at least 20 characters."
-            )
+            raise ValueError("Break-glass justification must be at least 20 characters.")
 
         decision = ApprovalDecision(
             request_id=request_id,
@@ -200,8 +215,9 @@ class ApprovalService:
         )
         req.approvals.append(decision)
         req.status = ApprovalStatus.BREAK_GLASS
-        self._audit(request_id, "BREAK_GLASS", actor_id, justification,
-                    requires_post_hoc_review=True)
+        self._audit(
+            request_id, "BREAK_GLASS", actor_id, justification, requires_post_hoc_review=True
+        )
         return req
 
     # ── Expire ────────────────────────────────────────────────────────────────
@@ -223,8 +239,11 @@ class ApprovalService:
         return self._requests.get(request_id)
 
     def pending_for_tenant(self, tenant_id: str) -> list[ApprovalRequest]:
-        return [r for r in self._requests.values()
-                if r.tenant_id == tenant_id and r.status == ApprovalStatus.PENDING]
+        return [
+            r
+            for r in self._requests.values()
+            if r.tenant_id == tenant_id and r.status == ApprovalStatus.PENDING
+        ]
 
     def audit_log(self) -> list[dict]:
         return list(self._audit_log)
@@ -239,11 +258,13 @@ class ApprovalService:
         if req.status == ApprovalStatus.PENDING and req.expires_at < now:
             req.status = ApprovalStatus.EXPIRED
             self._audit(request_id, "EXPIRED", "system", "TTL exceeded on access")
-        if req.status in (ApprovalStatus.APPROVED, ApprovalStatus.DENIED,
-                          ApprovalStatus.EXPIRED, ApprovalStatus.BREAK_GLASS):
-            raise ApprovalExpiredError(
-                f"Request {request_id!r} is already {req.status.value}."
-            )
+        if req.status in (
+            ApprovalStatus.APPROVED,
+            ApprovalStatus.DENIED,
+            ApprovalStatus.EXPIRED,
+            ApprovalStatus.BREAK_GLASS,
+        ):
+            raise ApprovalExpiredError(f"Request {request_id!r} is already {req.status.value}.")
         return req
 
     def _check_not_self_approval(self, req: ApprovalRequest, actor_id: str) -> None:
@@ -266,11 +287,13 @@ class ApprovalService:
         detail: str,
         requires_post_hoc_review: bool = False,
     ) -> None:
-        self._audit_log.append({
-            "request_id": request_id,
-            "event": event,
-            "actor_id": actor_id,
-            "detail": detail,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "requires_post_hoc_review": requires_post_hoc_review,
-        })
+        self._audit_log.append(
+            {
+                "request_id": request_id,
+                "event": event,
+                "actor_id": actor_id,
+                "detail": detail,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "requires_post_hoc_review": requires_post_hoc_review,
+            }
+        )

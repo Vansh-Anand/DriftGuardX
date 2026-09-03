@@ -3,6 +3,7 @@ DriftGuard-X v2 — Orchestrator Mocks for Testing & Benchmarks
 Updated to match new interface signatures.
 PRIVATE — All Rights Reserved.
 """
+
 import uuid
 from typing import Any
 
@@ -21,8 +22,8 @@ from packages.contracts.src.interfaces import (
     RecoveryCutSolver,
     RecoveryValidator,
     ReplayExecutor,
-    ResourceEstimate,
     ResourceContext,
+    ResourceEstimate,
     StoppingPolicy,
     TraceProvider,
     TransportabilityGate,
@@ -59,8 +60,12 @@ class MockGraphProvider(GraphProvider):
 class MockInterventionGenerator(InterventionGenerator):
     def __init__(self, candidates: list[dict[str, Any]] | None = None) -> None:
         self.candidates = candidates or [
-            {"candidate_id": "retriever", "target_variable": "retriever",
-             "node_id": "retriever", "estimated_cost_usd": 0.05}
+            {
+                "candidate_id": "retriever",
+                "target_variable": "retriever",
+                "node_id": "retriever",
+                "estimated_cost_usd": 0.05,
+            }
         ]
 
     def generate_candidates(self, incident_state: IncidentState) -> list[dict[str, Any]]:
@@ -179,6 +184,7 @@ class MockBeliefModel(BeliefModel):
 
     def entropy(self) -> float:
         import math
+
         h = 0.0
         for p in self._posterior.values():
             if p > 0:

@@ -10,6 +10,7 @@ storage efficiency and query latency.
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -21,6 +22,7 @@ from typing import Any
 def _length_prefix_encode(data: bytes) -> bytes:
     """Encode bytes with an 8-byte big-endian length prefix to prevent concatenation ambiguity."""
     return len(data).to_bytes(8, "big") + data
+
 
 def _content_hash(payload: Any) -> str:
     """
@@ -39,6 +41,7 @@ class MerkleNode:
     payload *and* the hashes of all its parent nodes, making the entire chain
     tamper-evident.
     """
+
     node_id: str
     payload: Any
     parent_hashes: list[str] = field(default_factory=list)
@@ -123,25 +126,29 @@ class MerkleDAGStore:
             The newly created (or de-duplicated existing) MerkleNode.
         """
         parent_hashes = []
-        for pid in (parent_ids or []):
+        for pid in parent_ids or []:
             parent_node = self._nodes.get(pid)
             if parent_node:
                 parent_hashes.append(parent_node.node_hash)
             else:
-                raise ValueError(f"Parent node '{pid}' not found in DAG. Orphaned parents are rejected.")
+                raise ValueError(
+                    f"Parent node '{pid}' not found in DAG. Orphaned parents are rejected."
+                )
 
         node = MerkleNode(
             node_id=node_id,
             payload=payload,
             parent_hashes=parent_hashes,
-            version="v1"  # Always create new nodes as v1
+            version="v1",  # Always create new nodes as v1
         )
 
         # Reject duplicate ID mutations
         if node_id in self._nodes:
             existing_node = self._nodes[node_id]
             if existing_node.node_hash != node.node_hash:
-                raise ValueError(f"Duplicate ID mutation rejected: node_id '{node_id}' already exists with different payload/ancestry.")
+                raise ValueError(
+                    f"Duplicate ID mutation rejected: node_id '{node_id}' already exists with different payload/ancestry."
+                )
             return existing_node
 
         # Dedup: if exact hash already in store, reuse
@@ -158,7 +165,7 @@ class MerkleDAGStore:
         self._hash_index[node.node_hash] = node_id
 
         # Track children for lineage forking
-        for pid in (parent_ids or []):
+        for pid in parent_ids or []:
             if pid in self._nodes:
                 self._nodes[pid].children_ids.add(node_id)
 
@@ -166,8 +173,8 @@ class MerkleDAGStore:
 
     def fork_lineage(self, target_node_id: str, new_payload: Any) -> MerkleNode:
         """
-        Creates a semantic rollback fork (Update 9). 
-        Replaces the payload of the target_node_id and propagates the change 
+        Creates a semantic rollback fork (Update 9).
+        Replaces the payload of the target_node_id and propagates the change
         down all descendant nodes, creating a parallel validated state branch.
         """
         original_node = self._nodes.get(target_node_id)
@@ -176,6 +183,7 @@ class MerkleDAGStore:
 
         # 1. Find all descendants using BFS, including the target node
         from collections import deque
+
         descendants = set()
         queue = deque([target_node_id])
         visited_search = {target_node_id}
@@ -267,7 +275,7 @@ class MerkleDAGStore:
             node_id=node.node_id,
             payload=node.payload,
             parent_hashes=node.parent_hashes,
-            version=node.version
+            version=node.version,
         )
         return recomputed.node_hash == node.node_hash
 
@@ -320,10 +328,7 @@ class MerkleDAGStore:
 
     def verify_full_dag(self) -> bool:
         """Verify cryptographic integrity of the entire DAG."""
-        for node_id in self._nodes:
-            if not self.verify_chain(node_id):
-                return False
-        return True
+        return all(self.verify_chain(node_id) for node_id in self._nodes)
 
     # ── Stats ─────────────────────────────────────────────────────────────────
 

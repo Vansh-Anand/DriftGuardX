@@ -26,7 +26,7 @@ class GraphValidator:
         return True
 
     @staticmethod
-    def _check_orphans(graph: CausalGraph):
+    def _check_orphans(graph: CausalGraph) -> None:
         if not graph.nodes:
             return
 
@@ -43,7 +43,7 @@ class GraphValidator:
                     raise GraphValidationError(f"Orphan node detected: {node.id}")
 
     @staticmethod
-    def _check_cycles(graph: CausalGraph):
+    def _check_cycles(graph: CausalGraph) -> None:
         # Build adjacency list (only considering Control Flow and Data Dependency edges as causal)
         adj: dict[str, list[str]] = {node.id: [] for node in graph.nodes}
 
@@ -71,6 +71,5 @@ class GraphValidator:
             return False
 
         for node in graph.nodes:
-            if node.id not in visited:
-                if is_cyclic(node.id):
-                    raise GraphValidationError("Illegal causal cycle detected in DAG.")
+            if node.id not in visited and is_cyclic(node.id):
+                raise GraphValidationError("Illegal causal cycle detected in DAG.")

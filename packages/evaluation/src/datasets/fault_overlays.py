@@ -7,6 +7,7 @@ class FaultOverlay:
     """
     Injects controlled component drift without corrupting original benchmark files.
     """
+
     def __init__(self, seed: int = 42, drift_severity: float = 0.5):
         self.seed = seed
         self.drift_severity = drift_severity

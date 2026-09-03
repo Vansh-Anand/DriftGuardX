@@ -1,4 +1,3 @@
-
 import pytest
 
 
@@ -20,6 +19,7 @@ def test_worker_redis_loss():
     assert success
     assert retry_count == 2
 
+
 @pytest.mark.e2e
 def test_db_failover():
     """Simulates a database failover during a write operation."""
@@ -30,14 +30,16 @@ def test_db_failover():
     write_success = primary_db or replica_db
     assert write_success
 
+
 @pytest.mark.e2e
 def test_provider_timeout():
     """Simulates provider timeout (e.g., OpenAI API)."""
     timeout = True
     fallback_success = False
     if timeout:
-        fallback_success = True # Hit deterministic fallback
+        fallback_success = True  # Hit deterministic fallback
     assert fallback_success
+
 
 @pytest.mark.e2e
 def test_partial_certificate_write():
@@ -49,7 +51,8 @@ def test_partial_certificate_write():
         atomic_commit = True
     except:
         pass
-    assert not atomic_commit # Ensures no partial write was committed
+    assert not atomic_commit  # Ensures no partial write was committed
+
 
 @pytest.mark.e2e
 def test_api_restart():
@@ -60,6 +63,7 @@ def test_api_restart():
         recovered = True
     assert recovered
 
+
 @pytest.mark.e2e
 def test_object_store_unavailability():
     """Simulates object store unavailability."""
@@ -69,11 +73,12 @@ def test_object_store_unavailability():
         graceful_fallback = True
     assert graceful_fallback
 
+
 @pytest.mark.e2e
 def test_network_partition():
     """Simulates network partition isolating the policy engine."""
     partitioned = True
     default_deny = False
     if partitioned:
-        default_deny = True # Fallback to deny
+        default_deny = True  # Fallback to deny
     assert default_deny

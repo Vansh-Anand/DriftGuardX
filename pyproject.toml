@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "driftguardx"
 version = "2.0.0rc1"
 description = "DriftGuard-X v2: Agentic RAG Reliability Platform"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11"
 license = { text = "PRIVATE — All Rights Reserved" }
 readme = "README.md"
 dependencies = [
@@ -100,6 +100,10 @@ exclude = [".venv", "dist", "build", "__pycache__"]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "TCH", "ANN", "S", "RUF"]
 ignore = [
     "S101",    # use of assert (fine in tests)
+    "ANN101",  # self should not be annotated (deprecated)
+    "ANN102",  # cls should not be annotated (deprecated)
+    "ANN204",  # __init__ returning None is implied
+    "TCH",     # SQLAlchemy 2.0 needs types at runtime for Mapped[]
 ]
 
 [tool.ruff.lint.per-file-ignores]

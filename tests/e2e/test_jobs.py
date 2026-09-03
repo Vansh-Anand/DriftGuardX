@@ -3,8 +3,8 @@ import asyncio
 import pytest
 from httpx import AsyncClient
 
-from apps.api.src.jobs.orchestrator import orchestrator
 from apps.api.src.auth.auth import MOCK_TENANT_ID
+from apps.api.src.jobs.orchestrator import orchestrator
 
 
 async def dummy_slow_job():

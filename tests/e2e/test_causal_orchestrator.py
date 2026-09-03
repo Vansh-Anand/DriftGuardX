@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.recovery_models import FailureTarget, RecoveryValidationResult
 from packages.contracts.src.transport_models import TransportStatus
+from packages.memory.src.auth import AccessContext
 from packages.recovery.src.mocks import (
     MockBeliefModel,
     MockDivergenceValidator,
@@ -26,7 +27,6 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
-from packages.memory.src.auth import AccessContext
 
 
 def _access_context() -> AccessContext:
@@ -53,7 +53,7 @@ def build_orchestrator(**overrides):
         recovery_validator=MockRecoveryValidator(),
         policy_engine=MockPolicyEngine(),
         ledger=MockLedger(),
-        transport_gate=MockTransportabilityGate()
+        transport_gate=MockTransportabilityGate(),
     )
     defaults.update(overrides)
     return CausalRecoveryOrchestrator(**defaults)
@@ -63,7 +63,14 @@ def test_scenario_a_bad_retriever():
     """Scenario A: Bad retriever version causes failure. Should fully recover."""
     orch = build_orchestrator()
     state = IncidentState()
-    targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high", evidence={"wrong_answer": True})]
+    targets = [
+        FailureTarget(
+            node_id="llm",
+            failure_type="hallucination",
+            severity="high",
+            evidence={"wrong_answer": True},
+        )
+    ]
 
     cert = orch.process_incident(state, targets, access_context=_access_context())
     if not cert:
@@ -76,7 +83,7 @@ def test_scenario_b_poisoned_memory():
     """Scenario B: Poisoned memory -> fully recovers."""
     orch = build_orchestrator(
         intervention_generator=MockInterventionGenerator([{"target": "memory"}]),
-        belief_model=MockBeliefModel({"memory": 0.99})
+        belief_model=MockBeliefModel({"memory": 0.99}),
     )
     state = IncidentState()
     cert = orch.process_incident(state, [], access_context=_access_context())
@@ -88,7 +95,7 @@ def test_scenario_c_wrong_prompt():
     """Scenario C: Wrong prompt version -> fully recovers."""
     orch = build_orchestrator(
         intervention_generator=MockInterventionGenerator([{"target": "prompt"}]),
-        belief_model=MockBeliefModel({"prompt": 0.99})
+        belief_model=MockBeliefModel({"prompt": 0.99}),
     )
     state = IncidentState()
     cert = orch.process_incident(state, [], access_context=_access_context())
@@ -98,9 +105,7 @@ def test_scenario_c_wrong_prompt():
 
 def test_scenario_d_external_api_drift():
     """Scenario D: External API drift -> fails because we can't rollback external API (solver returns None)."""
-    orch = build_orchestrator(
-        recovery_solver=MockRecoveryCutSolver(cut=None)
-    )
+    orch = build_orchestrator(recovery_solver=MockRecoveryCutSolver(cut=None))
     state = IncidentState()
     cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert == ""
@@ -110,21 +115,20 @@ def test_scenario_d_external_api_drift():
 def test_scenario_e_tool_schema_mismatch():
     """Scenario E: Tool schema mismatch -> fails to validate capability/invariant."""
     from packages.contracts.src.recovery_models import CausalRecoveryCut, OptimizationMethod
+
     invalid_res = RecoveryValidationResult(
         recovery_cut=CausalRecoveryCut(
             fault_sources=[],
             failure_targets=[],
             selected_actions=[],
             optimization_method=OptimizationMethod.HEURISTIC,
-            evidence_hash="mock_hash"
+            evidence_hash="mock_hash",
         ),
         failure_resolved=False,
         invariants=[],
-        invariants_satisfied=False
+        invariants_satisfied=False,
     )
-    orch = build_orchestrator(
-        recovery_validator=MockRecoveryValidator(result=invalid_res)
-    )
+    orch = build_orchestrator(recovery_validator=MockRecoveryValidator(result=invalid_res))
     state = IncidentState()
     cert = orch.process_incident(state, [], access_context=_access_context())
     assert cert == ""
@@ -145,6 +149,7 @@ def test_scenario_f_cross_environment_transport_denied():
         RecoveryMechanismFootprint,
         TransportabilityDecision,
     )
+
     decision = TransportabilityDecision(
         recovery_id="rec_1",
         source_environment="env_a",
@@ -160,11 +165,43 @@ def test_scenario_f_cross_environment_transport_denied():
     )
     orch.transport_gate = MockTransportabilityGate(decision)
 
-
     # We just need dummy descriptors
-    src = CausalEnvironmentDescriptor(tenant_id="A", model="a", prompt="a", retriever="a", memory="a", tools=[], policy="a", index="a", data_distribution_fingerprint="a", execution_configuration={}, causal_graph_hash="a", provenance_hash="a")
-    tgt = CausalEnvironmentDescriptor(tenant_id="B", model="a", prompt="a", retriever="a", memory="a", tools=[], policy="a", index="a", data_distribution_fingerprint="a", execution_configuration={}, causal_graph_hash="a", provenance_hash="a")
-    ft = RecoveryMechanismFootprint(recovery_id="rec_1", required_invariant_components=[], required_invariant_edges=[], required_policy_conditions={}, required_data_conditions={}, required_calibration_conditions={})
+    src = CausalEnvironmentDescriptor(
+        tenant_id="A",
+        model="a",
+        prompt="a",
+        retriever="a",
+        memory="a",
+        tools=[],
+        policy="a",
+        index="a",
+        data_distribution_fingerprint="a",
+        execution_configuration={},
+        causal_graph_hash="a",
+        provenance_hash="a",
+    )
+    tgt = CausalEnvironmentDescriptor(
+        tenant_id="B",
+        model="a",
+        prompt="a",
+        retriever="a",
+        memory="a",
+        tools=[],
+        policy="a",
+        index="a",
+        data_distribution_fingerprint="a",
+        execution_configuration={},
+        causal_graph_hash="a",
+        provenance_hash="a",
+    )
+    ft = RecoveryMechanismFootprint(
+        recovery_id="rec_1",
+        required_invariant_components=[],
+        required_invariant_edges=[],
+        required_policy_conditions={},
+        required_data_conditions={},
+        required_calibration_conditions={},
+    )
 
     res = orch.validate_transportability(src, tgt, ft)
     assert res.status == TransportStatus.NOT_TRANSPORTABLE

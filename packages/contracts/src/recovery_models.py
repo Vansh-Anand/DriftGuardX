@@ -323,6 +323,7 @@ class RecoveryExecution(DGXBaseModel):
     applied_actions: list[RecoveryAction] = Field(default_factory=list)
     rollback_status: str | None = None
 
+
 class JobState(str, enum.Enum):
     QUEUED = "QUEUED"
     RUNNING = "RUNNING"
@@ -331,12 +332,14 @@ class JobState(str, enum.Enum):
     CANCELLED = "CANCELLED"
     TIMED_OUT = "TIMED_OUT"
 
+
 class CryptographicSignature(DGXBaseModel):
     algorithm: str = "Ed25519"
     public_key: str
     signature: str
     timestamp: datetime = Field(default_factory=_utcnow)
     signer_id: str
+
 
 class InterventionSpec(DGXBaseModel):
     spec_id: str = Field(default_factory=lambda: str(_new_uuid()))
@@ -350,6 +353,7 @@ class InterventionSpec(DGXBaseModel):
     rollback_plan: str | None = None
     dependencies: list[str] = Field(default_factory=list)
 
+
 class QuarantineAction(DGXBaseModel):
     action_id: str = Field(default_factory=lambda: str(_new_uuid()))
     target_component: str
@@ -357,6 +361,7 @@ class QuarantineAction(DGXBaseModel):
     duration_seconds: int | None = None
     fallback_routing: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
 
 class ReplayStateManifest(DGXBaseModel):
     manifest_id: str = Field(default_factory=lambda: str(_new_uuid()))
@@ -375,6 +380,7 @@ class ReplayStateManifest(DGXBaseModel):
     image_digest: str | None = None
     signature: CryptographicSignature | None = None
 
+
 class ApprovalState(str, enum.Enum):
     PROPOSED = "PROPOSED"
     REPLAY_CONFIRMED = "REPLAY_CONFIRMED"
@@ -384,6 +390,7 @@ class ApprovalState(str, enum.Enum):
     CANARY = "CANARY"
     PROMOTED = "PROMOTED"
     ROLLED_BACK = "ROLLED_BACK"
+
 
 class RBACRole(str, enum.Enum):
     VIEWER = "VIEWER"

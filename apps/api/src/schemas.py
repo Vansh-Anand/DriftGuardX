@@ -7,11 +7,15 @@ PRIVATE — All Rights Reserved.
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+import uuid
+from datetime import datetime
+
+if TYPE_CHECKING:
+    pass
 
 
 class APIBase(BaseModel):
@@ -33,7 +37,9 @@ class RunCreateRequest(APIBase):
 class RunRegisterRequest(APIBase):
     query: str = Field(min_length=1, max_length=4096, description="The external query that was run")
     pipeline_id: uuid.UUID
-    run_id: uuid.UUID | None = Field(default=None, description="Provide a pre-generated UUID, or one will be assigned")
+    run_id: uuid.UUID | None = Field(
+        default=None, description="Provide a pre-generated UUID, or one will be assigned"
+    )
     is_synthetic: bool = Field(default=False, description="Is this an external synthetic run?")
 
 

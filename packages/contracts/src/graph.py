@@ -4,6 +4,7 @@ DriftGuard-X v2 — Graph Data Contracts
 Defines the node and edge types for the Causal Reliability Graph.
 PRIVATE — All Rights Reserved.
 """
+
 import enum
 import hashlib
 import json
@@ -33,7 +34,7 @@ class NodeType(str, enum.Enum):
     PROVIDER = "provider"
     OPERATIONAL_RESOURCE = "operational_resource"
     AGENT = "agent"
-    
+
     # Roadmap Item 18 Categories
     INFORMATION = "information"
     COMPUTATION = "computation"
@@ -85,24 +86,25 @@ class CausalGraph(DGXBaseModel):
     edges: list[GraphEdge]
     builder_version: str = "v1"
     trace_digest: str  # Hash of the original trace
-    graph_hash: str = "" # hash(trace_digest, builder_version, normalized nodes/edges)
+    graph_hash: str = ""  # hash(trace_digest, builder_version, normalized nodes/edges)
     created_at: datetime = Field(default_factory=_utcnow)
 
     @model_validator(mode="after")
     def compute_graph_hash(self) -> "CausalGraph":
         """Compute the deterministic identity of this graph."""
-        nodes_normalized = sorted(
-            [n.id for n in self.nodes]
-        )
+        nodes_normalized = sorted([n.id for n in self.nodes])
         edges_normalized = sorted(
-            [f"{e.source}->{e.target}:{e.type.value if hasattr(e.type, 'value') else e.type}" for e in self.edges]
+            [
+                f"{e.source}->{e.target}:{e.type.value if hasattr(e.type, 'value') else e.type}"
+                for e in self.edges
+            ]
         )
 
         payload = {
             "trace_digest": self.trace_digest,
             "builder_version": self.builder_version,
             "nodes": nodes_normalized,
-            "edges": edges_normalized
+            "edges": edges_normalized,
         }
 
         serialized = json.dumps(payload, sort_keys=True).encode("utf-8")

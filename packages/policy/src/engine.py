@@ -14,6 +14,7 @@ Default-deny contract:
   - Resolver error → DENY (fail-closed)
   - Missing approval for HIGH/CRITICAL → NEEDS_APPROVAL (not ALLOW)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -39,19 +40,21 @@ from packages.policy.src.tiers import get_approval_requirements
 
 # ─── Engine Decision ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class EngineDecision:
     """
     Full policy decision including hierarchy resolution and approval status.
     Machine-readable fields for audit and certificate integration.
     """
+
     decision_id: str = field(default_factory=lambda: str(uuid4()))
     action: str = ""
     tenant_id: str = ""
     node_id: str = ""
     requester_id: str = ""
     requester_role: str = ""
-    verdict: str = "deny"           # "allow" | "deny" | "needs_approval"
+    verdict: str = "deny"  # "allow" | "deny" | "needs_approval"
     risk_tier: str = "high"
     rule_id: str = "DEFAULT_DENY"
     policy_version: str = "unknown"
@@ -64,6 +67,7 @@ class EngineDecision:
 
 
 # ─── Policy Engine ────────────────────────────────────────────────────────────
+
 
 class PolicyEngine:
     """
@@ -142,9 +146,7 @@ class PolicyEngine:
         # ── Step 3: Role check ────────────────────────────────────────────────
         if ep.allowed_roles and requester_role not in ep.allowed_roles:
             decision.verdict = "deny"
-            decision.rationale = (
-                f"Role '{requester_role}' not in allowed roles {ep.allowed_roles}."
-            )
+            decision.rationale = f"Role '{requester_role}' not in allowed roles {ep.allowed_roles}."
             decision.rule_id = "ROLE_DENIED"
             self._log(decision)
             return decision
@@ -157,9 +159,12 @@ class PolicyEngine:
             if existing_approval_id:
                 # Validate the existing approval
                 req = self._approvals.get_request(existing_approval_id)
-                if (req and req.status == ApprovalStatus.APPROVED
-                        and req.action == action
-                        and req.tenant_id == tenant_id):
+                if (
+                    req
+                    and req.status == ApprovalStatus.APPROVED
+                    and req.action == action
+                    and req.tenant_id == tenant_id
+                ):
                     decision.verdict = "allow"
                     decision.rationale = f"Approved via request {existing_approval_id}."
                     decision.approval_request_id = existing_approval_id

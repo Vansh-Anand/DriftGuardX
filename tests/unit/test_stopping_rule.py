@@ -3,6 +3,7 @@ Unit tests: EvidentiaryStoppingRule.
 Tests all stopping criteria: posterior confidence, margin, entropy convergence,
 information exhaustion, minimum evidence count, and resource limits.
 """
+
 import math
 import os
 

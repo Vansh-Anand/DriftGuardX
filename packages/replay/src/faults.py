@@ -31,7 +31,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Faithfulness drop", "Task success drop", "Missing evidence"],
             safe_alternatives=["Fallback to v-1 index", "Real-time search tool"],
             risk_tier="low",
-            cleanup_action="Restore index version pointer."
+            cleanup_action="Restore index version pointer.",
         ),
         FaultRecipe(
             id="fault_02",
@@ -43,7 +43,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Retrieval precision drops to zero"],
             safe_alternatives=["Rollback model", "Trigger re-embed"],
             risk_tier="high",
-            cleanup_action="Revert embedding provider."
+            cleanup_action="Revert embedding provider.",
         ),
         FaultRecipe(
             id="fault_03",
@@ -55,7 +55,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Low retrieval recall", "Hallucinations"],
             safe_alternatives=["Revert chunk size config"],
             risk_tier="medium",
-            cleanup_action="Restore chunk config."
+            cleanup_action="Restore chunk config.",
         ),
         FaultRecipe(
             id="fault_04",
@@ -67,7 +67,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Top-K metrics drop"],
             safe_alternatives=["Bypass reranker (use raw ANN scores)"],
             risk_tier="medium",
-            cleanup_action="Disable reranker step."
+            cleanup_action="Disable reranker step.",
         ),
         FaultRecipe(
             id="fault_05",
@@ -79,7 +79,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Formatting errors", "Tone violations", "Refusals"],
             safe_alternatives=["Rollback prompt version"],
             risk_tier="low",
-            cleanup_action="Revert prompt."
+            cleanup_action="Revert prompt.",
         ),
         FaultRecipe(
             id="fault_06",
@@ -91,7 +91,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Task failure", "Low reasoning scores"],
             safe_alternatives=["Force route to strong model"],
             risk_tier="medium",
-            cleanup_action="Adjust threshold."
+            cleanup_action="Adjust threshold.",
         ),
         FaultRecipe(
             id="fault_07",
@@ -103,7 +103,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Citation consistency drop"],
             safe_alternatives=["Increase temperature slightly", "Shorten context"],
             risk_tier="low",
-            cleanup_action="None (generator tweak)."
+            cleanup_action="None (generator tweak).",
         ),
         FaultRecipe(
             id="fault_08",
@@ -115,7 +115,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Agent loops on validation errors", "Task failure"],
             safe_alternatives=["Rollback API", "Update agent schema"],
             risk_tier="high",
-            cleanup_action="Deploy synchronized versions."
+            cleanup_action="Deploy synchronized versions.",
         ),
         FaultRecipe(
             id="fault_09",
@@ -127,7 +127,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Tool validation failure"],
             safe_alternatives=["Add parameter hints to prompt"],
             risk_tier="low",
-            cleanup_action="None."
+            cleanup_action="None.",
         ),
         FaultRecipe(
             id="fault_10",
@@ -139,7 +139,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Pipeline abort", "Latency spike"],
             safe_alternatives=["Retry", "Fallback cache"],
             risk_tier="medium",
-            cleanup_action="None (transient)."
+            cleanup_action="None (transient).",
         ),
         FaultRecipe(
             id="fault_11",
@@ -151,7 +151,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Budget exhaustion", "Timeout"],
             safe_alternatives=["Hard max_steps limit"],
             risk_tier="high",
-            cleanup_action="Enforce budget limit."
+            cleanup_action="Enforce budget limit.",
         ),
         FaultRecipe(
             id="fault_12",
@@ -163,7 +163,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Security violation", "Policy block"],
             safe_alternatives=["Clear memory context"],
             risk_tier="high",
-            cleanup_action="Wipe session memory."
+            cleanup_action="Wipe session memory.",
         ),
         FaultRecipe(
             id="fault_13",
@@ -175,7 +175,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Hallucination", "Task failure"],
             safe_alternatives=["Prioritize retrieval over memory"],
             risk_tier="medium",
-            cleanup_action="Fix state merging logic."
+            cleanup_action="Fix state merging logic.",
         ),
         FaultRecipe(
             id="fault_14",
@@ -187,7 +187,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["PII leak in trace"],
             safe_alternatives=["Rollback policy"],
             risk_tier="high",
-            cleanup_action="Revert guardrail rules."
+            cleanup_action="Revert guardrail rules.",
         ),
         FaultRecipe(
             id="fault_15",
@@ -199,7 +199,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["False positive rejection"],
             safe_alternatives=["Adjust threshold"],
             risk_tier="low",
-            cleanup_action="Tune classifier."
+            cleanup_action="Tune classifier.",
         ),
         FaultRecipe(
             id="fault_16",
@@ -211,7 +211,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Timeout cascading"],
             safe_alternatives=["Switch to backup provider"],
             risk_tier="medium",
-            cleanup_action="Wait for provider resolution."
+            cleanup_action="Wait for provider resolution.",
         ),
         FaultRecipe(
             id="fault_17",
@@ -223,7 +223,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Pipeline abort"],
             safe_alternatives=["Switch to backup provider"],
             risk_tier="high",
-            cleanup_action="Wait for provider resolution."
+            cleanup_action="Wait for provider resolution.",
         ),
         FaultRecipe(
             id="fault_18",
@@ -235,7 +235,7 @@ def get_all_fault_recipes() -> list[FaultRecipe]:
             expected_symptoms=["Pipeline abort (429)"],
             safe_alternatives=["Increase budget tier"],
             risk_tier="low",
-            cleanup_action="None."
+            cleanup_action="None.",
         ),
     ]
 
@@ -244,13 +244,14 @@ class FaultInjector:
     """
     Applies fault conditions to deterministic providers for testing replays.
     """
+
     def __init__(self):
         self.active_faults: dict[str, FaultRecipe] = {}
 
-    def inject(self, recipe_id: str):
+    def inject(self, recipe_id: str) -> None:
         recipes = {r.id: r for r in get_all_fault_recipes()}
         if recipe_id in recipes:
             self.active_faults[recipe_id] = recipes[recipe_id]
 
-    def clear(self):
+    def clear(self) -> None:
         self.active_faults.clear()

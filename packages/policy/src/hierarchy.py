@@ -13,6 +13,7 @@ in `override_metadata`.
 Every effective policy rule can be traced to its source level and override
 chain via `source_level` and `override_chain` fields.
 """
+
 from __future__ import annotations
 
 import enum
@@ -24,6 +25,7 @@ from typing import Any
 from uuid import uuid4
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
+
 
 class PolicyLevel(str, enum.Enum):
     ORGANIZATION = "organization"
@@ -47,6 +49,7 @@ class RiskTier(str, enum.Enum):
 
 # ─── Policy Rule ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class PolicyRule:
     """
@@ -69,6 +72,7 @@ class PolicyRule:
     override_metadata: Reviewer sign-off for override.
     version:           Immutable version hash (auto-computed).
     """
+
     action_pattern: str
     verdict: RuleVerdict
     risk_tier: RiskTier
@@ -87,16 +91,19 @@ class PolicyRule:
 
     def __post_init__(self):
         # Compute immutable content hash (excludes created_at and rule_id for determinism)
-        payload = json.dumps({
-            "action_pattern": self.action_pattern,
-            "verdict": self.verdict,
-            "risk_tier": self.risk_tier,
-            "required_approvers": self.required_approvers,
-            "two_person_control": self.two_person_control,
-            "allowed_roles": sorted(self.allowed_roles),
-            "max_budget_usd": self.max_budget_usd,
-            "data_retention_days": self.data_retention_days,
-        }, sort_keys=True)
+        payload = json.dumps(
+            {
+                "action_pattern": self.action_pattern,
+                "verdict": self.verdict,
+                "risk_tier": self.risk_tier,
+                "required_approvers": self.required_approvers,
+                "two_person_control": self.two_person_control,
+                "allowed_roles": sorted(self.allowed_roles),
+                "max_budget_usd": self.max_budget_usd,
+                "data_retention_days": self.data_retention_days,
+            },
+            sort_keys=True,
+        )
         self._version = hashlib.sha256(payload.encode()).hexdigest()[:16]
 
     @property
@@ -105,6 +112,7 @@ class PolicyRule:
 
 
 # ─── Policy Node ─────────────────────────────────────────────────────────────
+
 
 @dataclass
 class PolicyNode:
@@ -121,6 +129,7 @@ class PolicyNode:
     is_active:  Inactive nodes are skipped in resolution.
     schema_version: Policy schema version for forward-compatibility.
     """
+
     node_id: str
     level: PolicyLevel
     tenant_id: str
@@ -149,6 +158,7 @@ def _action_matches(pattern: str, action: str) -> bool:
 
 # ─── Effective Policy ─────────────────────────────────────────────────────────
 
+
 @dataclass
 class EffectivePolicy:
     """
@@ -156,6 +166,7 @@ class EffectivePolicy:
 
     Provides full audit trail: which level won, and the full override chain.
     """
+
     action: str
     tenant_id: str
     node_id: str
@@ -166,7 +177,7 @@ class EffectivePolicy:
     allowed_roles: list[str]
     max_budget_usd: float | None
     winning_rule: PolicyRule
-    override_chain: list[PolicyRule]   # ordered: org → BU → pipeline → agent
+    override_chain: list[PolicyRule]  # ordered: org → BU → pipeline → agent
     conflict_detected: bool = False
     conflict_description: str | None = None
     evaluated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -182,8 +193,10 @@ class EffectivePolicy:
         if self.override_chain:
             lines.append("Override chain:")
             for i, r in enumerate(self.override_chain):
-                lines.append(f"  [{i+1}] {r.source_level.value}: {r.verdict.value} "
-                              f"(rule={r.rule_id}, v={r.version})")
+                lines.append(
+                    f"  [{i+1}] {r.source_level.value}: {r.verdict.value} "
+                    f"(rule={r.rule_id}, v={r.version})"
+                )
         if self.conflict_detected:
             lines.append(f"⚠ Conflict: {self.conflict_description}")
         return "\n".join(lines)

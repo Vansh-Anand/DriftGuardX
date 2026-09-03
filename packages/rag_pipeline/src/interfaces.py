@@ -8,13 +8,16 @@ class RetrievedChunk(Protocol):
     document_id: str
     metadata: dict[str, Any]
 
+
 class RetrieverAdapter(Protocol):
-    async def retrieve(self, query: str, corpus_version_id: str, top_k: int) -> list[RetrievedChunk]:
-        ...
+    async def retrieve(
+        self, query: str, corpus_version_id: str, top_k: int
+    ) -> list[RetrievedChunk]: ...
+
 
 class EmbeddingAdapter(Protocol):
-    async def embed(self, text: str) -> list[float]:
-        ...
+    async def embed(self, text: str) -> list[float]: ...
+
 
 class LLMAdapter(Protocol):
     async def generate(self, prompt: str, context: list[RetrievedChunk]) -> dict[str, Any]:
@@ -31,10 +34,10 @@ class LLMAdapter(Protocol):
         """
         ...
 
+
 class ArtifactStore(Protocol):
-    async def save_trace(self, run_id: str, trace_data: dict[str, Any]) -> None:
-        ...
+    async def save_trace(self, run_id: str, trace_data: dict[str, Any]) -> None: ...
+
 
 class EvaluationProvider(Protocol):
-    async def evaluate_reliability(self, answer: str, context: list[RetrievedChunk]) -> float:
-        ...
+    async def evaluate_reliability(self, answer: str, context: list[RetrievedChunk]) -> float: ...

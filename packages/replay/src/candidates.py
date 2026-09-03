@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Candidate Generation
 PRIVATE — All Rights Reserved.
 """
+
 from uuid import UUID
 
 from packages.contracts.src.models import ComponentType, Diagnosis, Intervention, InterventionType
@@ -35,11 +36,11 @@ class CandidateGenerator:
                 intervention_type=InterventionType(schema.intervention_type),
                 target_component_type=ComponentType(target_component),
                 from_version_id=UUID(int=0),  # Placeholder: actual version fetched in planner
-                to_version_id=UUID(int=1),    # Placeholder: safe alternative version
+                to_version_id=UUID(int=1),  # Placeholder: safe alternative version
                 from_version_tag="current",
                 to_version_tag="proposed_safe_alt",
                 rationale=f"Generated from schema: {schema.description}",
-                requires_human_approval=len(schema.required_approvals) > 0
+                requires_human_approval=len(schema.required_approvals) > 0,
             )
             candidates.append(intervention)
 

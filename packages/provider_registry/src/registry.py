@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 Registry for resolving LLM models to provider credentials, handling failovers,
 and tracking capacity/costs. Keep secrets out of code and database logs.
 """
+
 import os
 from typing import Any
 
@@ -14,12 +15,14 @@ class ProviderStatus:
     DEGRADED = "degraded"
     OFFLINE = "offline"
 
+
 class ModelConfig:
     def __init__(self, provider: str, model_id: str, cost_per_1k_tokens: float):
         self.provider = provider
         self.model_id = model_id
         self.cost_per_1k_tokens = cost_per_1k_tokens
         self.status = ProviderStatus.HEALTHY
+
 
 # ─── Static Mock Registry ─────────────────────────────────────────────────────
 

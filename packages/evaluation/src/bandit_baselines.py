@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Bandit Baselines
 PRIVATE — All Rights Reserved.
 """
+
 import random
 
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ class CandidateArm(BaseModel):
     arm_id: str
     cost: float
     prior: float
+
 
 class BaseScheduler:
     def __init__(self, total_budget: float):
@@ -25,12 +27,14 @@ class BaseScheduler:
         self.remaining_budget -= cost
         self.pulls[arm_id] = self.pulls.get(arm_id, 0) + 1
 
+
 class RandomBudgetScheduler(BaseScheduler):
     def select_arm(self, arms: list[CandidateArm]) -> str | None:
         eligible = [a for a in arms if a.cost <= self.remaining_budget]
         if not eligible:
             return None
         return random.choice(eligible).arm_id
+
 
 class CheapestFirstScheduler(BaseScheduler):
     def select_arm(self, arms: list[CandidateArm]) -> str | None:
@@ -40,6 +44,7 @@ class CheapestFirstScheduler(BaseScheduler):
         eligible.sort(key=lambda x: x.cost)
         return eligible[0].arm_id
 
+
 class GreedyPriorScheduler(BaseScheduler):
     def select_arm(self, arms: list[CandidateArm]) -> str | None:
         eligible = [a for a in arms if a.cost <= self.remaining_budget]
@@ -48,8 +53,10 @@ class GreedyPriorScheduler(BaseScheduler):
         eligible.sort(key=lambda x: x.prior, reverse=True)
         return eligible[0].arm_id
 
+
 class StandardUCBScheduler(BaseScheduler):
     """Unconstrained UCB (no knapsack division by cost)."""
+
     def __init__(self, total_budget: float, exploration_constant: float = 1.0):
         super().__init__(total_budget)
         self.c = exploration_constant
@@ -73,7 +80,9 @@ class StandardUCBScheduler(BaseScheduler):
                 ucb_score = arm.prior + self.c
             else:
                 expected_reward = self.rewards.get(arm.arm_id, 0.0) / pulls
-                ucb_score = expected_reward + self.c * __import__("math").sqrt(__import__("math").log(self.total_pulls) / pulls)
+                ucb_score = expected_reward + self.c * __import__("math").sqrt(
+                    __import__("math").log(self.total_pulls) / pulls
+                )
 
             if ucb_score > best_value:
                 best_value = ucb_score
@@ -86,8 +95,10 @@ class StandardUCBScheduler(BaseScheduler):
         self.rewards[arm_id] = self.rewards.get(arm_id, 0.0) + reward
         self.total_pulls += 1
 
+
 class ExhaustiveReplayScheduler(BaseScheduler):
     """Runs everything sequentially until failure (exhausts budget without smart selection)."""
+
     def __init__(self, total_budget: float):
         super().__init__(total_budget)
 

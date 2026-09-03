@@ -8,14 +8,17 @@ Compares original vs replay execution state:
 - Detects frozen-state violations immediately
 - Can terminate invalid replay early when forbidden divergence nodes are reached
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.interfaces import DivergenceReport
-from packages.contracts.src.recovery_models import ReplayEquivalenceEnvelope
+
+if TYPE_CHECKING:
+    from packages.contracts.src.recovery_models import ReplayEquivalenceEnvelope
 
 
 def _stable_hash(value: Any) -> str:
@@ -95,11 +98,18 @@ def _check_tolerance(
     if tolerance_type == "numeric_delta":
         threshold = float(constraint.get("threshold", 0.0))
         try:
-            orig_num = float(original_val) if not isinstance(original_val, (int, float)) else original_val
-            replay_num = float(replay_val) if not isinstance(replay_val, (int, float)) else replay_val
+            orig_num = (
+                float(original_val) if not isinstance(original_val, int | float) else original_val
+            )
+            replay_num = (
+                float(replay_val) if not isinstance(replay_val, int | float) else replay_val
+            )
             delta = abs(orig_num - replay_num)
             if delta > threshold:
-                return False, f"Node {node_id}: numeric delta {delta:.6f} exceeds threshold {threshold}"
+                return (
+                    False,
+                    f"Node {node_id}: numeric delta {delta:.6f} exceeds threshold {threshold}",
+                )
             return True, ""
         except (TypeError, ValueError):
             # Can't convert — fall back to hash equality
@@ -261,12 +271,16 @@ class DynamicCausalDivergenceValidator:
             bad = [k for k, v in per_node.items() if v.get("status") == "unexpected_divergence"]
             reasons.append(f"Unexpected divergence in non-descendant nodes: {bad}")
         if has_descendant_violations:
-            bad = [k for k, v in per_node.items() if v.get("status") == "allowed_descendant_violation"]
+            bad = [
+                k for k, v in per_node.items() if v.get("status") == "allowed_descendant_violation"
+            ]
             reasons.append(f"Descendant nodes exceeded tolerance: {bad}")
 
         return DivergenceReport(
             valid=valid,
-            reason="; ".join(reasons) if reasons else "All causal divergence constraints satisfied.",
+            reason=(
+                "; ".join(reasons) if reasons else "All causal divergence constraints satisfied."
+            ),
             per_node=per_node,
             early_terminated=early_terminated,
             violated_frozen_nodes=violated_frozen,

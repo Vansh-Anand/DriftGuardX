@@ -2,9 +2,12 @@
 DriftGuard-X v2 — Graph Attention Network (GAT) Inference Engine
 Trained on TrainTicket Distributed Microservice Trace Dataset.
 """
+
 from __future__ import annotations
+
 import os
 from typing import Any
+
 import numpy as np
 
 try:
@@ -12,19 +15,21 @@ try:
     import torch.nn.functional as F
     from torch.nn import Dropout, LayerNorm, Linear, ReLU, Sequential
     from torch_geometric.nn import GATConv, global_max_pool, global_mean_pool
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
-    
+
     # Mock classes for type checking if torch is missing
     class MockModule:
-        def __init__(self, *args, **kwargs): pass
-    torch = type('torch', (), {
-        'nn': type('nn', (), {'Module': MockModule}),
-        'Tensor': Any,
-        'long': Any,
-        'float': Any
-    }) # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+
+    torch = type(
+        "torch",
+        (),
+        {"nn": type("nn", (), {"Module": MockModule}), "Tensor": Any, "long": Any, "float": Any},
+    )  # type: ignore
 
 
 class DriftGuardX_GAT(torch.nn.Module):
@@ -32,8 +37,9 @@ class DriftGuardX_GAT(torch.nn.Module):
     3-Layer Graph Attention Network architecture for distributed microservice fault detection.
     Matches the trained weights in 'driftguardx_gat_model.pth'.
     """
+
     def __init__(self, in_channels: int = 6, hidden_dim: int = 64, num_classes: int = 2):
-        super(DriftGuardX_GAT, self).__init__()
+        super().__init__()
 
         # Layer 1: in_channels -> hidden_dim * 4 heads
         self.conv1 = GATConv(in_channels, hidden_dim, heads=4, dropout=0.2)
@@ -49,13 +55,12 @@ class DriftGuardX_GAT(torch.nn.Module):
 
         # Classifier Head (Mean + Max pooling concat -> hidden_dim * 2)
         self.classifier = Sequential(
-            Linear(hidden_dim * 2, 64),
-            ReLU(),
-            Dropout(0.3),
-            Linear(64, num_classes)
+            Linear(hidden_dim * 2, 64), ReLU(), Dropout(0.3), Linear(64, num_classes)
         )
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor | None = None
+    ) -> torch.Tensor:
         if batch is None:
             batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
 
@@ -79,14 +84,15 @@ class GATTraceDetector:
     """
     Production detector wrapper for executing GAT inference on live or ingested Jaeger/OTel traces.
     """
+
     def __init__(self, model_path: str = "driftguardx_gat_model.pth", device: str | None = None):
         self.is_loaded = False
-        
+
         if not TORCH_AVAILABLE:
             print("Warning: PyTorch not available. Detector running in mock heuristic mode.")
             self.device = "mock_cpu"
             return
-            
+
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         self.model = DriftGuardX_GAT(in_channels=6, hidden_dim=64, num_classes=2)
 
@@ -97,12 +103,14 @@ class GATTraceDetector:
             self.model.eval()
             self.is_loaded = True
         else:
-            print(f"Warning: Model weight file '{model_path}' not found. Detector running in mock mode.")
+            print(
+                f"Warning: Model weight file '{model_path}' not found. Detector running in mock mode."
+            )
 
     def detect_trace_anomaly(self, spans: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Run inference on a single distributed trace (list of span dicts).
-        
+
         Args:
             spans: List of spans with keys:
                    - 'span_id' (str)
@@ -110,7 +118,7 @@ class GATTraceDetector:
                    - 'duration_ms' (float)
                    - 'operation_name' (str)
                    - 'is_error' (bool)
-                   
+
         Returns:
             Dict containing:
                 - 'is_fault': bool
@@ -125,7 +133,7 @@ class GATTraceDetector:
                 "fault_probability": 0.0,
                 "predicted_class": 0,
                 "num_spans": len(spans),
-                "root_cause_candidates": []
+                "root_cause_candidates": [],
             }
 
         span_id_map = {s.get("span_id", str(i)): i for i, s in enumerate(spans)}
@@ -162,7 +170,9 @@ class GATTraceDetector:
             node_features.append([np.log1p(dur), rel_dur, self_time, is_err, fanout, op_code])
 
         x = torch.tensor(node_features, dtype=torch.float, device=self.device)
-        edge_index = torch.tensor([edge_sources, edge_targets], dtype=torch.long, device=self.device)
+        edge_index = torch.tensor(
+            [edge_sources, edge_targets], dtype=torch.long, device=self.device
+        )
 
         with torch.no_grad():
             logits = self.model(x, edge_index)
@@ -178,12 +188,12 @@ class GATTraceDetector:
                     "operation_name": s.get("operation_name", "unknown"),
                     "duration_ms": s.get("duration_ms", 0.0),
                     "is_error": s.get("is_error", False),
-                    "self_time_ratio": node_features[i][2]
+                    "self_time_ratio": node_features[i][2],
                 }
                 for i, s in enumerate(spans)
             ],
             key=lambda item: (item["is_error"], item["self_time_ratio"], item["duration_ms"]),
-            reverse=True
+            reverse=True,
         )
 
         return {
@@ -191,5 +201,5 @@ class GATTraceDetector:
             "fault_probability": round(fault_prob, 4),
             "predicted_class": pred_class,
             "num_spans": len(spans),
-            "root_cause_candidates": suspicious_spans[:3]
+            "root_cause_candidates": suspicious_spans[:3],
         }

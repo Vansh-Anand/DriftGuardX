@@ -13,13 +13,14 @@ from apps.api.src.models_ingestion import CorpusVersionORM
 from packages.ingestion.src.orchestrator import IngestionOrchestrator
 from packages.ingestion.src.storage import MinioStorage
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 REGISTRY_FILE = ROOT_DIR / "data" / "dataset_registry.json"
 
-async def run_ingestion(dataset: str, split: str):
+
+async def run_ingestion(dataset: str, split: str) -> None:
     logger.info(f"Starting ingestion for dataset {dataset} (split: {split})")
 
     if not REGISTRY_FILE.exists():
@@ -38,8 +39,7 @@ async def run_ingestion(dataset: str, split: str):
     async with AsyncSessionLocal() as session:
         # Check if already ingested
         stmt = select(CorpusVersionORM).where(
-            CorpusVersionORM.source_name == dataset,
-            CorpusVersionORM.version_tag == version_tag
+            CorpusVersionORM.source_name == dataset, CorpusVersionORM.version_tag == version_tag
         )
         result = await session.execute(stmt)
         if result.scalar_one_or_none():
@@ -54,7 +54,7 @@ async def run_ingestion(dataset: str, split: str):
 
     documents = []
     try:
-        with open(corpus_path, encoding='utf-8') as f:
+        with open(corpus_path, encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     doc = json.loads(line)
@@ -84,7 +84,7 @@ async def run_ingestion(dataset: str, split: str):
                 source_name=dataset,
                 version_tag=version_tag,
                 documents=documents,
-                license_info="Various BEIR Licenses"
+                license_info="Various BEIR Licenses",
             )
             logger.info(f"Successfully ingested corpus. Manifest Hash: {manifest_hash}")
         except Exception as e:
@@ -92,13 +92,17 @@ async def run_ingestion(dataset: str, split: str):
             await session.rollback()
             sys.exit(1)
 
-def main():
-    parser = argparse.ArgumentParser(description="Ingest a document corpus for DriftGuard-X benchmarks.")
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Ingest a document corpus for DriftGuard-X benchmarks."
+    )
     parser.add_argument("--dataset", required=True, help="Dataset canonical name (e.g. scifact)")
     parser.add_argument("--split", required=True, help="Split name (e.g. test)")
     args = parser.parse_args()
 
     asyncio.run(run_ingestion(args.dataset, args.split))
+
 
 if __name__ == "__main__":
     main()

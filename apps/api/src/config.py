@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from packages.utils.src.version import APP_VERSION
 
 

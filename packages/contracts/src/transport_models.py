@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Causal Recovery Transport Models
 PRIVATE — All Rights Reserved.
 """
+
 import base64
 import enum
 import hashlib
@@ -23,6 +24,7 @@ class TransportStatus(str, enum.Enum):
 
 class StructuredCalibrationEvidence(DGXBaseModel):
     """Structured evidence of calibration, replacing scalar metrics."""
+
     metric: str
     sample_size: int
     confidence_level: float
@@ -35,6 +37,7 @@ class StructuredCalibrationEvidence(DGXBaseModel):
 
 class CausalEnvironmentDescriptor(DGXBaseModel):
     """Full snapshot of an environment for transportability checks."""
+
     environment_id: str = Field(default_factory=lambda: str(_new_uuid()))
     tenant_id: str
     model: str
@@ -55,24 +58,27 @@ class CausalEnvironmentDescriptor(DGXBaseModel):
     def recompute_signature(self, secret_key: str) -> str:
         """Compute HMAC over critical descriptor fields."""
         import json
+
         dump = self.model_dump(exclude={"signature"}, mode="json")
-        payload = json.dumps(dump, sort_keys=True, separators=(',', ':')).encode('utf-8')
-        mac = hmac.new(secret_key.encode('utf-8'), payload, hashlib.sha256).digest()
-        return base64.b64encode(mac).decode('utf-8')
+        payload = json.dumps(dump, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        mac = hmac.new(secret_key.encode("utf-8"), payload, hashlib.sha256).digest()
+        return base64.b64encode(mac).decode("utf-8")
 
 
 class EnvironmentDifference(DGXBaseModel):
     """Represents a specific structural/causal difference between environments."""
+
     variable: str
     source_value_hash: str
     target_value_hash: str
     affected_components: list[str]
     causal_relevance: float  # 0.0 to 1.0
-    transport_risk: float    # 0.0 to 1.0
+    transport_risk: float  # 0.0 to 1.0
 
 
 class RecoveryMechanismFootprint(DGXBaseModel):
     """Captures the assumptions that a validated recovery depends upon."""
+
     recovery_id: str
     required_invariant_components: list[str]
     required_invariant_edges: list[str]
@@ -82,13 +88,15 @@ class RecoveryMechanismFootprint(DGXBaseModel):
 
     def compute_hash(self) -> str:
         import json
+
         dump = self.model_dump(mode="json")
-        payload = json.dumps(dump, sort_keys=True, separators=(',', ':')).encode('utf-8')
+        payload = json.dumps(dump, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hashlib.sha256(payload).hexdigest()
 
 
 class TransportabilityDecision(DGXBaseModel):
     """Result of the transportability gate evaluation."""
+
     recovery_id: str
     source_environment: str
     target_environment: str
@@ -111,7 +119,7 @@ class TransportabilityDecision(DGXBaseModel):
 
     def compute_hash(self) -> str:
         import json
-        dump = self.model_dump(exclude={"decision_hash"}, mode="json")
-        payload = json.dumps(dump, sort_keys=True, separators=(',', ':')).encode('utf-8')
-        return hashlib.sha256(payload).hexdigest()
 
+        dump = self.model_dump(exclude={"decision_hash"}, mode="json")
+        payload = json.dumps(dump, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(payload).hexdigest()

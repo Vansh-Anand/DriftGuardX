@@ -7,18 +7,22 @@ def root_agent():
     time.sleep(0.1)
     return "root_success"
 
+
 def failing_agent():
     # Fails immediately
     raise ValueError("Agent crashed due to drift!")
+
 
 def dependent_agent():
     # Should not be executed
     return "dependent_success"
 
+
 def independent_agent():
     # Takes some time to ensure it runs concurrently
     time.sleep(0.2)
     return "independent_success"
+
 
 def test_aor_scheduler_reallocation_and_diagnostic():
     scheduler = AORScheduler(max_workers=4)
@@ -53,7 +57,9 @@ def test_aor_scheduler_reallocation_and_diagnostic():
     # Ensure diagnostic result is recorded from the VTI sandbox
     # SandboxedWorker will catch the error and return it in the dict
     assert t_failing.diagnostic_result is not None
-    assert "error" in t_failing.diagnostic_result or "error" in t_failing.diagnostic_result.get("error", "")
+    assert "error" in t_failing.diagnostic_result or "error" in t_failing.diagnostic_result.get(
+        "error", ""
+    )
 
     # Verify Dependent Agent -> Blocked
     assert t_dependent.status == TaskStatus.BLOCKED

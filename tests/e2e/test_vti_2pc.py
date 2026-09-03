@@ -12,6 +12,7 @@ def dummy_agent_action():
         f.write("DRAFT_EMAIL: Hello World")
     return "Action Completed"
 
+
 def test_vti_2pc_commit_flow():
     trace_id = "trace_safe_123"
 
@@ -39,9 +40,9 @@ def test_vti_2pc_commit_flow():
                 root_probability=0.1,  # Safe (< 0.5)
                 symptom_probability=0.1,
                 uncertainty=0.01,
-                explanation=NodeExplanation()
+                explanation=NodeExplanation(),
             )
-        }
+        },
     )
 
     oracle = GATClearanceOracle(drift_threshold=0.5)
@@ -50,7 +51,10 @@ def test_vti_2pc_commit_flow():
     assert committed is True
     # The escrow should be cleared from pending and moved to committed
     assert len(vti_coordinator.get_staged_actions(trace_id)) == 0
-    assert any(a.trace_id == trace_id and a.status == "COMMITTED" for a in vti_coordinator.committed_actions)
+    assert any(
+        a.trace_id == trace_id and a.status == "COMMITTED"
+        for a in vti_coordinator.committed_actions
+    )
 
 
 def test_vti_2pc_rollback_flow():
@@ -72,9 +76,9 @@ def test_vti_2pc_rollback_flow():
                 root_probability=0.85,  # Unsafe (>= 0.5)
                 symptom_probability=0.9,
                 uncertainty=0.01,
-                explanation=NodeExplanation()
+                explanation=NodeExplanation(),
             )
-        }
+        },
     )
 
     oracle = GATClearanceOracle(drift_threshold=0.5)
@@ -86,4 +90,7 @@ def test_vti_2pc_rollback_flow():
     # The escrow should be cleared from pending
     assert len(vti_coordinator.get_staged_actions(trace_id)) == 0
     # The action should NOT be in the committed list
-    assert not any(a.trace_id == trace_id and a.status == "COMMITTED" for a in vti_coordinator.committed_actions)
+    assert not any(
+        a.trace_id == trace_id and a.status == "COMMITTED"
+        for a in vti_coordinator.committed_actions
+    )

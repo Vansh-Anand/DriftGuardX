@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
+
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.recovery_models import FailureTarget
 from packages.contracts.src.transport_models import TransportStatus
+from packages.memory.src.auth import AccessContext
 from packages.recovery.src.mocks import (
     MockBeliefModel,
     MockDivergenceValidator,
@@ -20,7 +22,6 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
-from packages.memory.src.auth import AccessContext
 
 
 def _access_context() -> AccessContext:
@@ -47,7 +48,7 @@ def build_orchestrator(**overrides):
         recovery_validator=MockRecoveryValidator(),
         policy_engine=MockPolicyEngine(),
         ledger=MockLedger(),
-        transport_gate=MockTransportabilityGate()
+        transport_gate=MockTransportabilityGate(),
     )
     defaults.update(overrides)
     return CausalRecoveryOrchestrator(**defaults)
@@ -65,7 +66,10 @@ def test_adversarial_replay_attack():
 
 def test_adversarial_planner_attack_nan():
     """Test NaN telemetry or planner returning no valid experiments."""
-    orch = build_orchestrator(experiment_planner=MockExperimentPlanner(experiments=[]), stopping_policy=MockStoppingPolicy(sufficient=False))
+    orch = build_orchestrator(
+        experiment_planner=MockExperimentPlanner(experiments=[]),
+        stopping_policy=MockStoppingPolicy(sufficient=False),
+    )
     state = IncidentState()
     targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high")]
     cert = orch.process_incident(state, targets, access_context=_access_context())
@@ -90,6 +94,7 @@ def test_adversarial_transport_attack_forged():
         RecoveryMechanismFootprint,
         TransportabilityDecision,
     )
+
     decision = TransportabilityDecision(
         recovery_id="rec_1",
         source_environment="env_a",
@@ -105,9 +110,42 @@ def test_adversarial_transport_attack_forged():
     )
     orch = build_orchestrator(transport_gate=MockTransportabilityGate(decision))
 
-    src = CausalEnvironmentDescriptor(tenant_id="A", model="a", prompt="a", retriever="a", memory="a", tools=[], policy="a", index="a", data_distribution_fingerprint="a", execution_configuration={}, causal_graph_hash="a", provenance_hash="a")
-    tgt = CausalEnvironmentDescriptor(tenant_id="B", model="b", prompt="b", retriever="b", memory="b", tools=[], policy="b", index="b", data_distribution_fingerprint="b", execution_configuration={}, causal_graph_hash="b", provenance_hash="b")
-    ft = RecoveryMechanismFootprint(recovery_id="rec_1", required_invariant_components=[], required_invariant_edges=[], required_policy_conditions={}, required_data_conditions={}, required_calibration_conditions={})
+    src = CausalEnvironmentDescriptor(
+        tenant_id="A",
+        model="a",
+        prompt="a",
+        retriever="a",
+        memory="a",
+        tools=[],
+        policy="a",
+        index="a",
+        data_distribution_fingerprint="a",
+        execution_configuration={},
+        causal_graph_hash="a",
+        provenance_hash="a",
+    )
+    tgt = CausalEnvironmentDescriptor(
+        tenant_id="B",
+        model="b",
+        prompt="b",
+        retriever="b",
+        memory="b",
+        tools=[],
+        policy="b",
+        index="b",
+        data_distribution_fingerprint="b",
+        execution_configuration={},
+        causal_graph_hash="b",
+        provenance_hash="b",
+    )
+    ft = RecoveryMechanismFootprint(
+        recovery_id="rec_1",
+        required_invariant_components=[],
+        required_invariant_edges=[],
+        required_policy_conditions={},
+        required_data_conditions={},
+        required_calibration_conditions={},
+    )
 
     res = orch.validate_transportability(src, tgt, ft)
     assert res.status == TransportStatus.NOT_TRANSPORTABLE

@@ -5,11 +5,13 @@ from typing import Any
 
 try:
     import mlflow
+
     HAS_MLFLOW = True
 except ImportError:
     HAS_MLFLOW = False
 
 logger = logging.getLogger(__name__)
+
 
 class Tracker:
     def __init__(self, experiment_name: str = "DriftGuard-X-Benchmarks"):
@@ -22,13 +24,10 @@ class Tracker:
             mlflow.set_tracking_uri("sqlite:///mlruns.db")
             mlflow.set_experiment(self.experiment_name)
 
-    def log_episode(self, episode_data: dict[str, Any], metrics: dict[str, float], run_id: str):
+    def log_episode(self, episode_data: dict[str, Any], metrics: dict[str, float], run_id: str) -> None:
         # 1. Local JSON File Logging (MinIO equivalent for local runs)
         run_file = os.path.join(self.results_dir, f"run_{run_id}.json")
-        payload = {
-            "episode": episode_data,
-            "metrics": metrics
-        }
+        payload = {"episode": episode_data, "metrics": metrics}
         with open(run_file, "w") as f:
             json.dump(payload, f, indent=2, default=str)
 
@@ -37,10 +36,13 @@ class Tracker:
             try:
                 with mlflow.start_run(run_name=f"episode_{run_id}"):
                     # Log parameters
-                    mlflow.log_params({
-                        k: v for k, v in episode_data.items()
-                        if isinstance(v, (str, int, float, bool))
-                    })
+                    mlflow.log_params(
+                        {
+                            k: v
+                            for k, v in episode_data.items()
+                            if isinstance(v, str | int | float | bool)
+                        }
+                    )
                     # Log metrics
                     mlflow.log_metrics(metrics)
                     # Log artifact

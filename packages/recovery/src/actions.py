@@ -12,6 +12,7 @@ The allowlist principle:
   - Development/sandbox mode has its own executor that operates on local
     fixtures only; production adapters require explicit env-var opt-in.
 """
+
 from __future__ import annotations
 
 import enum
@@ -24,48 +25,52 @@ from uuid import uuid4
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
+
 class RecoveryActionType(str, enum.Enum):
     # ── Retriever recovery ─────────────────────────────────────────────────────
-    INCREASE_TOP_K         = "increase_top_k"          # LOW-RISK: widen retrieval window
+    INCREASE_TOP_K = "increase_top_k"  # LOW-RISK: widen retrieval window
     RETRY_HYBRID_RETRIEVAL = "retry_hybrid_retrieval"  # LOW-RISK: switch retrieval strategy
-    SWITCH_STABLE_INDEX    = "switch_stable_index"     # MEDIUM: point to a known-good index
+    SWITCH_STABLE_INDEX = "switch_stable_index"  # MEDIUM: point to a known-good index
 
     # ── Ranking / model ────────────────────────────────────────────────────────
-    RERANK                 = "rerank"                  # LOW-RISK: add/replace reranker
-    ROUTE_STABLE_MODEL     = "route_stable_model"      # MEDIUM: redirect to stable model alias
+    RERANK = "rerank"  # LOW-RISK: add/replace reranker
+    ROUTE_STABLE_MODEL = "route_stable_model"  # MEDIUM: redirect to stable model alias
 
     # ── Memory / tool safety ───────────────────────────────────────────────────
-    DISABLE_TEST_TOOL      = "disable_test_tool"       # MEDIUM: disable flagged tool
-    QUARANTINE_MEMORY_NS   = "quarantine_memory_ns"    # MEDIUM: read-only fence on namespace
-    QUARANTINE_PROVENANCE_PARTITION = "quarantine_provenance_partition" # MEDIUM: adversarial provenance quarantine (Update 3)
+    DISABLE_TEST_TOOL = "disable_test_tool"  # MEDIUM: disable flagged tool
+    QUARANTINE_MEMORY_NS = "quarantine_memory_ns"  # MEDIUM: read-only fence on namespace
+    QUARANTINE_PROVENANCE_PARTITION = (
+        "quarantine_provenance_partition"  # MEDIUM: adversarial provenance quarantine (Update 3)
+    )
 
     # ── Prompt / config ────────────────────────────────────────────────────────
-    REVERT_PROMPT_VERSION  = "revert_prompt_version"   # MEDIUM: restore previous prompt tag
-    ROLLBACK_COMPONENT     = "rollback_component"      # HIGH: rollback a component version
+    REVERT_PROMPT_VERSION = "revert_prompt_version"  # MEDIUM: restore previous prompt tag
+    ROLLBACK_COMPONENT = "rollback_component"  # HIGH: rollback a component version
 
 
 class ExecutionMode(str, enum.Enum):
-    DRY_RUN    = "dry_run"     # no side effects; simulate and return expected outcome
+    DRY_RUN = "dry_run"  # no side effects; simulate and return expected outcome
     SIMULATION = "simulation"  # local fixture sandbox only
-    MANUAL     = "manual"      # system prepares, human executes
-    APPROVED   = "approved"    # automated after policy + approval gates pass
+    MANUAL = "manual"  # system prepares, human executes
+    APPROVED = "approved"  # automated after policy + approval gates pass
 
 
 class RecoveryStatus(str, enum.Enum):
-    PROPOSED        = "proposed"
+    PROPOSED = "proposed"
     POLICY_CHECKING = "policy_checking"
-    PENDING_APPROVAL= "pending_approval"
-    PREPARING       = "preparing"
-    EXECUTING       = "executing"
-    VERIFYING       = "verifying"
-    COMMITTED       = "committed"
-    COMPENSATING    = "compensating"
-    COMPENSATED     = "compensated"
-    FAILED          = "failed"
-    CANCELLED       = "cancelled"
+    PENDING_APPROVAL = "pending_approval"
+    PREPARING = "preparing"
+    EXECUTING = "executing"
+    VERIFYING = "verifying"
+    COMMITTED = "committed"
+    COMPENSATING = "compensating"
+    COMPENSATED = "compensated"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 # ─── Action Definition ────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class ActionDefinition:
@@ -73,11 +78,12 @@ class ActionDefinition:
     Immutable definition of an allowlisted recovery action.
     All actions must be present in ACTION_REGISTRY to be executed.
     """
+
     action_type: RecoveryActionType
-    risk_tier: str                       # low | medium | high | critical
-    is_reversible: bool                  # whether a rollback capsule is mandatory
-    required_params: tuple[str, ...]     # param names that must be present
-    optional_params: tuple[str, ...]     # param names that may be present
+    risk_tier: str  # low | medium | high | critical
+    is_reversible: bool  # whether a rollback capsule is mandatory
+    required_params: tuple[str, ...]  # param names that must be present
+    optional_params: tuple[str, ...]  # param names that may be present
     description: str
 
 
@@ -167,6 +173,7 @@ ACTION_REGISTRY: dict[RecoveryActionType, ActionDefinition] = {
 
 # ─── Recovery Proposal ────────────────────────────────────────────────────────
 
+
 @dataclass
 class RecoveryProposal:
     """
@@ -178,6 +185,7 @@ class RecoveryProposal:
       - certificate_id: diagnosis certificate that authorized this recovery.
       - policy_decision: set by PolicyEngine before PREPARE.
     """
+
     action_type: RecoveryActionType
     tenant_id: str
     node_id: str
@@ -189,13 +197,13 @@ class RecoveryProposal:
 
     # Pre-execution guards
     idempotency_key: str = field(default_factory=lambda: str(uuid4()))
-    expected_version_id: str | None = None   # optimistic lock
-    certificate_id: str | None = None         # cert must be CERTIFIED or UNCERTIFIED+reviewed
+    expected_version_id: str | None = None  # optimistic lock
+    certificate_id: str | None = None  # cert must be CERTIFIED or UNCERTIFIED+reviewed
 
     # Set by system
     proposal_id: str = field(default_factory=lambda: str(uuid4()))
     status: RecoveryStatus = RecoveryStatus.PROPOSED
-    policy_decision: str | None = None        # "allow" | "deny" | "needs_approval"
+    policy_decision: str | None = None  # "allow" | "deny" | "needs_approval"
     approval_request_id: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))

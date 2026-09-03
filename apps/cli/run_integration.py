@@ -2,12 +2,14 @@
 DriftGuard-X v2 — End-to-End Orchestrator CLI Runner
 PRIVATE — All Rights Reserved.
 """
+
 import argparse
 import sys
 from datetime import UTC, datetime, timedelta
 
 from packages.contracts.src.incident_models import IncidentState
 from packages.contracts.src.recovery_models import FailureTarget
+from packages.memory.src.auth import AccessContext
 from packages.recovery.src.mocks import (
     MockBeliefModel,
     MockDivergenceValidator,
@@ -26,10 +28,9 @@ from packages.recovery.src.mocks import (
     MockTransportabilityGate,
 )
 from packages.recovery.src.orchestrator import CausalRecoveryOrchestrator
-from packages.memory.src.auth import AccessContext
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="DriftGuard-X Integration Runner")
     parser.add_argument("--scenario", type=str, default="A", help="Scenario to run (A-F)")
     args = parser.parse_args()
@@ -52,19 +53,32 @@ def main():
         recovery_validator=MockRecoveryValidator(),
         policy_engine=MockPolicyEngine(),
         ledger=MockLedger(),
-        transport_gate=MockTransportabilityGate()
+        transport_gate=MockTransportabilityGate(),
     )
 
     if args.scenario == "A":
-        targets = [FailureTarget(node_id="llm", failure_type="hallucination", severity="high", evidence={"wrong_answer": True})]
+        targets = [
+            FailureTarget(
+                node_id="llm",
+                failure_type="hallucination",
+                severity="high",
+                evidence={"wrong_answer": True},
+            )
+        ]
     elif args.scenario == "D":
-        targets = [FailureTarget(node_id="external_api", failure_type="schema_change", severity="high")]
+        targets = [
+            FailureTarget(node_id="external_api", failure_type="schema_change", severity="high")
+        ]
         defaults["recovery_solver"] = MockRecoveryCutSolver(cut="NONE")
     else:
         targets = [FailureTarget(node_id="system", failure_type="generic", severity="low")]
 
     # We need MockRecoveryCutSolver to handle cut="NONE"
-    if "recovery_solver" in defaults and hasattr(defaults["recovery_solver"], "cut") and defaults["recovery_solver"].cut == "NONE":
+    if (
+        "recovery_solver" in defaults
+        and hasattr(defaults["recovery_solver"], "cut")
+        and defaults["recovery_solver"].cut == "NONE"
+    ):
         defaults["recovery_solver"].cut = None
 
     orch = CausalRecoveryOrchestrator(**defaults)
@@ -92,6 +106,7 @@ def main():
     else:
         print("\nRecovery Failed or was Rejected.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

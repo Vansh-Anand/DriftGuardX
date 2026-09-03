@@ -14,10 +14,9 @@ Real recovery validation pipeline:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.evidence import RecoveryEvidenceKind
-from packages.contracts.src.interfaces import RecoveryReplayExecutor
 from packages.contracts.src.recovery_models import (
     CausalRecoveryCut,
     RecoveryInvariant,
@@ -26,12 +25,15 @@ from packages.contracts.src.recovery_models import (
     ReplayEquivalenceEnvelope,
     SandboxOutcome,
 )
-from packages.memory.src.auth import AccessContext
 from packages.memory.src.capabilities import CapabilityVerifier
 from packages.recovery.src.replay_executor import SyntheticRecoveryReplayExecutor
 from packages.replay.src.divergence_validator import (
     DynamicCausalDivergenceValidator,
 )
+
+if TYPE_CHECKING:
+    from packages.contracts.src.interfaces import RecoveryReplayExecutor
+    from packages.memory.src.auth import AccessContext
 
 
 class RecoveryValidator:

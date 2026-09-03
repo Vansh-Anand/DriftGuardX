@@ -15,6 +15,7 @@ class BenchmarkAdapter:
         raw = self.fetch()
         return self.transform(raw)
 
+
 def _mock_episode(dataset_name: str, i: int, metric_name: str, metric_val: float) -> ReplayEpisode:
     return ReplayEpisode(
         tenant_id=uuid.uuid4(),
@@ -25,8 +26,9 @@ def _mock_episode(dataset_name: str, i: int, metric_name: str, metric_val: float
         original_version_tag="v1",
         replay_version_tag="v2",
         original_reliability_vector={metric_name: metric_val},
-        replay_reliability_vector={metric_name: metric_val}
+        replay_reliability_vector={metric_name: metric_val},
     )
+
 
 class BEIRAdapter(BenchmarkAdapter):
     def __init__(self, dataset_name: str = "scifact"):
@@ -35,27 +37,29 @@ class BEIRAdapter(BenchmarkAdapter):
     def fetch(self) -> list[dict[str, Any]]:
         return [
             {"query_id": "1", "text": "Is this a fact?", "relevant_docs": ["doc1", "doc2"]},
-            {"query_id": "2", "text": "Another fact?", "relevant_docs": ["doc3"]}
+            {"query_id": "2", "text": "Another fact?", "relevant_docs": ["doc3"]},
         ]
 
     def transform(self, raw_data: list[dict[str, Any]]) -> list[ReplayEpisode]:
         episodes = []
-        for i, raw in enumerate(raw_data):
+        for i, _raw in enumerate(raw_data):
             episodes.append(_mock_episode(self.dataset_name, i, "relevance", 1.0))
         return episodes
+
 
 class ToolBenchAdapter(BenchmarkAdapter):
     def fetch(self) -> list[dict[str, Any]]:
         return [
             {"task_id": "tb_1", "tool_calls": ["search_web"]},
-            {"task_id": "tb_2", "tool_calls": ["calculator"]}
+            {"task_id": "tb_2", "tool_calls": ["calculator"]},
         ]
 
     def transform(self, raw_data: list[dict[str, Any]]) -> list[ReplayEpisode]:
         episodes = []
-        for i, raw in enumerate(raw_data):
+        for i, _raw in enumerate(raw_data):
             episodes.append(_mock_episode("toolbench", i, "tool_accuracy", 0.9))
         return episodes
+
 
 class QAAdapter(BenchmarkAdapter):
     def __init__(self, name: str = "nq"):

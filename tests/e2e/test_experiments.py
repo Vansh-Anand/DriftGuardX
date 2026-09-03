@@ -10,9 +10,7 @@ def test_experiment_orchestration_mocked(tmp_path):
     db_path = f"sqlite:///{tmp_path}/mlruns.db"
 
     config = ExperimentConfig(
-        experiment_name="test_smoke",
-        regime="retrieval-only",
-        deterministic_seed=42
+        experiment_name="test_smoke", regime="retrieval-only", deterministic_seed=42
     )
 
     tracker = MLflowTracker(tracking_uri=db_path, experiment_name="test_exp")

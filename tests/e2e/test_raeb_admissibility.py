@@ -27,9 +27,25 @@ def test_raeb_admissibility_fresh_and_deterministic():
         run_id=trace_id,
         tenant_id=uuid4(),
         pipeline_id=uuid4(),
-        spans=[SpanRecord(span_id=uuid4().hex[:16], trace_id=trace_id.hex, run_id=trace_id, tenant_id=uuid4(), pipeline_id=uuid4(), name="mock_span", parent_span_id=None, component_id="retriever_v1", component_type=ComponentType.RETRIEVER, start_time=datetime.now(UTC), end_time=datetime.now(UTC), inputs={}, outputs={}, status="OK")],
-
-        created_at=datetime.now(UTC) - timedelta(minutes=5)
+        spans=[
+            SpanRecord(
+                span_id=uuid4().hex[:16],
+                trace_id=trace_id.hex,
+                run_id=trace_id,
+                tenant_id=uuid4(),
+                pipeline_id=uuid4(),
+                name="mock_span",
+                parent_span_id=None,
+                component_id="retriever_v1",
+                component_type=ComponentType.RETRIEVER,
+                start_time=datetime.now(UTC),
+                end_time=datetime.now(UTC),
+                inputs={},
+                outputs={},
+                status="OK",
+            )
+        ],
+        created_at=datetime.now(UTC) - timedelta(minutes=5),
     )
 
     proposed_replay = ReplayEpisode(
@@ -40,15 +56,27 @@ def test_raeb_admissibility_fresh_and_deterministic():
         replay_version_id=uuid4(),
         original_version_tag="v1",
         replay_version_tag="v2",
-        status=ReplayStatus.PENDING
+        status=ReplayStatus.PENDING,
     )
 
     current_time = datetime.now(UTC)
-    evaluation = gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
+    evaluation = gateway.evaluate_admissibility(
+        live_trace,
+        proposed_replay,
+        trusted_timestamp=TrustedTimestampEnvelope(
+            timestamp=current_time,
+            signature="mock",
+            source="mock",
+            issued_at=current_time,
+            nonce="mock",
+        ),
+        allow_uniform_prior=True,
+    )
 
     assert evaluation.admissibility == AdmissibilityScore.ADMISSIBLE
     assert evaluation.equivalence_vector.freshness_score > 0.9
     assert evaluation.information_gain_estimate >= 0.0
+
 
 def test_raeb_admissibility_stale_trace():
     gateway = RAEBGateway(freshness_ttl_seconds=3600)
@@ -58,9 +86,25 @@ def test_raeb_admissibility_stale_trace():
         run_id=trace_id,
         tenant_id=uuid4(),
         pipeline_id=uuid4(),
-        spans=[SpanRecord(span_id=uuid4().hex[:16], trace_id=trace_id.hex, run_id=trace_id, tenant_id=uuid4(), pipeline_id=uuid4(), name="mock_span", parent_span_id=None, component_id="retriever_v1", component_type=ComponentType.RETRIEVER, start_time=datetime.now(UTC), end_time=datetime.now(UTC), inputs={}, outputs={}, status="OK")],
-
-        created_at=datetime.now(UTC) - timedelta(hours=2) # Very stale
+        spans=[
+            SpanRecord(
+                span_id=uuid4().hex[:16],
+                trace_id=trace_id.hex,
+                run_id=trace_id,
+                tenant_id=uuid4(),
+                pipeline_id=uuid4(),
+                name="mock_span",
+                parent_span_id=None,
+                component_id="retriever_v1",
+                component_type=ComponentType.RETRIEVER,
+                start_time=datetime.now(UTC),
+                end_time=datetime.now(UTC),
+                inputs={},
+                outputs={},
+                status="OK",
+            )
+        ],
+        created_at=datetime.now(UTC) - timedelta(hours=2),  # Very stale
     )
 
     proposed_replay = ReplayEpisode(
@@ -71,15 +115,27 @@ def test_raeb_admissibility_stale_trace():
         replay_version_id=uuid4(),
         original_version_tag="v1",
         replay_version_tag="v2",
-        status=ReplayStatus.PENDING
+        status=ReplayStatus.PENDING,
     )
 
     current_time = datetime.now(UTC)
-    evaluation = gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
+    evaluation = gateway.evaluate_admissibility(
+        live_trace,
+        proposed_replay,
+        trusted_timestamp=TrustedTimestampEnvelope(
+            timestamp=current_time,
+            signature="mock",
+            source="mock",
+            issued_at=current_time,
+            nonce="mock",
+        ),
+        allow_uniform_prior=True,
+    )
 
     # Should be rejected because it's too old
     assert evaluation.admissibility == AdmissibilityScore.UNSUPPORTED
     assert evaluation.equivalence_vector.freshness_score == 0.0
+
 
 def test_raeb_admissibility_negative_age():
     gateway = RAEBGateway(freshness_ttl_seconds=3600)
@@ -90,9 +146,25 @@ def test_raeb_admissibility_negative_age():
         run_id=trace_id,
         tenant_id=uuid4(),
         pipeline_id=uuid4(),
-        spans=[SpanRecord(span_id=uuid4().hex[:16], trace_id=trace_id.hex, run_id=trace_id, tenant_id=uuid4(), pipeline_id=uuid4(), name="mock_span", parent_span_id=None, component_id="retriever_v1", component_type=ComponentType.RETRIEVER, start_time=datetime.now(UTC), end_time=datetime.now(UTC), inputs={}, outputs={}, status="OK")],
-
-        created_at=datetime.now(UTC) + timedelta(minutes=5)
+        spans=[
+            SpanRecord(
+                span_id=uuid4().hex[:16],
+                trace_id=trace_id.hex,
+                run_id=trace_id,
+                tenant_id=uuid4(),
+                pipeline_id=uuid4(),
+                name="mock_span",
+                parent_span_id=None,
+                component_id="retriever_v1",
+                component_type=ComponentType.RETRIEVER,
+                start_time=datetime.now(UTC),
+                end_time=datetime.now(UTC),
+                inputs={},
+                outputs={},
+                status="OK",
+            )
+        ],
+        created_at=datetime.now(UTC) + timedelta(minutes=5),
     )
 
     proposed_replay = ReplayEpisode(
@@ -103,12 +175,24 @@ def test_raeb_admissibility_negative_age():
         replay_version_id=uuid4(),
         original_version_tag="v1",
         replay_version_tag="v2",
-        status=ReplayStatus.PENDING
+        status=ReplayStatus.PENDING,
     )
 
     current_time = datetime.now(UTC)
     with pytest.raises(ValueError, match="Negative age detected"):
-        gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
+        gateway.evaluate_admissibility(
+            live_trace,
+            proposed_replay,
+            trusted_timestamp=TrustedTimestampEnvelope(
+                timestamp=current_time,
+                signature="mock",
+                source="mock",
+                issued_at=current_time,
+                nonce="mock",
+            ),
+            allow_uniform_prior=True,
+        )
+
 
 def test_raeb_admissibility_naive_datetime():
     gateway = RAEBGateway(freshness_ttl_seconds=3600)
@@ -119,9 +203,25 @@ def test_raeb_admissibility_naive_datetime():
         run_id=trace_id,
         tenant_id=uuid4(),
         pipeline_id=uuid4(),
-        spans=[SpanRecord(span_id=uuid4().hex[:16], trace_id=trace_id.hex, run_id=trace_id, tenant_id=uuid4(), pipeline_id=uuid4(), name="mock_span", parent_span_id=None, component_id="retriever_v1", component_type=ComponentType.RETRIEVER, start_time=datetime.now(UTC), end_time=datetime.now(UTC), inputs={}, outputs={}, status="OK")],
-
-        created_at=datetime.now() # Naive
+        spans=[
+            SpanRecord(
+                span_id=uuid4().hex[:16],
+                trace_id=trace_id.hex,
+                run_id=trace_id,
+                tenant_id=uuid4(),
+                pipeline_id=uuid4(),
+                name="mock_span",
+                parent_span_id=None,
+                component_id="retriever_v1",
+                component_type=ComponentType.RETRIEVER,
+                start_time=datetime.now(UTC),
+                end_time=datetime.now(UTC),
+                inputs={},
+                outputs={},
+                status="OK",
+            )
+        ],
+        created_at=datetime.now(),  # Naive
     )
 
     proposed_replay = ReplayEpisode(
@@ -132,10 +232,20 @@ def test_raeb_admissibility_naive_datetime():
         replay_version_id=uuid4(),
         original_version_tag="v1",
         replay_version_tag="v2",
-        status=ReplayStatus.PENDING
+        status=ReplayStatus.PENDING,
     )
 
     current_time = datetime.now(UTC)
     with pytest.raises(ValueError, match="All timestamps must be timezone-aware"):
-        gateway.evaluate_admissibility(live_trace, proposed_replay, trusted_timestamp=TrustedTimestampEnvelope(timestamp=current_time, signature='mock', source='mock', issued_at=current_time, nonce='mock'), allow_uniform_prior=True)
-
+        gateway.evaluate_admissibility(
+            live_trace,
+            proposed_replay,
+            trusted_timestamp=TrustedTimestampEnvelope(
+                timestamp=current_time,
+                signature="mock",
+                source="mock",
+                issued_at=current_time,
+                nonce="mock",
+            ),
+            allow_uniform_prior=True,
+        )

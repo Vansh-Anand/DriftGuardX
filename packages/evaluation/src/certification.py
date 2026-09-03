@@ -14,13 +14,15 @@ This module implements the gate checks and returns a structured
 CertificationDecision.  Policy parameters are versioned and must not be
 changed without bumping POLICY_VERSION.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from packages.evaluation.src.bounds import BoundResult
+if TYPE_CHECKING:
+    from packages.evaluation.src.bounds import BoundResult
 
 # ─── Policy Version ───────────────────────────────────────────────────────────
 POLICY_VERSION = "v1.0"
@@ -33,6 +35,7 @@ class CertificationPolicy:
     """
     Versioned certification policy.  Change any field → bump policy_version.
     """
+
     policy_version: str = POLICY_VERSION
     min_episodes: int = 10
     min_valid_replay_fraction: float = 0.5
@@ -47,6 +50,7 @@ class CertificationDecision:
     Structured certification verdict with machine-readable fields.
     All failing gates are recorded; callers must not suppress them.
     """
+
     status: CertStatus
     policy_version: str
     gates_passed: list[str] = field(default_factory=list)
@@ -59,12 +63,13 @@ class CertificationDecision:
 
 # ─── Gate Checks ──────────────────────────────────────────────────────────────
 
+
 def _check_episode_count(n_episodes: int, policy: CertificationPolicy) -> tuple[bool, str]:
     ok = n_episodes >= policy.min_episodes
     msg = (
         f"episode_count: n={n_episodes} >= {policy.min_episodes}"
-        if ok else
-        f"episode_count: n={n_episodes} < {policy.min_episodes} required"
+        if ok
+        else f"episode_count: n={n_episodes} < {policy.min_episodes} required"
     )
     return ok, msg
 
@@ -80,8 +85,8 @@ def _check_valid_replay_fraction(
     ok = fraction >= policy.min_valid_replay_fraction
     msg = (
         f"valid_replay_fraction: {fraction:.2f} >= {policy.min_valid_replay_fraction}"
-        if ok else
-        f"valid_replay_fraction: {fraction:.2f} < {policy.min_valid_replay_fraction}"
+        if ok
+        else f"valid_replay_fraction: {fraction:.2f} < {policy.min_valid_replay_fraction}"
     )
     return ok, msg
 
@@ -97,8 +102,8 @@ def _check_calibration_age(
     ok = age_days <= policy.max_calibration_age_days
     msg = (
         f"calibration_age: {age_days:.1f}d <= {policy.max_calibration_age_days}d"
-        if ok else
-        f"calibration_age: {age_days:.1f}d > {policy.max_calibration_age_days}d (expired)"
+        if ok
+        else f"calibration_age: {age_days:.1f}d > {policy.max_calibration_age_days}d (expired)"
     )
     return ok, msg
 
@@ -107,8 +112,8 @@ def _check_bound_supported(bound: BoundResult) -> tuple[bool, str]:
     ok = bound.is_supported
     msg = (
         f"bound_assumptions: method={bound.method}, supported=True"
-        if ok else
-        f"bound_assumptions: method={bound.method}, supported=False — {bound.warning}"
+        if ok
+        else f"bound_assumptions: method={bound.method}, supported=False — {bound.warning}"
     )
     return ok, msg
 
@@ -125,14 +130,15 @@ def _check_empirical_coverage(
     msg = (
         f"empirical_coverage: observed={observed_coverage:.3f}, "
         f"nominal={nominal_confidence:.2f}, gap={gap:.3f} <= {max_undercoverage}"
-        if ok else
-        f"empirical_coverage: UNDERCOVERAGE observed={observed_coverage:.3f}, "
+        if ok
+        else f"empirical_coverage: UNDERCOVERAGE observed={observed_coverage:.3f}, "
         f"nominal={nominal_confidence:.2f}, gap={gap:.3f} > {max_undercoverage}"
     )
     return ok, msg
 
 
 # ─── Main Certifier ───────────────────────────────────────────────────────────
+
 
 def certify(
     *,

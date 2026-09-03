@@ -9,6 +9,7 @@ Upgraded from the previous implementation:
 - Uses RiskLimitedSequentialCausalExperimentPlanner to generate target validation experiments
 - Cryptographic decision hash covers all evaluated fields
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -95,7 +96,7 @@ def _evaluate_footprint_invariants(
             preserved.append(f"edge:{edge}")
 
     # 3. Check required policy conditions
-    for policy_key, policy_val in footprint.required_policy_conditions.items():
+    for policy_key, _policy_val in footprint.required_policy_conditions.items():
         if policy_key in diff_vars:
             # Policy conditions are hard constraints. If they change, it's a violation.
             violated.append(f"policy:{policy_key}")
@@ -103,7 +104,7 @@ def _evaluate_footprint_invariants(
             preserved.append(f"policy:{policy_key}")
 
     # 4. Check required data conditions
-    for data_key, data_val in footprint.required_data_conditions.items():
+    for data_key, _data_val in footprint.required_data_conditions.items():
         if data_key in diff_vars:
             # Data conditions are hard constraints.
             violated.append(f"data:{data_key}")
@@ -133,9 +134,8 @@ class CausalTransportGate:
     """
 
     def __init__(self, verification_key: str | None = None) -> None:
-        self.verification_key = (
-            verification_key
-            or os.environ.get("DGX_TRANSPORT_KEY", "dgx-insecure-dev-transport-key")
+        self.verification_key = verification_key or os.environ.get(
+            "DGX_TRANSPORT_KEY", "dgx-insecure-dev-transport-key"
         )
 
     def _verify_descriptor(self, descriptor: CausalEnvironmentDescriptor) -> bool:
@@ -146,7 +146,9 @@ class CausalTransportGate:
         return hmac.compare_digest(expected_sig, descriptor.signature)
 
     def _find_differences(
-        self, source: CausalEnvironmentDescriptor, target: CausalEnvironmentDescriptor,
+        self,
+        source: CausalEnvironmentDescriptor,
+        target: CausalEnvironmentDescriptor,
         footprint: RecoveryMechanismFootprint,
     ) -> list[EnvironmentDifference]:
         """
@@ -158,23 +160,24 @@ class CausalTransportGate:
 
         def _hash(v: Any) -> str:
             import json
-            return hashlib.sha256(
-                json.dumps(v, sort_keys=True, default=str).encode()
-            ).hexdigest()[:16]
 
-        def _add_diff(
-            var: str, s_val: Any, t_val: Any, affected: list[str]
-        ) -> None:
+            return hashlib.sha256(json.dumps(v, sort_keys=True, default=str).encode()).hexdigest()[
+                :16
+            ]
+
+        def _add_diff(var: str, s_val: Any, t_val: Any, affected: list[str]) -> None:
             if _hash(s_val) != _hash(t_val):
                 relevance = _graph_derived_relevance(var, footprint)
-                differences.append(EnvironmentDifference(
-                    variable=var,
-                    source_value_hash=_hash(s_val),
-                    target_value_hash=_hash(t_val),
-                    affected_components=affected,
-                    causal_relevance=relevance,
-                    transport_risk=min(1.0, relevance * 1.2),
-                ))
+                differences.append(
+                    EnvironmentDifference(
+                        variable=var,
+                        source_value_hash=_hash(s_val),
+                        target_value_hash=_hash(t_val),
+                        affected_components=affected,
+                        causal_relevance=relevance,
+                        transport_risk=min(1.0, relevance * 1.2),
+                    )
+                )
 
         _add_diff("model", source.model, target.model, ["generator"])
         _add_diff("prompt", source.prompt, target.prompt, ["prompt"])
@@ -204,8 +207,13 @@ class CausalTransportGate:
         # 1. Cryptographic Authentication
         if not self._verify_descriptor(source_env) or not self._verify_descriptor(target_env):
             return self._build_decision(
-                footprint.recovery_id, source_env, target_env,
-                TransportStatus.NOT_TRANSPORTABLE, [], [], [],
+                footprint.recovery_id,
+                source_env,
+                target_env,
+                TransportStatus.NOT_TRANSPORTABLE,
+                [],
+                [],
+                [],
                 "Forged or missing provenance signature.",
                 footprint,
             )
@@ -213,8 +221,13 @@ class CausalTransportGate:
         # 2. Calibration evidence check
         if not source_env.calibration_evidence or not target_env.calibration_evidence:
             return self._build_decision(
-                footprint.recovery_id, source_env, target_env,
-                TransportStatus.UNKNOWN, [], [], [],
+                footprint.recovery_id,
+                source_env,
+                target_env,
+                TransportStatus.UNKNOWN,
+                [],
+                [],
+                [],
                 "Missing structured calibration evidence.",
                 footprint,
             )
@@ -222,8 +235,13 @@ class CausalTransportGate:
         # 3. Cross-Tenant Policy
         if source_env.tenant_id != target_env.tenant_id and not allow_cross_tenant:
             return self._build_decision(
-                footprint.recovery_id, source_env, target_env,
-                TransportStatus.NOT_TRANSPORTABLE, [], [], [],
+                footprint.recovery_id,
+                source_env,
+                target_env,
+                TransportStatus.NOT_TRANSPORTABLE,
+                [],
+                [],
+                [],
                 "Cross-tenant transport denied by policy.",
                 footprint,
             )
@@ -237,11 +255,8 @@ class CausalTransportGate:
         # 6. Any detected difference not explicitly preserved → target validation required.
         # This prevents environment differences that the footprint doesn't specifically cover
         # from producing UNKNOWN when they should require target validation.
-        covered_vars = {c.split(':', 1)[1] for c in preserved + violated + unknown if ':' in c}
-        uncovered_diff_vars = [
-            d.variable for d in differences
-            if d.variable not in covered_vars
-        ]
+        covered_vars = {c.split(":", 1)[1] for c in preserved + violated + unknown if ":" in c}
+        uncovered_diff_vars = [d.variable for d in differences if d.variable not in covered_vars]
         # Add uncovered differences to unknown conditions
         unknown.extend(uncovered_diff_vars)
 
@@ -257,14 +272,23 @@ class CausalTransportGate:
             explanation = f"Conditions require target-domain validation: {unknown}"
         elif not differences:
             status = TransportStatus.DIRECTLY_TRANSPORTABLE
-            explanation = "All recovery mechanism assumptions are preserved in the target environment."
+            explanation = (
+                "All recovery mechanism assumptions are preserved in the target environment."
+            )
         else:
             status = TransportStatus.UNKNOWN
             explanation = "Insufficient evidence to determine transportability."
 
         return self._build_decision(
-            footprint.recovery_id, source_env, target_env, status,
-            preserved, violated, unknown, explanation, footprint,
+            footprint.recovery_id,
+            source_env,
+            target_env,
+            status,
+            preserved,
+            violated,
+            unknown,
+            explanation,
+            footprint,
         )
 
     def _build_decision(
@@ -298,19 +322,26 @@ class CausalTransportGate:
             planner = RiskLimitedSequentialCausalExperimentPlanner()
             # Build candidate experiments from unknown conditions
             candidate_experiments = [
-                {"target_variable": unk, "type": "causal_intervention",
-                 "candidate_id": f"transport_exp_{i}"}
+                {
+                    "target_variable": unk,
+                    "type": "causal_intervention",
+                    "candidate_id": f"transport_exp_{i}",
+                }
                 for i, unk in enumerate(unknown)
             ]
             # Uniform belief state for transport experiments
-            belief_state = {c["candidate_id"]: 1.0 / max(1, len(candidate_experiments))
-                           for c in candidate_experiments}
+            belief_state = {
+                c["candidate_id"]: 1.0 / max(1, len(candidate_experiments))
+                for c in candidate_experiments
+            }
             resource_ctx = ResourceContext(budget_usd=len(unknown) * 0.1)
 
             # Create a minimal envelope for the planner
             dummy_cut = CausalRecoveryCut(
                 fault_sources=[FaultSource(node_id="transport", probability=1.0)],
-                failure_targets=[FailureTarget(node_id="target", failure_type="transport", severity="medium")],
+                failure_targets=[
+                    FailureTarget(node_id="target", failure_type="transport", severity="medium")
+                ],
                 selected_actions=[],
                 optimization_method=OptimizationMethod.EXACT,
                 evidence_hash="transport",
@@ -329,8 +360,11 @@ class CausalTransportGate:
                 max_to_select=len(unknown),
             )
             experiments = [
-                {"target_variable": e["target_variable"], "type": "causal_intervention",
-                 "expected_eig": e.get("expected_eig", 0.0)}
+                {
+                    "target_variable": e["target_variable"],
+                    "type": "causal_intervention",
+                    "expected_eig": e.get("expected_eig", 0.0),
+                }
                 for e in selected
             ]
 

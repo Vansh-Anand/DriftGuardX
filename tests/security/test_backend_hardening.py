@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import pytest
-from httpx import AsyncClient
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from httpx import AsyncClient
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.security]
 

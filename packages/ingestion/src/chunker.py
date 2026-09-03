@@ -1,5 +1,3 @@
-
-
 class BaseChunker:
     def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
         self.chunk_size = chunk_size
@@ -18,8 +16,8 @@ class BaseChunker:
 
         i = 0
         while i < len(words):
-            chunk = words[i:i + self.chunk_size]
+            chunk = words[i : i + self.chunk_size]
             chunks.append(" ".join(chunk))
-            i += (self.chunk_size - self.chunk_overlap)
+            i += self.chunk_size - self.chunk_overlap
 
         return chunks

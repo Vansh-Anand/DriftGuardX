@@ -5,21 +5,22 @@ from packages.evaluation.src.human_eval_schema import HumanAnnotation, ReviewerS
 
 
 def check_consent() -> bool:
-    print("="*60)
+    print("=" * 60)
     print("                 DriftGuard-X Evaluation")
-    print("="*60)
+    print("=" * 60)
     print("Before proceeding, please confirm you have read the Privacy")
     print("and Consent documentation (docs/evaluation/privacy_and_consent.md).")
     print("By proceeding, you agree to submit anonymized evaluation data.")
     print("Your identity is completely pseudonymized.")
-    print("="*60)
+    print("=" * 60)
 
     # In a real environment, this might block until a remote flag is set.
     # For now, we enforce an explicit Y input.
     ans = input("Do you consent to participate? (y/N): ")
-    return ans.strip().lower() == 'y'
+    return ans.strip().lower() == "y"
 
-def main():
+
+def main() -> None:
     if not check_consent():
         print("Consent denied. Exiting.")
         sys.exit(0)
@@ -33,13 +34,16 @@ def main():
     if not manager.items:
         print("No evaluation items found. Generating mock items...")
         for i in range(5):
-            manager.add_raw_trace(f"trace_{i}", {
-                "query": f"Mock Query {i}",
-                "generated_answer": f"Mock Answer {i}",
-                "predicted_root_cause": "PROMPT_HALLUCINATION",
-                "proposed_recovery_action": "Rollback prompt to v1",
-                "fault_type": "PROMPT_REGRESSION"
-            })
+            manager.add_raw_trace(
+                f"trace_{i}",
+                {
+                    "query": f"Mock Query {i}",
+                    "generated_answer": f"Mock Answer {i}",
+                    "predicted_root_cause": "PROMPT_HALLUCINATION",
+                    "proposed_recovery_action": "Rollback prompt to v1",
+                    "fault_type": "PROMPT_REGRESSION",
+                },
+            )
 
     pending = manager.get_pending_items()
     print(f"Found {len(pending)} items awaiting review.\n")
@@ -61,8 +65,8 @@ def main():
         def ask_bool(prompt: str) -> bool:
             while True:
                 ans = input(prompt + " (y/n): ").strip().lower()
-                if ans in ['y', 'n']:
-                    return ans == 'y'
+                if ans in ["y", "n"]:
+                    return ans == "y"
 
         ans_corr = ask_bool("1. Is the generated answer correct?")
         ev_suff = ask_bool("2. Is the retrieved evidence sufficient?")
@@ -79,7 +83,7 @@ def main():
             hallucinated=hallu,
             predicted_root_cause_correct=rc_corr,
             proposed_recovery_safe=rec_safe,
-            comments=comments if comments else None
+            comments=comments if comments else None,
         )
 
         manager.submit_annotation(item.item_id, ann)
@@ -88,6 +92,7 @@ def main():
     print("No more pending items for your session. Thank you!")
     out = manager.export_anonymized_results()
     print(f"Results exported to: {out}")
+
 
 if __name__ == "__main__":
     main()

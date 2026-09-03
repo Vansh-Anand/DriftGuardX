@@ -22,6 +22,7 @@ def agent_destructive_action():
 
     return {"status": "completed_without_crash", "mock_response": response.decode("utf-8")}
 
+
 def test_arc_isolator_intercepts_and_loopbacks():
     # Clear the global data sink (though in sandbox it's in a subprocess)
     # Wait, the data sink is populated in the subprocess, so we can't easily read it from the main process
@@ -29,8 +30,10 @@ def test_arc_isolator_intercepts_and_loopbacks():
     # Let's modify SandboxedWorker slightly to return the data_sink contents.
     pass
 
+
 # We will test the ARC isolator directly in the main thread to verify its logic,
 # because multiprocessing makes asserting on the global `data_sink` tricky.
+
 
 def test_arc_isolator_direct():
     from packages.replay.src.arc_isolator import arc_isolator
@@ -69,6 +72,7 @@ def test_arc_isolator_direct():
 
     finally:
         arc_isolator.disable()
+
 
 def test_sandbox_worker_with_arc():
     # Verify that running in the SandboxedWorker doesn't crash from audit hooks

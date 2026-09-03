@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Reliability Metrics
 PRIVATE — All Rights Reserved.
 """
+
 from pydantic import BaseModel, Field
 
 
@@ -9,6 +10,7 @@ class ReliabilityVector(BaseModel):
     """
     Standardized vector capturing multi-dimensional reliability of an episode.
     """
+
     faithfulness: float = Field(default=0.0, ge=0.0, le=1.0)
     retrieval_coverage: float = Field(default=0.0, ge=0.0, le=1.0)
     task_success: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -25,6 +27,7 @@ class ReliabilityVector(BaseModel):
     evaluator_versions: dict[str, str] = Field(default_factory=dict)
     confidence_labels: dict[str, str] = Field(default_factory=dict)
 
+
 import numpy as np
 
 
@@ -38,7 +41,9 @@ class DeterministicMetricsEngine:
         return hits / len(relevant_ids)
 
     @staticmethod
-    def calculate_precision_at_k(retrieved_ids: list[str], relevant_ids: list[str], k: int) -> float:
+    def calculate_precision_at_k(
+        retrieved_ids: list[str], relevant_ids: list[str], k: int
+    ) -> float:
         retrieved_k = retrieved_ids[:k]
         if not retrieved_k:
             return 0.0
@@ -81,21 +86,19 @@ class DeterministicMetricsEngine:
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
-        return {
-            "accuracy": top_1_acc,
-            "precision": precision,
-            "recall": recall,
-            "f1": f1
-        }
+        return {"accuracy": top_1_acc, "precision": precision, "recall": recall, "f1": f1}
 
     @staticmethod
-    def calculate_confidence_intervals(metrics: list[float], confidence: float = 0.95) -> tuple[float, float]:
+    def calculate_confidence_intervals(
+        metrics: list[float], confidence: float = 0.95
+    ) -> tuple[float, float]:
         """Calculates the standard error margin (95% CI by default) for a list of metrics."""
         import scipy.stats as stats
+
         if not metrics or len(metrics) < 2:
             return 0.0, 0.0
 
         a = 1.0 * np.array(metrics)
         m, se = np.mean(a), stats.sem(a)
-        h = se * stats.t.ppf((1 + confidence) / 2., len(a)-1)
+        h = se * stats.t.ppf((1 + confidence) / 2.0, len(a) - 1)
         return float(m - h), float(m + h)

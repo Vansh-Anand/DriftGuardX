@@ -2,14 +2,21 @@
 DriftGuard-X v2 — BCRB Models
 PRIVATE — All Rights Reserved.
 """
+
 import enum
+from datetime import datetime
 from typing import Any
 from uuid import UUID
-from datetime import datetime
+
 from pydantic import Field
 
-from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow
-from packages.contracts.src.models import ComponentType, InterventionType
+from packages.contracts.src.models import (
+    ComponentType,
+    DGXBaseModel,
+    InterventionType,
+    _new_uuid,
+    _utcnow,
+)
 
 
 class BCRBStepStatus(str, enum.Enum):
@@ -48,9 +55,11 @@ class StoppingCondition(str, enum.Enum):
     ALL_SAFE_CANDIDATES_TESTED = "all_safe_candidates_tested"
     EXPECTED_UTILITY_BELOW_THRESHOLD = "expected_utility_below_threshold"
 
+
 class DiagnosisOutcome(str, enum.Enum):
     CONFIRMED = "confirmed"
     UNKNOWN = "unknown"
+
 
 class BCRBSession(DGXBaseModel):
     session_id: UUID = Field(default_factory=_new_uuid)

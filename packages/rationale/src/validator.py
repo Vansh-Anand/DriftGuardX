@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 Ensures that LLM-generated rationales do not hallucinate metrics, bounds, or versions.
 Any violation causes the rationale to be rejected and falls back to deterministic templates.
 """
+
 import re
 
 from packages.rationale.src.models import RationaleInputContract
@@ -13,7 +14,7 @@ from packages.rationale.src.models import RationaleInputContract
 def extract_numbers(text: str) -> list[float]:
     """Extract all numeric values from text (integers and floats)."""
     # Matches numbers like 1, 1.5, -0.05, +2.4
-    matches = re.findall(r'[-+]?\d*\.\d+|\d+', text)
+    matches = re.findall(r"[-+]?\d*\.\d+|\d+", text)
     return [float(m) for m in matches]
 
 
@@ -31,14 +32,16 @@ def get_allowed_numbers(contract: RationaleInputContract) -> set[float]:
     return allowed
 
 
-def validate_factual_consistency(contract: RationaleInputContract, generated_text: str) -> tuple[bool, str]:
+def validate_factual_consistency(
+    contract: RationaleInputContract, generated_text: str
+) -> tuple[bool, str]:
     """
     Validates that the generated text does not hallucinate new numbers or versions.
     Returns (is_valid, reason).
     """
     # 2. Version Validation
     # If the text mentions 'vX' or standard tags, they must be original or replay tags.
-    versions = re.findall(r'\bv\d+[\w.-]*\b', generated_text, re.IGNORECASE)
+    versions = re.findall(r"\bv\d+[\w.-]*\b", generated_text, re.IGNORECASE)
     allowed_versions = {contract.original_version_tag.lower(), contract.replay_version_tag.lower()}
 
     for v in versions:
@@ -49,7 +52,7 @@ def validate_factual_consistency(contract: RationaleInputContract, generated_tex
 
     # 1. Numeric Validation
     # Remove all version tags from text so they don't count as numeric claims
-    text_no_versions = re.sub(r'\bv\d+[\w.-]*\b', '', generated_text, flags=re.IGNORECASE)
+    text_no_versions = re.sub(r"\bv\d+[\w.-]*\b", "", generated_text, flags=re.IGNORECASE)
 
     allowed_numbers = get_allowed_numbers(contract)
     extracted = extract_numbers(text_no_versions)

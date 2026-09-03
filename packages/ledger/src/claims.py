@@ -6,20 +6,24 @@ Never confuses implemented functionality with causal proofs or legal certificati
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.models import DiagnosisClaimStatus
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass
 class LedgerEntry:
     """A single claim entry in the ledger."""
+
     claim_id: str
     title: str
     description: str
@@ -92,10 +96,7 @@ class ClaimsLedger:
     def to_dict(self) -> dict[str, Any]:
         return {
             "entries": [e.to_dict() for e in self._entries.values()],
-            "summary": {
-                s.value: len(self.list_by_status(s))
-                for s in DiagnosisClaimStatus
-            },
+            "summary": {s.value: len(self.list_by_status(s)) for s in DiagnosisClaimStatus},
         }
 
     def save(self, path: Path) -> None:
@@ -105,6 +106,7 @@ class ClaimsLedger:
 
 
 # ─── Prompt 01 Claims ─────────────────────────────────────────────────────────
+
 
 def build_prompt01_ledger() -> ClaimsLedger:
     """Seed the ledger with Prompt 01 claims."""

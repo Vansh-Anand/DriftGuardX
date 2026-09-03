@@ -6,7 +6,7 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -16,6 +16,7 @@ REGISTRY_FILE = DATA_DIR / "dataset_registry.json"
 
 DATASETS = ["scifact", "arguana", "nfcorpus", "fiqa", "hotpotqa", "nq"]
 
+
 def compute_sha256(filepath: Path) -> str:
     sha256_hash = hashlib.sha256()
     with open(filepath, "rb") as f:
@@ -23,24 +24,30 @@ def compute_sha256(filepath: Path) -> str:
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
 
+
 def is_safe_path(base_path: Path, path: str) -> bool:
     matchpath = os.path.abspath(os.path.join(base_path, path))
     return matchpath.startswith(os.path.abspath(base_path))
+
 
 def validate_beir_structure(raw_dir: Path) -> bool:
     corpus_exists = (raw_dir / "corpus.jsonl").exists()
     queries_exists = (raw_dir / "queries.jsonl").exists()
     qrels_dir = raw_dir / "qrels"
-    qrels_exists = qrels_dir.exists() and qrels_dir.is_dir() and len(list(qrels_dir.glob("*.tsv"))) > 0
+    qrels_exists = (
+        qrels_dir.exists() and qrels_dir.is_dir() and len(list(qrels_dir.glob("*.tsv"))) > 0
+    )
     return corpus_exists and queries_exists and qrels_exists
+
 
 def count_lines(filepath: Path) -> int:
     if not filepath.exists():
         return 0
-    with open(filepath, encoding='utf-8') as f:
+    with open(filepath, encoding="utf-8") as f:
         return sum(1 for _ in f)
 
-def extract_and_register():
+
+def extract_and_register() -> None:
     if not RAW_DIR.exists():
         RAW_DIR.mkdir(parents=True)
 
@@ -62,7 +69,11 @@ def extract_and_register():
 
         # Check if already processed
         current_hash = compute_sha256(zip_path)
-        if dataset in registry and registry[dataset].get("sha256") == current_hash and raw_dataset_dir.exists():
+        if (
+            dataset in registry
+            and registry[dataset].get("sha256") == current_hash
+            and raw_dataset_dir.exists()
+        ):
             logger.info(f"Dataset {dataset} already extracted and up-to-date.")
             continue
 
@@ -72,7 +83,7 @@ def extract_and_register():
         if not raw_dataset_dir.exists():
             raw_dataset_dir.mkdir(parents=True)
 
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             for member in zf.infolist():
                 if not is_safe_path(raw_dataset_dir, member.filename):
                     logger.error(f"Unsafe path detected in {dataset}.zip: {member.filename}")
@@ -92,7 +103,9 @@ def extract_and_register():
                     break
 
         if not validate_beir_structure(beir_root):
-            logger.error(f"BEIR structure validation failed for {dataset}. Missing corpus.jsonl, queries.jsonl, or qrels/*.tsv")
+            logger.error(
+                f"BEIR structure validation failed for {dataset}. Missing corpus.jsonl, queries.jsonl, or qrels/*.tsv"
+            )
             continue
 
         corpus_count = count_lines(beir_root / "corpus.jsonl")
@@ -109,6 +122,7 @@ def extract_and_register():
         # Move files to root of raw_dataset_dir if they were in a subdir to normalize
         if beir_root != raw_dataset_dir:
             import shutil
+
             for item in beir_root.iterdir():
                 dest = raw_dataset_dir / item.name
                 if dest.exists():
@@ -128,13 +142,14 @@ def extract_and_register():
             "qrels_count": qrels_count,
             "available_splits": splits,
             "extraction_timestamp": datetime.now(UTC).isoformat(),
-            "preprocessing_chunking_configuration_version": "v1.0.0"
+            "preprocessing_chunking_configuration_version": "v1.0.0",
         }
 
         with open(REGISTRY_FILE, "w") as f:
             json.dump(registry, f, indent=4)
 
         logger.info(f"Successfully processed and registered {dataset}.")
+
 
 if __name__ == "__main__":
     extract_and_register()

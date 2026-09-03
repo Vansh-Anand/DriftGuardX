@@ -5,21 +5,52 @@ PRIVATE — All Rights Reserved.
 
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 
-TERMINAL_STATES = frozenset({
-    IncidentStatus.CLOSED,
-})
+TERMINAL_STATES = frozenset(
+    {
+        IncidentStatus.CLOSED,
+    }
+)
 
 ALLOWED_TRANSITIONS: dict[IncidentStatus, frozenset[IncidentStatus]] = {
     IncidentStatus.OBSERVING: frozenset({IncidentStatus.FAILURE_DETECTED, IncidentStatus.CLOSED}),
     IncidentStatus.FAILURE_DETECTED: frozenset({IncidentStatus.DIAGNOSING, IncidentStatus.CLOSED}),
-    IncidentStatus.DIAGNOSING: frozenset({IncidentStatus.REPLAYING, IncidentStatus.EVIDENCE_INSUFFICIENT, IncidentStatus.CLOSED}),
-    IncidentStatus.REPLAYING: frozenset({IncidentStatus.REPLAYING, IncidentStatus.EVIDENCE_SUFFICIENT, IncidentStatus.EVIDENCE_INSUFFICIENT, IncidentStatus.CLOSED}),
-    IncidentStatus.EVIDENCE_SUFFICIENT: frozenset({IncidentStatus.RECOVERY_PLANNING, IncidentStatus.CLOSED}),
-    IncidentStatus.EVIDENCE_INSUFFICIENT: frozenset({IncidentStatus.CLOSED}), # Fail closed if no evidence
-    IncidentStatus.RECOVERY_PLANNING: frozenset({IncidentStatus.RECOVERY_VALIDATING, IncidentStatus.RECOVERY_REJECTED, IncidentStatus.CLOSED}),
-    IncidentStatus.RECOVERY_VALIDATING: frozenset({IncidentStatus.AWAITING_AUTHORIZATION, IncidentStatus.RECOVERY_REJECTED, IncidentStatus.CLOSED}),
-    IncidentStatus.AWAITING_AUTHORIZATION: frozenset({IncidentStatus.CANARY, IncidentStatus.RECOVERY_REJECTED, IncidentStatus.CLOSED}),
-    IncidentStatus.CANARY: frozenset({IncidentStatus.RECOVERED, IncidentStatus.RECOVERY_REJECTED, IncidentStatus.CLOSED}),
+    IncidentStatus.DIAGNOSING: frozenset(
+        {IncidentStatus.REPLAYING, IncidentStatus.EVIDENCE_INSUFFICIENT, IncidentStatus.CLOSED}
+    ),
+    IncidentStatus.REPLAYING: frozenset(
+        {
+            IncidentStatus.REPLAYING,
+            IncidentStatus.EVIDENCE_SUFFICIENT,
+            IncidentStatus.EVIDENCE_INSUFFICIENT,
+            IncidentStatus.CLOSED,
+        }
+    ),
+    IncidentStatus.EVIDENCE_SUFFICIENT: frozenset(
+        {IncidentStatus.RECOVERY_PLANNING, IncidentStatus.CLOSED}
+    ),
+    IncidentStatus.EVIDENCE_INSUFFICIENT: frozenset(
+        {IncidentStatus.CLOSED}
+    ),  # Fail closed if no evidence
+    IncidentStatus.RECOVERY_PLANNING: frozenset(
+        {
+            IncidentStatus.RECOVERY_VALIDATING,
+            IncidentStatus.RECOVERY_REJECTED,
+            IncidentStatus.CLOSED,
+        }
+    ),
+    IncidentStatus.RECOVERY_VALIDATING: frozenset(
+        {
+            IncidentStatus.AWAITING_AUTHORIZATION,
+            IncidentStatus.RECOVERY_REJECTED,
+            IncidentStatus.CLOSED,
+        }
+    ),
+    IncidentStatus.AWAITING_AUTHORIZATION: frozenset(
+        {IncidentStatus.CANARY, IncidentStatus.RECOVERY_REJECTED, IncidentStatus.CLOSED}
+    ),
+    IncidentStatus.CANARY: frozenset(
+        {IncidentStatus.RECOVERED, IncidentStatus.RECOVERY_REJECTED, IncidentStatus.CLOSED}
+    ),
     IncidentStatus.RECOVERED: frozenset({IncidentStatus.CLOSED}),
     IncidentStatus.RECOVERY_REJECTED: frozenset({IncidentStatus.CLOSED}),
     IncidentStatus.CLOSED: frozenset(),
@@ -44,8 +75,6 @@ class IncidentStateMachine:
         # Log to telemetry
         if "transition_log" not in self.state.telemetry:
             self.state.telemetry["transition_log"] = []
-        self.state.telemetry["transition_log"].append({
-            "from": self.state.status.value,
-            "to": to_status.value,
-            "reason": reason
-        })
+        self.state.telemetry["transition_log"].append(
+            {"from": self.state.status.value, "to": to_status.value, "reason": reason}
+        )

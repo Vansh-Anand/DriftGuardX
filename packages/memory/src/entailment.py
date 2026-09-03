@@ -5,23 +5,28 @@ from typing import Protocol
 class EntailmentUnavailableError(Exception):
     pass
 
+
 @dataclass
 class EntailmentDecision:
     claim: str
-    classification: str # SUPPORTED, CONTRADICTED, UNSUPPORTED, UNKNOWN
+    classification: str  # SUPPORTED, CONTRADICTED, UNSUPPORTED, UNKNOWN
     confidence: float
     supporting_source_ids: list[str]
     provider_version: str
 
+
 class EntailmentProvider(Protocol):
-    def check_entailment(self, premise: str, hypothesis: str, source_id: str) -> EntailmentDecision:
-        ...
+    def check_entailment(
+        self, premise: str, hypothesis: str, source_id: str
+    ) -> EntailmentDecision: ...
+
 
 class FakeEntailmentProvider:
     """
     TEST ONLY. Uses simple lexical overlap.
     DO NOT use in production.
     """
+
     def check_entailment(self, premise: str, hypothesis: str, source_id: str) -> EntailmentDecision:
         hypothesis_lower = hypothesis.lower()
 
@@ -51,17 +56,20 @@ class FakeEntailmentProvider:
             classification=c,
             confidence=overlap,
             supporting_source_ids=[source_id] if c == "SUPPORTED" else [],
-            provider_version="fake-lexical-v1"
+            provider_version="fake-lexical-v1",
         )
+
 
 class SentenceTransformerNLIProvider:
     """
     REAL NLI implementation using a cross-encoder model.
     """
+
     def __init__(self, model_name: str = "cross-encoder/nli-deberta-v3-small"):
         self.provider_version = f"sentence-transformers/{model_name}"
         try:
             from sentence_transformers import CrossEncoder
+
             self.model = CrossEncoder(model_name)
         except ImportError:
             raise EntailmentUnavailableError(
@@ -76,8 +84,10 @@ class SentenceTransformerNLIProvider:
             raw_labels = [self.model.model.config.id2label[i].lower() for i in range(len(scores))]
 
             def translate_label(label: str) -> str:
-                if 'contradiction' in label: return "CONTRADICTED"
-                if 'entailment' in label: return "SUPPORTED"
+                if "contradiction" in label:
+                    return "CONTRADICTED"
+                if "entailment" in label:
+                    return "SUPPORTED"
                 return "UNSUPPORTED"
 
             label_mapping = [translate_label(lbl) for lbl in raw_labels]
@@ -87,18 +97,17 @@ class SentenceTransformerNLIProvider:
 
             # Simple softmax for confidence
             import numpy as np
+
             exp_scores = np.exp(scores - np.max(scores))
             probs = exp_scores / exp_scores.sum()
             confidence = float(probs[best_idx])
-
-
 
             return EntailmentDecision(
                 claim=hypothesis,
                 classification=classification,
                 confidence=confidence,
                 supporting_source_ids=[source_id] if classification == "SUPPORTED" else [],
-                provider_version=self.provider_version
+                provider_version=self.provider_version,
             )
         except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             return EntailmentDecision(
@@ -106,14 +115,16 @@ class SentenceTransformerNLIProvider:
                 classification="UNKNOWN",
                 confidence=0.0,
                 supporting_source_ids=[],
-                provider_version=self.provider_version
+                provider_version=self.provider_version,
             )
+
 
 def get_entailment_provider(force_real: bool = False) -> EntailmentProvider:
     """
     Returns an appropriate NLI provider based on DGX_MODE.
     """
     from apps.api.src.config import RuntimeSecurityConfig
+
     config = RuntimeSecurityConfig.load()
     if force_real or not config.allow_fake_encoders:
         return SentenceTransformerNLIProvider()

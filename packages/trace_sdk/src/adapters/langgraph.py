@@ -3,6 +3,7 @@ DriftGuard-X v2 — LangGraph Adapter
 
 Callback handler to automatically instrument LangGraph node and edge transitions.
 """
+
 from typing import Any
 
 from packages.contracts.src.models import ComponentType, SpanKind
@@ -14,6 +15,7 @@ class LangGraphTracer:
     Middleware adapter for LangGraph. Injects into Graph execution
     to capture state transitions and tool outputs.
     """
+
     def __init__(self, trace_ctx: TraceContext, component_versions: dict[str, dict]):
         self.trace_ctx = trace_ctx
         self.component_versions = component_versions

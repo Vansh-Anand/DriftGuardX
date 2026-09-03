@@ -1,3 +1,4 @@
+import contextlib
 import os
 import sys
 import time
@@ -51,10 +52,8 @@ def memory_bomb_func():
 
 def fork_bomb_func():
     for _ in range(100):
-        try:
+        with contextlib.suppress(OSError):
             os.fork()
-        except OSError:
-            pass
     return "forked"
 
 

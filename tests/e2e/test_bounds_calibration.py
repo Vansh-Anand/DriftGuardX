@@ -9,6 +9,7 @@ Covers all acceptance gates:
   [4] Certificates include machine-readable assumption/calibration fields.
   [5] CERTIFIED status blocked when certification requirements unmet.
 """
+
 from __future__ import annotations
 
 import random
@@ -41,6 +42,7 @@ from packages.evaluation.src.coverage_monitor import (
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _make_iid_rewards(n: int, mean: float = 0.7, seed: int = 42) -> list[float]:
     rng = random.Random(seed)
     return [max(0.0, min(1.0, mean + rng.uniform(-0.15, 0.15))) for _ in range(n)]
@@ -55,6 +57,7 @@ def _expired_dt() -> datetime:
 
 
 # ─── [1] Supported regime: Hoeffding ──────────────────────────────────────────
+
 
 def test_hoeffding_bound_is_supported_with_sufficient_n():
     obs = _make_iid_rewards(40)
@@ -80,6 +83,7 @@ def test_hoeffding_low_n_still_supported_but_warns():
 
 
 # ─── [2] Stress test: unsupported bound returned when assumptions violated ────
+
 
 def test_hoeffding_returns_unsupported_when_reward_out_of_range():
     """Rewards outside [0,1] → Hoeffding boundedness assumption violated."""
@@ -108,6 +112,7 @@ def test_conformal_returns_unsupported_on_small_calibration():
 
 # ─── [3] Analytic vs empirical compared fairly ────────────────────────────────
 
+
 def test_bootstrap_bound_is_tighter_than_hoeffding_on_same_data():
     """
     For well-behaved i.i.d. data, the bootstrap interval should be tighter
@@ -120,16 +125,16 @@ def test_bootstrap_bound_is_tighter_than_hoeffding_on_same_data():
     assert h.is_supported and b.is_supported
     hoeffding_width = h.upper - h.lower
     bootstrap_width = b.upper - b.lower
-    assert bootstrap_width < hoeffding_width, (
-        f"Expected bootstrap ({bootstrap_width:.4f}) < hoeffding ({hoeffding_width:.4f})"
-    )
+    assert (
+        bootstrap_width < hoeffding_width
+    ), f"Expected bootstrap ({bootstrap_width:.4f}) < hoeffding ({hoeffding_width:.4f})"
 
 
 def test_conformal_coverage_satisfied():
     """Conformal interval provides marginal coverage on held-out test scores."""
     rng = random.Random(0)
     cal_scores = [rng.uniform(0, 0.3) for _ in range(50)]
-    test_scores = [rng.uniform(0, 0.3) for _ in range(30)]
+    [rng.uniform(0, 0.3) for _ in range(30)]
 
     result = conformal_bound(cal_scores, new_score=0.15, nominal_confidence=0.90)
     assert result.is_supported is True
@@ -138,6 +143,7 @@ def test_conformal_coverage_satisfied():
 
 
 # ─── [4] Calibration: machine-readable fields ─────────────────────────────────
+
 
 def test_calibration_coverage_report_fields():
     """CoverageReport contains all required machine-readable fields."""
@@ -173,6 +179,7 @@ def test_undercoverage_alert_triggered():
 
 # ─── [5] Certification gating ────────────────────────────────────────────────
 
+
 def test_certify_returns_certified_when_all_gates_pass():
     obs = _make_iid_rewards(40)
     bound = hoeffding_bound(obs, nominal_confidence=0.90)
@@ -198,7 +205,7 @@ def test_certify_returns_uncertified_when_calibration_expired():
         n_episodes=40,
         valid_replays=38,
         total_replays=40,
-        last_calibrated_at=_expired_dt(),   # 40 days old
+        last_calibrated_at=_expired_dt(),  # 40 days old
         observed_coverage=0.89,
     )
     assert decision.status == "UNCERTIFIED"
@@ -243,6 +250,7 @@ def test_certify_blocked_when_insufficient_episodes():
 
 # ─── [5b] Coverage Monitor: downgrade on expired calibration ──────────────────
 
+
 def test_coverage_monitor_downgrade_on_expiry():
     ds = CalibrationDataset()
     # Add stale episodes (40 days old)
@@ -272,7 +280,8 @@ def test_coverage_monitor_no_downgrade_for_uncertified():
         ds.add(CalibrationEpisode(lower=0.5, upper=0.9, ground_truth=0.7, recorded_at=old_dt))
 
     monitor = CoverageMonitor(dataset=ds, max_calibration_age_days=30)
-    event = DiagnosisEvent(run_id="run_uncert", certificate_status="UNCERTIFIED",
-                           issued_at=datetime.now(UTC))
+    event = DiagnosisEvent(
+        run_id="run_uncert", certificate_status="UNCERTIFIED", issued_at=datetime.now(UTC)
+    )
     downgrades = monitor.process_event(event)
     assert len(downgrades) == 0

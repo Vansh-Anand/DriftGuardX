@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Intervention Catalog
 PRIVATE — All Rights Reserved.
 """
+
 from pydantic import BaseModel, Field
 
 from packages.contracts.src.models import ComponentType, InterventionType
@@ -32,7 +33,7 @@ class InterventionCatalog:
                     estimated_cost_usd=0.01,
                     risk_tier="medium",
                     rollback_strategy="Pointer swap",
-                    required_approvals=["eng_lead"]
+                    required_approvals=["eng_lead"],
                 ),
                 InterventionSchema(
                     intervention_type=InterventionType.CONFIG_PATCH,
@@ -40,7 +41,7 @@ class InterventionCatalog:
                     estimated_cost_usd=0.00,
                     risk_tier="low",
                     rollback_strategy="Dynamic config update",
-                )
+                ),
             ],
             ComponentType.GENERATOR: [
                 InterventionSchema(
@@ -50,7 +51,7 @@ class InterventionCatalog:
                     risk_tier="high",
                     rollback_strategy="Router fallback",
                     required_approvals=["eng_lead", "cost_owner"],
-                    compatibility_constraints=["Requires matching context window"]
+                    compatibility_constraints=["Requires matching context window"],
                 )
             ],
             ComponentType.POLICY_CHECK: [
@@ -60,7 +61,7 @@ class InterventionCatalog:
                     estimated_cost_usd=0.00,
                     risk_tier="critical",
                     rollback_strategy="Re-enable flag",
-                    required_approvals=["security_team", "legal"]
+                    required_approvals=["security_team", "legal"],
                 )
-            ]
+            ],
         }

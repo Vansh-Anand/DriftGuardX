@@ -6,6 +6,7 @@ Never auto-applies mutations to production state.
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import enum
@@ -29,6 +30,7 @@ class PolicyRisk(str, enum.Enum):
 @dataclass
 class PolicyRequest:
     """A request for policy evaluation."""
+
     action: str
     resource: str
     context: dict[str, Any] = field(default_factory=dict)
@@ -38,6 +40,7 @@ class PolicyRequest:
 @dataclass
 class PolicyResult:
     """Result of a policy evaluation."""
+
     action: PolicyAction
     rule_id: str
     rationale: str
@@ -47,6 +50,7 @@ class PolicyResult:
 
 
 # ─── Built-in Rules ───────────────────────────────────────────────────────────
+
 
 class PolicyGate:
     """
@@ -144,7 +148,9 @@ class PolicyGate:
 _default_gate = PolicyGate()
 
 
-def evaluate_policy(action: str, resource: str, context: dict[str, Any] | None = None) -> PolicyResult:
+def evaluate_policy(
+    action: str, resource: str, context: dict[str, Any] | None = None
+) -> PolicyResult:
     """Evaluate an action against the default policy gate."""
     request = PolicyRequest(action=action, resource=resource, context=context or {})
     return _default_gate.evaluate(request)

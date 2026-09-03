@@ -4,6 +4,7 @@ PRIVATE — All Rights Reserved.
 
 Immutable append-only audit trail for security and governance operations.
 """
+
 from typing import Any
 from uuid import UUID
 
@@ -24,7 +25,7 @@ class AuditService:
         action: str,
         resource_type: str,
         resource_id: str,
-        metadata: dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> AuditEventORM:
         """
         Record an immutable audit event in the database.

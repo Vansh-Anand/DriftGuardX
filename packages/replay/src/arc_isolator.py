@@ -19,7 +19,7 @@ class HardwareDataSink:
         self._quarantine: list[dict[str, Any]] = []
         self._lock = threading.Lock()
 
-    def commit(self, action_type: str, payload: dict[str, Any]):
+    def commit(self, action_type: str, payload: dict[str, Any]) -> None:
         with self._lock:
             self._quarantine.append({"type": action_type, "payload": payload})
 
@@ -27,7 +27,7 @@ class HardwareDataSink:
         with self._lock:
             return list(self._quarantine)
 
-    def clear(self):
+    def clear(self) -> None:
         with self._lock:
             self._quarantine.clear()
 
@@ -42,7 +42,7 @@ class MockSocket:
         self.type = type
         self.proto = proto
 
-    def connect(self, address):
+    def connect(self, address) -> None:
         data_sink.commit("NETWORK_CALL", {"event": "socket.connect", "address": address})
         # Synthetic mock behavior: return immediately
 
@@ -50,11 +50,11 @@ class MockSocket:
         data_sink.commit("NETWORK_CALL", {"event": "socket.send", "data": data})
         return len(data)
 
-    def recv(self, bufsize):
+    def recv(self, bufsize) -> bytes:
         # Synthetic loopback data
         return b'HTTP/1.1 200 OK\r\n\r\n{"mock": "arc_isolated_response"}'
 
-    def close(self):
+    def close(self) -> None:
         pass
 
     def __enter__(self):
@@ -80,7 +80,7 @@ class ARCIsolator:
         if self.is_active:
             return
 
-        def mock_system(command):
+        def mock_system(command) -> int:
             data_sink.commit("SHELL_EXEC", {"event": "os.system", "command": command})
             # Return successful status code in loopback
             return 0

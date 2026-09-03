@@ -11,6 +11,7 @@ Coverage is measured at nominal levels [0.80, 0.90, 0.95, 0.99] and compared
 to observed fractions.  An UndercoverageAlert is issued when the gap between
 nominal and observed coverage exceeds MAX_UNDERCOVERAGE_GAP.
 """
+
 from __future__ import annotations
 
 import math
@@ -19,12 +20,13 @@ from datetime import UTC, datetime
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 NOMINAL_LEVELS = [0.80, 0.90, 0.95, 0.99]
-MAX_UNDERCOVERAGE_GAP = 0.05   # alert if empirical < nominal - gap
-MIN_CAL_EPISODES = 20          # minimum calibration episodes for a valid report
+MAX_UNDERCOVERAGE_GAP = 0.05  # alert if empirical < nominal - gap
+MIN_CAL_EPISODES = 20  # minimum calibration episodes for a valid report
 CALIBRATION_SCHEMA_VERSION = "v1.0"
 
 
 # ─── Data Structures ──────────────────────────────────────────────────────────
+
 
 @dataclass
 class CalibrationEpisode:
@@ -36,6 +38,7 @@ class CalibrationEpisode:
     fault_type:    optional tag for subgroup analysis.
     component_layer: optional tag for subgroup analysis.
     """
+
     lower: float
     upper: float
     ground_truth: float
@@ -57,14 +60,15 @@ class UndercoverageAlert:
 class CoverageReport:
     schema_version: str
     n_episodes: int
-    is_valid: bool                          # False if n < MIN_CAL_EPISODES
-    coverage_by_level: dict[float, float]   # nominal -> observed
+    is_valid: bool  # False if n < MIN_CAL_EPISODES
+    coverage_by_level: dict[float, float]  # nominal -> observed
     alerts: list[UndercoverageAlert]
     subgroup_coverage: dict[str, dict[float, float]]  # group -> nominal -> observed
     generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ─── Calibration Dataset ──────────────────────────────────────────────────────
+
 
 class CalibrationDataset:
     """
@@ -88,6 +92,7 @@ class CalibrationDataset:
 
 
 # ─── Coverage Calculator ──────────────────────────────────────────────────────
+
 
 def _coverage_for_level(
     episodes: list[CalibrationEpisode],
@@ -121,16 +126,18 @@ def measure_coverage(dataset: CalibrationDataset) -> CoverageReport:
         coverage_by_level[level] = obs
         gap = level - obs
         if gap > MAX_UNDERCOVERAGE_GAP:
-            alerts.append(UndercoverageAlert(
-                nominal_confidence=level,
-                observed_coverage=obs,
-                gap=gap,
-                n_episodes=n,
-                message=(
-                    f"Undercoverage at {level*100:.0f}%: "
-                    f"observed={obs:.3f}, gap={gap:.3f} > threshold={MAX_UNDERCOVERAGE_GAP}"
-                ),
-            ))
+            alerts.append(
+                UndercoverageAlert(
+                    nominal_confidence=level,
+                    observed_coverage=obs,
+                    gap=gap,
+                    n_episodes=n,
+                    message=(
+                        f"Undercoverage at {level*100:.0f}%: "
+                        f"observed={obs:.3f}, gap={gap:.3f} > threshold={MAX_UNDERCOVERAGE_GAP}"
+                    ),
+                )
+            )
 
     # Subgroup analysis by fault_type
     subgroup_coverage: dict[str, dict[float, float]] = {}
@@ -160,6 +167,7 @@ def measure_coverage(dataset: CalibrationDataset) -> CoverageReport:
 
 
 # ─── Conformal Calibration Baseline ──────────────────────────────────────────
+
 
 def conformal_coverage_check(
     calibration_scores: list[float],

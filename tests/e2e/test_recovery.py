@@ -68,8 +68,9 @@ def _mock_cert():
         executor_image_digest="mock_digest",
         timestamp=datetime.now(UTC),
         signer_identity="mock_signer",
-        signature_b64="sig"
+        signature_b64="sig",
     )
+
 
 import packages.recovery.src.engine as engine_module
 
@@ -78,6 +79,7 @@ import packages.recovery.src.engine as engine_module
 def _accept_mock_rec_signatures(monkeypatch):
     """Scope the mock verifier to this module's individual tests."""
     monkeypatch.setattr(engine_module, "verify_signature", lambda *args: True)
+
 
 def _make_executor() -> tuple[LocalDevExecutor, CapsuleRegistry]:
     reg = CapsuleRegistry()
@@ -111,25 +113,39 @@ def _rollback_proposal(
 def _passing_canary(n: int = 5) -> list[CanaryEpisode]:
     return [
         CanaryEpisode(
-            episode_id=f"ep_{i}", baseline_quality=0.7, baseline_cost_usd=0.10,
-            baseline_latency_ms=200.0, baseline_safe=True,
-            post_quality=0.75, post_cost_usd=0.10, post_latency_ms=195.0, post_safe=True,
-        ) for i in range(n)
+            episode_id=f"ep_{i}",
+            baseline_quality=0.7,
+            baseline_cost_usd=0.10,
+            baseline_latency_ms=200.0,
+            baseline_safe=True,
+            post_quality=0.75,
+            post_cost_usd=0.10,
+            post_latency_ms=195.0,
+            post_safe=True,
+        )
+        for i in range(n)
     ]
 
 
 def _failing_canary(n: int = 5) -> list[CanaryEpisode]:
     return [
         CanaryEpisode(
-            episode_id=f"ep_{i}", baseline_quality=0.7, baseline_cost_usd=0.10,
-            baseline_latency_ms=200.0, baseline_safe=True,
+            episode_id=f"ep_{i}",
+            baseline_quality=0.7,
+            baseline_cost_usd=0.10,
+            baseline_latency_ms=200.0,
+            baseline_safe=True,
             post_quality=0.50,  # big quality drop
-            post_cost_usd=0.50, post_latency_ms=500.0, post_safe=False,
-        ) for i in range(n)
+            post_cost_usd=0.50,
+            post_latency_ms=500.0,
+            post_safe=False,
+        )
+        for i in range(n)
     ]
 
 
 # ─── [GOLDEN] Full flow ────────────────────────────────────────────────────────
+
 
 def test_golden_rollback_full_flow():
     """PREPARE → EXECUTE → VERIFY → COMMITTED with passing canary."""
@@ -137,7 +153,9 @@ def test_golden_rollback_full_flow():
     engine = RecoveryEngine(ex, reg)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION)
-    record = engine.run(proposal, _passing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
+    record = engine.run(
+        proposal, _passing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock"
+    )
 
     assert record.machine.current_status == RecoveryStatus.COMMITTED
     assert record.execution_result is not None
@@ -157,6 +175,7 @@ def test_golden_rollback_full_flow():
 
 # ─── [F1] Stale version ────────────────────────────────────────────────────────
 
+
 def test_stale_version_aborts_execution():
     """Optimistic lock: wrong expected_version_id → StaleVersionError."""
     ex, reg = _make_executor()
@@ -167,6 +186,7 @@ def test_stale_version_aborts_execution():
 
 
 # ─── [F2] Duplicate idempotency ───────────────────────────────────────────────
+
 
 def test_duplicate_idempotency_key_suppressed():
     """Second call with same idempotency key raises IdempotencyConflictError."""
@@ -180,13 +200,16 @@ def test_duplicate_idempotency_key_suppressed():
 
 # ─── [F3] Canary failure → automatic compensation ─────────────────────────────
 
+
 def test_canary_failure_triggers_compensated():
     """Failing canary causes automatic COMPENSATING → COMPENSATED."""
     ex, reg = _make_executor()
     engine = RecoveryEngine(ex, reg, auto_compensate_on_verify_failure=True)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION)
-    record = engine.run(proposal, _failing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
+    record = engine.run(
+        proposal, _failing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock"
+    )
 
     assert record.machine.current_status == RecoveryStatus.COMPENSATED
     assert record.canary_result.overall_pass is False
@@ -196,33 +219,36 @@ def test_canary_failure_triggers_compensated():
 
 # ─── [F4] Compensation failure → FAILED ───────────────────────────────────────
 
+
 def test_compensation_failure_leads_to_failed_and_escalation():
     """When no capsule is available, compensation fails → FAILED + escalation."""
     ex, reg = _make_executor()
     engine = RecoveryEngine(ex, reg, auto_compensate_on_verify_failure=True)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION, idem_key="idem_no_cap")
-    record = engine.run(proposal, _failing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
+    record = engine.run(
+        proposal, _failing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock"
+    )
     # After canary failure, capsule lookup returns None only if capsule wasn't stored.
     # We simulate this by voiding the capsule.
     if record.capsule:
         reg.void(record.capsule.capsule_id)
-        record.capsule = None   # clear reference
+        record.capsule = None  # clear reference
 
     # Run a second proposal that will fail canary and have no usable capsule
-    proposal2 = _rollback_proposal(
-        mode=ExecutionMode.SIMULATION, idem_key="idem_no_cap2",
+    _rollback_proposal(
+        mode=ExecutionMode.SIMULATION,
+        idem_key="idem_no_cap2",
         params={"component_id": "retriever_v2", "new_top_k": 25},
     )
     # Manually simulate no capsule scenario by re-entering the engine
     # with a mock record — verify escalation_log populated on FAILED
     # (this is covered by the no-capsule path in _compensate)
-    assert record.machine.current_status in (
-        RecoveryStatus.COMPENSATED, RecoveryStatus.FAILED
-    )
+    assert record.machine.current_status in (RecoveryStatus.COMPENSATED, RecoveryStatus.FAILED)
 
 
 # ─── [F5] Invalid rollback (expired capsule) ──────────────────────────────────
+
 
 def test_expired_capsule_blocks_rollback():
     """A capsule past its expires_at must not be used for automatic rollback."""
@@ -248,6 +274,7 @@ def test_expired_capsule_blocks_rollback():
 
 # ─── [F6] Repeated request ────────────────────────────────────────────────────
 
+
 def test_repeated_request_same_idempotency_key():
     """
     Identical proposal replayed → second call blocked by idempotency check.
@@ -262,6 +289,7 @@ def test_repeated_request_same_idempotency_key():
 
 
 # ─── [POLICY] HIGH action blocked without approval ────────────────────────────
+
 
 def test_high_tier_action_blocked_by_policy_deny():
     """Recovery engine blocks when policy_decision == 'deny'."""
@@ -281,14 +309,17 @@ def test_high_tier_action_blocked_by_policy_deny():
             "expected_current_version_id": "ver_A",
         },
         execution_mode=ExecutionMode.SIMULATION,
-        policy_decision="deny",    # ← denied
+        policy_decision="deny",  # ← denied
     )
-    record = engine.run(proposal, _passing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock")
+    record = engine.run(
+        proposal, _passing_canary(), certificate=_mock_cert(), signer_public_key_b64="mock"
+    )
     assert record.machine.current_status == RecoveryStatus.FAILED
     assert any("Policy DENY" in e for e in record.escalation_log)
 
 
 # ─── [POLICY] DRY_RUN no side effects ────────────────────────────────────────
+
 
 def test_dry_run_produces_no_side_effects():
     """DRY_RUN mode must not mutate any fixture state."""
@@ -306,16 +337,19 @@ def test_dry_run_produces_no_side_effects():
 
 # ─── [CANCEL] Operator cancellation ──────────────────────────────────────────
 
+
 def test_operator_cancellation_before_execution():
     """Operator can cancel a recovery in PENDING_APPROVAL state."""
     ex, reg = _make_executor()
     engine = RecoveryEngine(ex, reg)
 
     proposal = _rollback_proposal(mode=ExecutionMode.SIMULATION)
-    proposal.policy_decision = "needs_approval"   # forces PENDING_APPROVAL
+    proposal.policy_decision = "needs_approval"  # forces PENDING_APPROVAL
     proposal.approval_request_id = None
 
-    record = engine.run(proposal, [], certificate=_mock_cert(), signer_public_key_b64="mock")   # stops at PENDING_APPROVAL
+    record = engine.run(
+        proposal, [], certificate=_mock_cert(), signer_public_key_b64="mock"
+    )  # stops at PENDING_APPROVAL
     assert record.machine.current_status == RecoveryStatus.PENDING_APPROVAL
 
     engine.cancel(proposal.proposal_id, actor="operator_bob")
@@ -323,6 +357,7 @@ def test_operator_cancellation_before_execution():
 
 
 # ─── [SM] Invalid state transition ───────────────────────────────────────────
+
 
 def test_invalid_state_transition_raises():
     """State machine must reject illegal transitions."""
@@ -339,6 +374,7 @@ def test_invalid_state_transition_raises():
 
 
 # ─── [CAPSULE] Integrity ──────────────────────────────────────────────────────
+
 
 def test_capsule_integrity_tamper_detected():
     """A tampered capsule must fail integrity check."""
@@ -359,6 +395,7 @@ def test_capsule_integrity_tamper_detected():
 
 
 # ─── Param validation ─────────────────────────────────────────────────────────
+
 
 def test_missing_required_param_raises():
     """A proposal with missing required param must be rejected before execution."""
@@ -383,6 +420,7 @@ def test_unknown_param_raises():
 
 
 # ─── Canary verification thresholds ──────────────────────────────────────────
+
 
 def test_canary_safety_violation_fails():
     """Post-action safety violations block COMMITTED."""

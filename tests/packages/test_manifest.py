@@ -24,17 +24,20 @@ def get_base_manifest():
         random_seed=42,
         container_image_digest="digest",
         dependency_lockfile_hash="pip_hash",
-        trace_root_hash="trace_hash"
+        trace_root_hash="trace_hash",
     )
+
 
 def test_manifest_is_fully_pinned():
     manifest = get_base_manifest()
     assert manifest.is_fully_pinned() is True
 
+
 def test_manifest_missing_dependency():
     manifest = get_base_manifest()
     manifest.corpus_version_id = None
     assert manifest.is_fully_pinned() is False
+
 
 def test_manifest_hash_changes_on_prompt_change():
     m1 = get_base_manifest()
@@ -45,6 +48,7 @@ def test_manifest_hash_changes_on_prompt_change():
 
     assert m1.compute_hash() != m2.compute_hash()
 
+
 def test_manifest_hash_changes_on_index_change():
     m1 = get_base_manifest()
     m1.vector_index_snapshot_id = "v1"
@@ -53,6 +57,7 @@ def test_manifest_hash_changes_on_index_change():
     m2.vector_index_snapshot_id = "v2"
 
     assert m1.compute_hash() != m2.compute_hash()
+
 
 def test_manifest_hash_changes_on_retriever_settings_change():
     m1 = get_base_manifest()

@@ -3,6 +3,7 @@ Unit tests: Dynamic Causal Divergence Validator.
 Tests frozen-state detection, forbidden divergence early termination,
 causal reachability, and tolerance rules.
 """
+
 import os
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
@@ -34,9 +35,7 @@ def _make_envelope(**kwargs) -> ReplayEquivalenceEnvelope:
 
 
 def _snap(outputs: dict) -> ExecutionSnapshot:
-    return ExecutionSnapshot(
-        nodes={k: NodeState(node_id=k, output=v) for k, v in outputs.items()}
-    )
+    return ExecutionSnapshot(nodes={k: NodeState(node_id=k, output=v) for k, v in outputs.items()})
 
 
 class TestDivergenceValidator:
@@ -60,9 +59,7 @@ class TestDivergenceValidator:
     def test_frozen_variable_violation_detected(self):
         orig = _snap({"policy_gate": "expected_val"})
         replay = _snap({"policy_gate": "TAMPERED_val"})
-        env = _make_envelope(
-            frozen_variables={"policy_gate": _stable_hash("expected_val")}
-        )
+        env = _make_envelope(frozen_variables={"policy_gate": _stable_hash("expected_val")})
         report = self.validator.validate(orig, replay, env)
         assert not report.valid
         assert "policy_gate" in report.violated_frozen_nodes
@@ -87,7 +84,9 @@ class TestDivergenceValidator:
             # cache is not allowed to change — it stays the same in replay, so no violation
         )
         report = self.validator.validate(orig, replay, env)
-        assert report.valid, f"Allowed descendant + intervened node changes should be valid: {report.reason} | {report.per_node}"
+        assert (
+            report.valid
+        ), f"Allowed descendant + intervened node changes should be valid: {report.reason} | {report.per_node}"
 
     def test_unexpected_non_descendant_change_fails(self):
         orig = _snap({"retriever": "old", "unrelated_cache": "cached_val"})
@@ -102,18 +101,14 @@ class TestDivergenceValidator:
     def test_numeric_tolerance_passes_within_threshold(self):
         orig = _snap({"score": 0.85})
         replay = _snap({"score": 0.87})
-        env = _make_envelope(
-            constraints={"score": {"type": "numeric_delta", "threshold": 0.05}}
-        )
+        env = _make_envelope(constraints={"score": {"type": "numeric_delta", "threshold": 0.05}})
         report = self.validator.validate(orig, replay, env)
         assert report.valid, f"Within tolerance should pass: {report.reason}"
 
     def test_numeric_tolerance_fails_outside_threshold(self):
         orig = _snap({"score": 0.85})
         replay = _snap({"score": 0.50})
-        env = _make_envelope(
-            constraints={"score": {"type": "numeric_delta", "threshold": 0.05}}
-        )
+        env = _make_envelope(constraints={"score": {"type": "numeric_delta", "threshold": 0.05}})
         report = self.validator.validate(orig, replay, env)
         assert not report.valid
 
@@ -125,5 +120,6 @@ class TestDivergenceValidator:
 
     def test_bool_conversion(self):
         from packages.contracts.src.interfaces import DivergenceReport
+
         assert DivergenceReport(valid=True)
         assert not DivergenceReport(valid=False)

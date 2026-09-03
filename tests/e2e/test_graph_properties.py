@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Graph Property Tests
 """
+
 from uuid import uuid4
 
 import pytest
@@ -21,12 +22,17 @@ def test_graph_hash_deterministic():
             run_id=run_id,
             nodes=[
                 GraphNode(id="event:1", type=NodeType.QUERY, label="query_1"),
-                GraphNode(id="event:2", type=NodeType.RETRIEVER, label="retriever_1")
+                GraphNode(id="event:2", type=NodeType.RETRIEVER, label="retriever_1"),
             ],
             edges=[
-                GraphEdge(id="event:1->event:2", source="event:1", target="event:2", type=EdgeType.CONTROL_FLOW)
+                GraphEdge(
+                    id="event:1->event:2",
+                    source="event:1",
+                    target="event:2",
+                    type=EdgeType.CONTROL_FLOW,
+                )
             ],
-            trace_digest="digest_123"
+            trace_digest="digest_123",
         )
 
     g1 = create_graph()
@@ -45,12 +51,18 @@ def test_graph_hash_deterministic():
         run_id=run_id,
         nodes=g1.nodes,
         edges=[
-            GraphEdge(id="event:1->event:2", source="event:1", target="event:2", type=EdgeType.DATA_DEPENDENCY)
+            GraphEdge(
+                id="event:1->event:2",
+                source="event:1",
+                target="event:2",
+                type=EdgeType.DATA_DEPENDENCY,
+            )
         ],
-        trace_digest="digest_123"
+        trace_digest="digest_123",
     )
 
     assert g1.graph_hash != g4.graph_hash
+
 
 def test_graph_validation_orphans():
     graph = CausalGraph(
@@ -58,14 +70,15 @@ def test_graph_validation_orphans():
         run_id=uuid4(),
         nodes=[
             GraphNode(id="event:1", type=NodeType.QUERY, label="query_1"),
-            GraphNode(id="event:2", type=NodeType.RETRIEVER, label="retriever_1")
+            GraphNode(id="event:2", type=NodeType.RETRIEVER, label="retriever_1"),
         ],
         edges=[],  # Empty edges means both are orphans
-        trace_digest="digest"
+        trace_digest="digest",
     )
 
     with pytest.raises(GraphValidationError, match="Orphan node"):
         GraphValidator.validate(graph)
+
 
 def test_graph_validation_cycles():
     graph = CausalGraph(
@@ -73,17 +86,18 @@ def test_graph_validation_cycles():
         run_id=uuid4(),
         nodes=[
             GraphNode(id="event:1", type=NodeType.QUERY, label="query_1"),
-            GraphNode(id="event:2", type=NodeType.RETRIEVER, label="retriever_1")
+            GraphNode(id="event:2", type=NodeType.RETRIEVER, label="retriever_1"),
         ],
         edges=[
             GraphEdge(id="e1", source="event:1", target="event:2", type=EdgeType.CONTROL_FLOW),
-            GraphEdge(id="e2", source="event:2", target="event:1", type=EdgeType.DATA_DEPENDENCY)
+            GraphEdge(id="e2", source="event:2", target="event:1", type=EdgeType.DATA_DEPENDENCY),
         ],
-        trace_digest="digest"
+        trace_digest="digest",
     )
 
     with pytest.raises(GraphValidationError, match="cycle"):
         GraphValidator.validate(graph)
+
 
 def test_graph_validation_permitted_cycles():
     graph = CausalGraph(
@@ -91,13 +105,13 @@ def test_graph_validation_permitted_cycles():
         run_id=uuid4(),
         nodes=[
             GraphNode(id="event:1", type=NodeType.MEMORY, label="memory_1"),
-            GraphNode(id="event:2", type=NodeType.MODEL, label="model_1")
+            GraphNode(id="event:2", type=NodeType.MODEL, label="model_1"),
         ],
         edges=[
             GraphEdge(id="e1", source="event:1", target="event:2", type=EdgeType.MEMORY_INFLUENCE),
-            GraphEdge(id="e2", source="event:2", target="event:1", type=EdgeType.MEMORY_INFLUENCE)
+            GraphEdge(id="e2", source="event:2", target="event:1", type=EdgeType.MEMORY_INFLUENCE),
         ],
-        trace_digest="digest"
+        trace_digest="digest",
     )
 
     # Memory loops are permitted, so this should not raise an error

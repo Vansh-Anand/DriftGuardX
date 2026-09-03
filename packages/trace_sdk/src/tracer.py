@@ -6,6 +6,7 @@ Provides span building, input/output hashing, and redaction utilities.
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -13,8 +14,7 @@ import json
 import os
 import secrets
 from datetime import UTC, datetime
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.models import (
     ComponentType,
@@ -53,6 +53,9 @@ _ENABLE_REDACTION = os.environ.get("ENABLE_REDACTION", "true").lower() == "true"
 
 import re
 
+if TYPE_CHECKING:
+    from uuid import UUID
+
 # Basic PII regex patterns for detection
 _PII_PATTERNS = {
     "email": re.compile(r"[\w\.-]+@[\w\.-]+\.\w+"),
@@ -61,7 +64,14 @@ _PII_PATTERNS = {
     "credit_card": re.compile(r"\b(?:\d{4}[ -]?){3}\d{4}\b"),
 }
 
-def redact_dict(data: dict[str, Any], *, force: bool = False, allowlist: list[str] | None = None, privacy_mode: PrivacyMode = PrivacyMode.REDACTED_CONTENT) -> tuple[dict[str, Any], list[str]]:
+
+def redact_dict(
+    data: dict[str, Any],
+    *,
+    force: bool = False,
+    allowlist: list[str] | None = None,
+    privacy_mode: PrivacyMode = PrivacyMode.REDACTED_CONTENT,
+) -> tuple[dict[str, Any], list[str]]:
     """
     Recursively redact sensitive keys and PII patterns from a dict.
     Returns (redacted_dict, list_of_redacted_field_paths).
@@ -78,7 +88,10 @@ def redact_dict(data: dict[str, Any], *, force: bool = False, allowlist: list[st
                 field_path = f"{path}.{k}" if path else k
 
                 # Check allowlist
-                if allowlist and any(field_path == allowed or field_path.startswith(f"{allowed}.") for allowed in allowlist):
+                if allowlist and any(
+                    field_path == allowed or field_path.startswith(f"{allowed}.")
+                    for allowed in allowlist
+                ):
                     result[k] = _redact(v, field_path)
                     continue
 
@@ -106,12 +119,13 @@ def redact_dict(data: dict[str, Any], *, force: bool = False, allowlist: list[st
 
 # ─── Hashing ──────────────────────────────────────────────────────────────────
 
+
 def hash_payload(payload: Any) -> str:
     """
     Compute a deterministic SHA-256 hash of any serializable payload.
     This is what gets stored instead of raw inputs/outputs.
     """
-    if isinstance(payload, (dict, list)):
+    if isinstance(payload, dict | list):
         serialized = json.dumps(payload, sort_keys=True, default=str).encode()
     elif isinstance(payload, str):
         serialized = payload.encode()
@@ -129,6 +143,7 @@ def hash_config(config: dict[str, Any]) -> str:
 
 # ─── ID Generation ────────────────────────────────────────────────────────────
 
+
 def new_trace_id() -> str:
     """Generate a 128-bit (32 hex char) trace ID."""
     return secrets.token_hex(16)
@@ -140,6 +155,7 @@ def new_span_id() -> str:
 
 
 # ─── Span Builder ─────────────────────────────────────────────────────────────
+
 
 class SpanBuilder:
     """
@@ -243,12 +259,15 @@ class SpanBuilder:
         self._attributes[key] = value
         return self
 
-    def finish(self, allowlist: list[str] | None = None, privacy_mode: PrivacyMode = PrivacyMode.DEVELOPMENT_FULL, data_residency_label: str | None = None) -> SpanBuilder:
+    def finish(
+        self,
+        allowlist: list[str] | None = None,
+        privacy_mode: PrivacyMode = PrivacyMode.DEVELOPMENT_FULL,
+        data_residency_label: str | None = None,
+    ) -> SpanBuilder:
         """Mark the span as finished and compute latency."""
         self._end_time = datetime.now(UTC)
-        self._latency_ms = (
-            (self._end_time - self._start_time).total_seconds() * 1000
-        )
+        self._latency_ms = (self._end_time - self._start_time).total_seconds() * 1000
         if self._status_code == "UNSET":
             self._status_code = "OK"
 
@@ -298,6 +317,7 @@ class SpanBuilder:
 
 
 # ─── Trace Context ────────────────────────────────────────────────────────────
+
 
 class TraceContext:
     """

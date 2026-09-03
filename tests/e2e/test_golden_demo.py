@@ -1,10 +1,15 @@
 """
 DriftGuard-X v2 — End-to-End Golden Demo Test (3 tests)
 """
+
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
-from httpx import AsyncClient
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
 
@@ -48,9 +53,9 @@ async def test_golden_demo_complete_trace(client: AsyncClient) -> None:
     span_ids = {s["span_id"] for s in trace["spans"]}
     for span in trace["spans"]:
         if span.get("parent_span_id"):
-            assert span["parent_span_id"] in span_ids, (
-                f"Span {span['span_id']} references missing parent {span['parent_span_id']}"
-            )
+            assert (
+                span["parent_span_id"] in span_ids
+            ), f"Span {span['span_id']} references missing parent {span['parent_span_id']}"
 
 
 @pytest.mark.e2e
@@ -70,7 +75,7 @@ async def test_golden_demo_replay_with_pinned_versions(client: AsyncClient) -> N
     )
     assert run_resp.status_code == 201
     run_id = run_resp.json()["id"]
-    original_score = run_resp.json()["reliability_score"]
+    run_resp.json()["reliability_score"]
 
     # Create replay
     replay_resp = await client.post(
@@ -87,9 +92,9 @@ async def test_golden_demo_replay_with_pinned_versions(client: AsyncClient) -> N
     assert replay["original_version_tag"] == "v2-exp"
     assert replay["replay_version_tag"] == "v1"
     assert replay["reliability_improvement"] is not None
-    assert replay["reliability_improvement"] > 0, (
-        f"Expected improvement > 0, got {replay['reliability_improvement']}"
-    )
+    assert (
+        replay["reliability_improvement"] > 0
+    ), f"Expected improvement > 0, got {replay['reliability_improvement']}"
 
     # Verify by fetching replay
     get_resp = await client.get(f"/v1/replays/{replay['id']}")
@@ -139,9 +144,14 @@ async def test_golden_demo_intervention_not_auto_applied(client: AsyncClient) ->
     # Score should still be low (experimental retriever not replaced in prod)
     stable_resp = await client.post(
         "/v1/runs",
-        json={"query": "Safety test 2", "use_experimental_retriever": False, "seed": 43, "is_synthetic": True},
+        json={
+            "query": "Safety test 2",
+            "use_experimental_retriever": False,
+            "seed": 43,
+            "is_synthetic": True,
+        },
     )
     stable_score = stable_resp.json()["reliability_score"]
-    assert score2 < stable_score, (
-        "Experimental pipeline should still return lower score — production state not mutated"
-    )
+    assert (
+        score2 < stable_score
+    ), "Experimental pipeline should still return lower score — production state not mutated"

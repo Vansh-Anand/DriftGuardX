@@ -11,10 +11,10 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 import httpx
 import jwt
+from fastapi import HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 
 from apps.api.src.config import settings
 from packages.contracts.src.auth import Role, Tenant, User

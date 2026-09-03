@@ -4,6 +4,7 @@ DriftGuard-X v2 — Migration Tests (3 tests)
 Tests that the DB schema matches ORM models and that Alembic down/up is clean.
 These run against SQLite in-memory (no Postgres required).
 """
+
 from __future__ import annotations
 
 import os
@@ -85,6 +86,7 @@ async def test_tenant_insert_and_select() -> None:
         await session.commit()
 
     from sqlalchemy import select
+
     async with SessionLocal() as session:
         result = await session.execute(select(TenantORM).where(TenantORM.slug == "test-tenant"))
         found = result.scalar_one_or_none()
@@ -109,15 +111,21 @@ async def test_schema_columns_present() -> None:
     async with engine.connect() as conn:
         columns = await conn.run_sync(
             lambda sync_conn: [
-                col["name"]
-                for col in inspect(sync_conn).get_columns("request_runs")
+                col["name"] for col in inspect(sync_conn).get_columns("request_runs")
             ]
         )
 
     required = [
-        "id", "tenant_id", "pipeline_id", "status", "request_hash",
-        "reliability_score", "reliability_vector", "is_synthetic",
-        "created_at", "completed_at",
+        "id",
+        "tenant_id",
+        "pipeline_id",
+        "status",
+        "request_hash",
+        "reliability_score",
+        "reliability_vector",
+        "is_synthetic",
+        "created_at",
+        "completed_at",
     ]
     for col in required:
         assert col in columns, f"Column '{col}' missing from request_runs"

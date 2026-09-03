@@ -10,6 +10,7 @@ at the socket boundary.
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import ast
@@ -19,18 +20,29 @@ from typing import Any
 
 
 class CircuitState(Enum):
-    CLOSED = "CLOSED"       # Normal operation — all calls allowed
-    TRIPPED = "TRIPPED"     # State-mutating intent detected — bypass active
+    CLOSED = "CLOSED"  # Normal operation — all calls allowed
+    TRIPPED = "TRIPPED"  # State-mutating intent detected — bypass active
 
 
 # Patterns that signal state-mutating intent in code / SQL / HTTP verbs
 _MUTATING_KEYWORDS: list[str] = [
     # SQL
-    "UPDATE", "DELETE", "INSERT", "DROP", "TRUNCATE", "ALTER",
+    "UPDATE",
+    "DELETE",
+    "INSERT",
+    "DROP",
+    "TRUNCATE",
+    "ALTER",
     # HTTP verbs (common string literals agents emit)
-    "POST", "PUT", "PATCH",
+    "POST",
+    "PUT",
+    "PATCH",
     # Common agent tool-call patterns
-    "send_email", "write_file", "execute_sql", "publish", "commit",
+    "send_email",
+    "write_file",
+    "execute_sql",
+    "publish",
+    "commit",
 ]
 
 _MUTATING_PATTERN = re.compile(
@@ -111,10 +123,12 @@ class SemanticCircuitBreaker:
 
         if trigger:
             self.state = CircuitState.TRIPPED
-            self.trip_log.append({
-                "trigger": trigger,
-                "snippet": code_or_description[:200],
-            })
+            self.trip_log.append(
+                {
+                    "trigger": trigger,
+                    "snippet": code_or_description[:200],
+                }
+            )
             return True  # Mutating intent detected — trip!
 
         self.state = CircuitState.CLOSED

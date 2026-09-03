@@ -9,18 +9,21 @@ Replaces the 0.8/0.2 hardcoded information-gain heuristic with:
 - BlastRadiusEstimator from causal graph descendant count
 - Integration with EvidentiaryStoppingRule (no hard max_iters as primary gate)
 """
+
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.interfaces import ResourceContext, ResourceEstimate, ResourceMeasurement
-from packages.contracts.src.recovery_models import ReplayEquivalenceEnvelope
 from packages.replay.src.belief_model import (
     HeuristicLikelihoodEstimator,
     LikelihoodEstimator,
     RootCauseBeliefModel,
     calculate_graph_impact,
 )
+
+if TYPE_CHECKING:
+    from packages.contracts.src.recovery_models import ReplayEquivalenceEnvelope
 
 
 class BlastRadiusEstimator:
@@ -155,7 +158,9 @@ class RiskLimitedSequentialCausalExperimentPlanner:
         belief_model.beliefs = dict(belief_state)
 
         # Score all untested candidates
-        untested = [c for c in candidates if c.get("candidate_id", c.get("id", "")) not in self._tested]
+        untested = [
+            c for c in candidates if c.get("candidate_id", c.get("id", "")) not in self._tested
+        ]
         if not untested:
             return None
 
@@ -186,13 +191,15 @@ class RiskLimitedSequentialCausalExperimentPlanner:
                 blast_penalty=self._blast_penalty,
                 risk_penalty=self._risk_penalty,
             )
-            scored.append(ScoredExperiment(
-                candidate=candidate,
-                eig=eig,
-                utility=utility,
-                blast_radius=blast,
-                cost_usd=cost,
-            ))
+            scored.append(
+                ScoredExperiment(
+                    candidate=candidate,
+                    eig=eig,
+                    utility=utility,
+                    blast_radius=blast,
+                    cost_usd=cost,
+                )
+            )
 
         if not scored:
             return None
@@ -239,20 +246,26 @@ class RiskLimitedSequentialCausalExperimentPlanner:
         Selects up to max_to_select experiments by utility order.
         """
         if not belief_state:
-            belief_state = {c.get("target_variable", ""): 1.0 / max(1, len(candidate_experiments))
-                           for c in candidate_experiments}
+            belief_state = {
+                c.get("target_variable", ""): 1.0 / max(1, len(candidate_experiments))
+                for c in candidate_experiments
+            }
 
         if resource_context is None:
             resource_context = ResourceContext(budget_usd=float(max_to_select) * self._default_cost)
 
         selected = []
         for _ in range(max_to_select):
-            exp = self.plan_next_experiment(envelope, candidate_experiments, belief_state, resource_context)
+            exp = self.plan_next_experiment(
+                envelope, candidate_experiments, belief_state, resource_context
+            )
             if exp is None:
                 break
             reservation = exp.pop("_reservation", None)
             if reservation:
-                measurement = ResourceMeasurement(cost_usd=reservation.estimate.cost_usd, replay_count=1)
+                measurement = ResourceMeasurement(
+                    cost_usd=reservation.estimate.cost_usd, replay_count=1
+                )
                 reservation.commit(measurement)
             selected.append(exp)
 

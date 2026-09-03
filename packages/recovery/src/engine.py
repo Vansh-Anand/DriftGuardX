@@ -20,10 +20,13 @@ The engine does NOT call the policy engine autonomously for APPROVED mode —
 the caller must provide a valid approval_request_id from a prior PolicyEngine
 decision; the engine validates it before proceeding.
 """
+
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from packages.contracts.src.models import RecoveryEligibilityCertificate, serialize_for_signing
 from packages.ledger.src.crypto import verify_signature
@@ -34,7 +37,6 @@ from packages.recovery.src.canary import (
     CanaryVerificationResult,
     run_canary_verification,
 )
-from packages.recovery.src.capsule import CapsuleRegistry, RollbackCapsule
 from packages.recovery.src.executor import ExecutionResult, LocalDevExecutor
 from packages.recovery.src.state_machine import (
     InvalidTransitionError,
@@ -42,10 +44,14 @@ from packages.recovery.src.state_machine import (
     RecoveryStatus,
 )
 
+if TYPE_CHECKING:
+    from packages.recovery.src.capsule import CapsuleRegistry, RollbackCapsule
+
 
 @dataclass
 class RecoveryRecord:
     """Full record of one recovery execution for audit and UI display."""
+
     proposal: RecoveryProposal
     machine: RecoveryStateMachine
     execution_result: ExecutionResult | None = None
@@ -96,14 +102,12 @@ class RecoveryEngine:
         machine.transition(RecoveryStatus.POLICY_CHECKING, reason="Starting policy check.")
 
         if proposal.policy_decision == "deny":
-            machine.transition(RecoveryStatus.FAILED,
-                               reason="Policy denied this recovery action.")
+            machine.transition(RecoveryStatus.FAILED, reason="Policy denied this recovery action.")
             record.escalation_log.append("Policy DENY — recovery blocked.")
             return record
 
         if proposal.policy_decision == "needs_approval" and not proposal.approval_request_id:
-            machine.transition(RecoveryStatus.PENDING_APPROVAL,
-                               reason="Awaiting human approval.")
+            machine.transition(RecoveryStatus.PENDING_APPROVAL, reason="Awaiting human approval.")
             return record
 
         # ── DRY_RUN short-circuit ─────────────────────────────────────────────
@@ -123,25 +127,39 @@ class RecoveryEngine:
         # For mutating execution modes (SIMULATION, APPROVED, MANUAL)
         if proposal.execution_mode != ExecutionMode.DRY_RUN:
             if not certificate:
-                machine.transition(RecoveryStatus.FAILED, reason="Missing Recovery Eligibility Certificate.")
+                machine.transition(
+                    RecoveryStatus.FAILED, reason="Missing Recovery Eligibility Certificate."
+                )
                 record.escalation_log.append("SECURITY: No REC provided. Failing closed.")
                 return record
 
             if not signer_public_key_b64:
-                machine.transition(RecoveryStatus.FAILED, reason="Missing Signer Public Key for REC verification.")
-                record.escalation_log.append("SECURITY: No public key provided to verify REC. Failing closed.")
+                machine.transition(
+                    RecoveryStatus.FAILED, reason="Missing Signer Public Key for REC verification."
+                )
+                record.escalation_log.append(
+                    "SECURITY: No public key provided to verify REC. Failing closed."
+                )
                 return record
 
             payload = serialize_for_signing(certificate)
-            is_valid_sig = verify_signature(signer_public_key_b64, payload, certificate.signature_b64)
+            is_valid_sig = verify_signature(
+                signer_public_key_b64, payload, certificate.signature_b64
+            )
             if not is_valid_sig:
-                machine.transition(RecoveryStatus.FAILED, reason="REC signature verification failed.")
-                record.escalation_log.append("SECURITY: Invalid REC signature (Tampering detected). Failing closed.")
+                machine.transition(
+                    RecoveryStatus.FAILED, reason="REC signature verification failed."
+                )
+                record.escalation_log.append(
+                    "SECURITY: Invalid REC signature (Tampering detected). Failing closed."
+                )
                 return record
 
             # Verify live state matches the certificate
             capsule = self._capsule_reg.for_proposal(proposal.proposal_id)
-            capsule_hash = capsule.config_snapshot.get("hash", "") if capsule else "" # Minimal mocked hash check
+            (
+                capsule.config_snapshot.get("hash", "") if capsule else ""
+            )  # Minimal mocked hash check
             # In a real implementation we would compute the actual capsule hash and compare.
 
             # Simple expiry check (e.g., 1 hour)
@@ -182,15 +200,16 @@ class RecoveryEngine:
         record.canary_result = canary_result
 
         if canary_result.overall_pass:
-            machine.transition(RecoveryStatus.COMMITTED,
-                               reason="Canary verification passed.")
+            machine.transition(RecoveryStatus.COMMITTED, reason="Canary verification passed.")
         else:
             reasons = "; ".join(canary_result.failure_reasons)
             if self._auto_compensate and capsule:
                 self._compensate(record, reason=f"Canary failed: {reasons}")
             else:
-                machine.transition(RecoveryStatus.FAILED,
-                                   reason=f"Canary failed (auto-compensate disabled): {reasons}")
+                machine.transition(
+                    RecoveryStatus.FAILED,
+                    reason=f"Canary failed (auto-compensate disabled): {reasons}",
+                )
                 record.escalation_log.append(reasons)
 
         return record
@@ -204,8 +223,9 @@ class RecoveryEngine:
             capsule = self._capsule_reg.for_proposal(record.proposal.proposal_id)
 
         if capsule is None:
-            machine.transition(RecoveryStatus.FAILED,
-                               reason="No capsule available for compensation.")
+            machine.transition(
+                RecoveryStatus.FAILED, reason="No capsule available for compensation."
+            )
             record.escalation_log.append("ESCALATION: No capsule — manual intervention required.")
             return
 
@@ -215,8 +235,9 @@ class RecoveryEngine:
         if comp_result.success:
             machine.transition(RecoveryStatus.COMPENSATED, reason="Compensation succeeded.")
         else:
-            machine.transition(RecoveryStatus.FAILED,
-                               reason=f"Compensation failed: {comp_result.error}")
+            machine.transition(
+                RecoveryStatus.FAILED, reason=f"Compensation failed: {comp_result.error}"
+            )
             record.escalation_log.append(
                 f"ESCALATION: Compensation failed — {comp_result.error}. Manual intervention required."
             )
@@ -224,10 +245,8 @@ class RecoveryEngine:
     def cancel(self, proposal_id: str, actor: str = "operator") -> RecoveryRecord | None:
         record = self._records.get(proposal_id)
         if record:
-            try:
+            with contextlib.suppress(InvalidTransitionError):
                 record.machine.cancel(actor=actor)
-            except InvalidTransitionError:
-                pass
         return record
 
     def get_record(self, proposal_id: str) -> RecoveryRecord | None:

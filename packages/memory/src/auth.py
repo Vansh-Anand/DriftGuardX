@@ -18,6 +18,7 @@ class AccessContext(BaseModel):
     def is_valid(self) -> bool:
         return datetime.now(UTC) <= self.expires_at
 
+
 class AuditEvent(BaseModel):
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     requester: str

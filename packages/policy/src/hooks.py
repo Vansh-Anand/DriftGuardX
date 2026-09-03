@@ -17,13 +17,18 @@ Each hook:
 Every allow/deny is recorded in the engine decision log with action, tenant,
 node, verdict, rule_id, policy_version, requester, and timestamp.
 """
+
 from __future__ import annotations
 
-from packages.policy.src.engine import EngineDecision, PolicyEngine
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from packages.policy.src.engine import EngineDecision, PolicyEngine
 
 
 class PolicyDeniedError(PermissionError):
     """Raised when a policy check returns DENY."""
+
     def __init__(self, decision: EngineDecision):
         self.decision = decision
         super().__init__(
@@ -31,8 +36,10 @@ class PolicyDeniedError(PermissionError):
             f"rule={decision.rule_id!r} reason={decision.rationale!r}"
         )
 
+
 class QuarantineEnforcementError(PermissionError):
     """Raised when an agent attempts to read from a quarantined partition."""
+
     def __init__(self, partition_id: str):
         super().__init__(
             f"[QUARANTINE ENFORCED] Read access denied for quarantined partition '{partition_id}'."
@@ -64,10 +71,11 @@ def _check(
         raise PolicyDeniedError(decision)
     if decision.verdict == "needs_approval":
         return decision.approval_request_id
-    return None   # allow
+    return None  # allow
 
 
 # ─── Hooks ────────────────────────────────────────────────────────────────────
+
 
 def pre_replay_check(
     engine: PolicyEngine,
@@ -80,8 +88,13 @@ def pre_replay_check(
 ) -> str | None:
     """Policy check before scheduling a counterfactual replay."""
     return _check(
-        engine, "schedule_replay",
-        tenant_id, node_id, requester_id, requester_role, existing_approval_id,
+        engine,
+        "schedule_replay",
+        tenant_id,
+        node_id,
+        requester_id,
+        requester_role,
+        existing_approval_id,
     )
 
 
@@ -96,8 +109,13 @@ def pre_recovery_check(
 ) -> str | None:
     """Policy check before proposing a recovery action."""
     return _check(
-        engine, "apply_repair_decision",
-        tenant_id, node_id, requester_id, requester_role, existing_approval_id,
+        engine,
+        "apply_repair_decision",
+        tenant_id,
+        node_id,
+        requester_id,
+        requester_role,
+        existing_approval_id,
     )
 
 
@@ -112,8 +130,13 @@ def pre_execution_check(
 ) -> str | None:
     """Policy check before executing an approved intervention."""
     return _check(
-        engine, "apply_intervention",
-        tenant_id, node_id, requester_id, requester_role, existing_approval_id,
+        engine,
+        "apply_intervention",
+        tenant_id,
+        node_id,
+        requester_id,
+        requester_role,
+        existing_approval_id,
     )
 
 
@@ -128,14 +151,18 @@ def pre_rollback_check(
 ) -> str | None:
     """Policy check before applying a rollback capsule."""
     return _check(
-        engine, "apply_rollback",
-        tenant_id, node_id, requester_id, requester_role, existing_approval_id,
+        engine,
+        "apply_rollback",
+        tenant_id,
+        node_id,
+        requester_id,
+        requester_role,
+        existing_approval_id,
     )
 
+
 def pre_memory_read_check(
-    partition_id: str,
-    active_quarantined_partitions: list[str],
-    requester_role: str = "agent"
+    partition_id: str, active_quarantined_partitions: list[str], requester_role: str = "agent"
 ) -> None:
     """
     Hard enforcement hook preventing reads from quarantined provenance partitions (Issue 13).
@@ -146,6 +173,7 @@ def pre_memory_read_check(
         if requester_role == "forensic_auditor":
             # Real implementation would log to an immutable audit trail here
             import logging
+
             logging.getLogger("driftguardx.audit").info(
                 f"[FORENSIC AUDIT] Authorized read access to quarantined partition '{partition_id}'."
             )

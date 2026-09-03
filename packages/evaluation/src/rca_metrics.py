@@ -11,7 +11,9 @@ class RCAMetricsEvaluator:
     """
 
     @staticmethod
-    def calculate_precision_at_k(predicted_ranked: list[str], ground_truth: set[str], k: int) -> float:
+    def calculate_precision_at_k(
+        predicted_ranked: list[str], ground_truth: set[str], k: int
+    ) -> float:
         """
         Partial-credit precision@k for multi-fault scenarios.
         E.g. if 2 faults exist, finding 1 in top-k gives 0.5 points.

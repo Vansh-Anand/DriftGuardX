@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
-from apps.api.src.routes.runs import _build_replay_manifest
 from apps.api.src.pipeline.mock_rag import RETRIEVER_V1
+from apps.api.src.routes.runs import _build_replay_manifest
 
 
 def test_api_replay_manifest_binds_real_runtime_artifacts(monkeypatch):
@@ -48,12 +48,8 @@ def test_api_replay_manifest_uses_deployed_image_digest(monkeypatch):
     image_digest = "sha256:" + "d" * 64
     monkeypatch.setenv("DGX_CONTAINER_IMAGE_DIGEST", image_digest)
     manifest = _build_replay_manifest(
-        original_run=SimpleNamespace(
-            id=uuid4(), tenant_id=uuid4(), request_hash="a" * 64
-        ),
-        original_trace=SimpleNamespace(
-            root_span_id="b" * 16, total_span_count=0, spans_json=[]
-        ),
+        original_run=SimpleNamespace(id=uuid4(), tenant_id=uuid4(), request_hash="a" * 64),
+        original_trace=SimpleNamespace(root_span_id="b" * 16, total_span_count=0, spans_json=[]),
         replay_version=RETRIEVER_V1,
         seed=7,
     )

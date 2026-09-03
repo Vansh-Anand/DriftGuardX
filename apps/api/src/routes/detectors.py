@@ -6,17 +6,20 @@ Allows online trace evaluation and run-level anomaly detection via the trained G
 from __future__ import annotations
 
 import os
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import get_db
 from apps.api.src.dependencies import get_current_tenant
 from apps.api.src.models import SpanRecordORM
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from packages.detectors.src.gat_inference import GATTraceDetector

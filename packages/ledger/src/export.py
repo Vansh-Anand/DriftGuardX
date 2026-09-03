@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from packages.ledger.src.schema import RecoveryCertificate
 from packages.contracts.src.evidence import RecoveryEvidenceKind
+
+if TYPE_CHECKING:
+    from packages.ledger.src.schema import RecoveryCertificate
 
 
 def redact_sensitive_data(payload: dict[str, Any]) -> dict[str, Any]:

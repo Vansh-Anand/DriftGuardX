@@ -25,7 +25,7 @@ class ParetoScorer:
 
     def score(self, episodes: list[ReplayEpisode]) -> ParetoFrontierResult:
         """
-        Calculates the Pareto frontier, separating optimal interventions from 
+        Calculates the Pareto frontier, separating optimal interventions from
         dominated ones (e.g. better accuracy but unacceptable cost/latency).
         """
         valid_episodes = []
@@ -65,5 +65,5 @@ class ParetoScorer:
         return ParetoFrontierResult(
             optimal_episodes=optimal,
             dominated_episodes=dominated,
-            invalid_episodes=invalid_episodes
+            invalid_episodes=invalid_episodes,
         )

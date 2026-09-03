@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Causal Contribution Vector
 PRIVATE — All Rights Reserved.
 """
+
 import math
 
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ class ContributionVector(BaseModel):
     """
     Multidimensional scoring of an intervention's causal impact.
     """
+
     reliability_improvement_mean: float
     reliability_improvement_variance: float
     reliability_bootstrap_lower: float
@@ -38,13 +40,14 @@ class ContributionVector(BaseModel):
 
         return max(0.0, base_gain - cost_impact - latency_impact - self.risk_penalty)
 
+
 def calculate_contribution_vector(
     reliability_improvements: list[float],
     cost_delta_usd: float,
     latency_delta_ms: float,
     risk_penalty: float,
     invalid_count: int,
-    total_trials: int
+    total_trials: int,
 ) -> ContributionVector:
     """
     Calculates mean, variance, and simple bootstrap bounds from repeated trials.
@@ -59,7 +62,7 @@ def calculate_contribution_vector(
             latency_delta_ms=latency_delta_ms,
             risk_penalty=risk_penalty,
             invalid_rate=invalid_count / max(1, total_trials),
-            trials_n=total_trials
+            trials_n=total_trials,
         )
 
     n = len(reliability_improvements)
@@ -80,5 +83,5 @@ def calculate_contribution_vector(
         latency_delta_ms=latency_delta_ms,
         risk_penalty=risk_penalty,
         invalid_rate=invalid_count / total_trials,
-        trials_n=total_trials
+        trials_n=total_trials,
     )

@@ -14,17 +14,16 @@ import os
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import get_db
 from apps.api.src.dependencies import PaginationParams, get_current_tenant, get_idempotency_key
 from apps.api.src.models import (
-    InterventionORM,
     IdempotencyKeyORM,
+    InterventionORM,
     ReplayEpisodeORM,
     ReplayStateManifestORM,
     RequestRunORM,
@@ -47,10 +46,9 @@ from apps.api.src.schemas import (
     SpanResponse,
     TraceResponse,
 )
-from packages.contracts.src.auth import Tenant
 from packages.contracts.src.models import (
-    ComponentVersion,
     ComponentType,
+    ComponentVersion,
     Intervention,
     InterventionType,
     ReplayStateManifest,
@@ -64,6 +62,11 @@ from packages.replay.src.engine import (
     VersionRegistry,
 )
 from packages.trace_sdk.src.tracer import hash_payload
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from packages.contracts.src.auth import Tenant
 
 router = APIRouter(prefix="/v1", tags=["runs"])
 
@@ -176,7 +179,11 @@ def _build_replay_manifest(
         model_provider="local-deterministic",
         model_identifier="MockGeneratorV1@v1",
         model_config_hash=hash_payload(
-            {"components": component_manifest, "generation": generation_parameters, "topology": multi_agent_topology}
+            {
+                "components": component_manifest,
+                "generation": generation_parameters,
+                "topology": multi_agent_topology,
+            }
         ),
         prompt_template_hash=hash_payload(
             {
@@ -401,7 +408,10 @@ async def create_run(
 
 from apps.api.src.schemas import RunRegisterRequest, RunRegisterResponse
 
-@router.post("/runs/register", response_model=RunRegisterResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/runs/register", response_model=RunRegisterResponse, status_code=status.HTTP_201_CREATED
+)
 async def register_run(
     request: RunRegisterRequest,
     db: AsyncSession = Depends(get_db),
@@ -409,7 +419,7 @@ async def register_run(
 ) -> RunRegisterResponse:
     """Register an external or custom run in preparation for span ingestion."""
     run_id = request.run_id or uuid.uuid4()
-    
+
     run_orm = RequestRunORM(
         id=run_id,
         tenant_id=tenant.id,
@@ -417,7 +427,7 @@ async def register_run(
         status="running",
         request_hash=hash_payload(request.query),
         request_id=None,
-        seed=42, # default
+        seed=42,  # default
         response_hash=None,
         reliability_score=None,
         reliability_vector={},
@@ -431,7 +441,7 @@ async def register_run(
         is_synthetic=request.is_synthetic,
     )
     db.add(run_orm)
-    
+
     # We must also create a placeholder trace artifact to be filled later or by ingestion
     trace_orm = TraceArtifactORM(
         id=uuid.uuid4(),
@@ -443,15 +453,15 @@ async def register_run(
         total_span_count=0,
     )
     db.add(trace_orm)
-    
+
     await db.flush()
-    
+
     return RunRegisterResponse(
         id=run_orm.id,
         tenant_id=run_orm.tenant_id,
         pipeline_id=run_orm.pipeline_id,
         status=run_orm.status,
-        is_synthetic=run_orm.is_synthetic
+        is_synthetic=run_orm.is_synthetic,
     )
 
 

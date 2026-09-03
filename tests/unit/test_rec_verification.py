@@ -19,6 +19,7 @@ from packages.recovery.src.executor import LocalDevExecutor
 def signer():
     return DevelopmentSigner(key_id="test-key")
 
+
 @pytest.fixture
 def valid_rec(signer):
     rec = RecoveryEligibilityCertificate(
@@ -34,16 +35,20 @@ def valid_rec(signer):
         canary_result_hash="canary_123",
         recovery_capsule_hash="capsule_123",
         executor_image_digest="sha256:abcd",
-        signer_identity=signer.key_id()
+        signer_identity=signer.key_id(),
     )
     payload = serialize_for_signing(rec)
     rec.signature_b64 = signer.sign(payload)
     return rec
 
+
 @pytest.fixture
 def engine():
     registry = CapsuleRegistry()
-    return RecoveryEngine(executor=LocalDevExecutor(capsule_registry=registry), capsule_registry=registry)
+    return RecoveryEngine(
+        executor=LocalDevExecutor(capsule_registry=registry), capsule_registry=registry
+    )
+
 
 @pytest.fixture
 def proposal():
@@ -55,21 +60,27 @@ def proposal():
         diagnosis_id="diag_1",
         requester_id="user_1",
         action_type=RecoveryActionType.ROLLBACK_COMPONENT,
-        params={"component_id": "retriever", "target_version_id": "v1", "expected_current_version_id": "v2"},
+        params={
+            "component_id": "retriever",
+            "target_version_id": "v1",
+            "expected_current_version_id": "v2",
+        },
         policy_decision="approved",
-        execution_mode=ExecutionMode.SIMULATION, # Mutating mode to trigger REC check
+        execution_mode=ExecutionMode.SIMULATION,  # Mutating mode to trigger REC check
     )
+
 
 def test_rec_verification_success(engine, proposal, valid_rec, signer):
     record = engine.run(
         proposal=proposal,
         canary_episodes=[],
         certificate=valid_rec,
-        signer_public_key_b64=signer.public_key_b64()
+        signer_public_key_b64=signer.public_key_b64(),
     )
     # The verification step should pass.
     # It might fail later due to missing capsule or optimistic lock, so we only assert no REC failure.
     assert not any("SECURITY:" in log for log in record.escalation_log)
+
 
 def test_rec_tampering(engine, proposal, valid_rec, signer):
     # Tamper with the certificate
@@ -79,11 +90,12 @@ def test_rec_tampering(engine, proposal, valid_rec, signer):
         proposal=proposal,
         canary_episodes=[],
         certificate=valid_rec,
-        signer_public_key_b64=signer.public_key_b64()
+        signer_public_key_b64=signer.public_key_b64(),
     )
 
     assert record.machine.current_status in (RecoveryStatus.FAILED, RecoveryStatus.COMPENSATED)
     assert any("Invalid REC signature" in log for log in record.escalation_log)
+
 
 def test_rec_expired(engine, proposal, valid_rec, signer):
     # Set timestamp to 2 hours ago
@@ -97,22 +109,24 @@ def test_rec_expired(engine, proposal, valid_rec, signer):
         proposal=proposal,
         canary_episodes=[],
         certificate=valid_rec,
-        signer_public_key_b64=signer.public_key_b64()
+        signer_public_key_b64=signer.public_key_b64(),
     )
 
     assert record.machine.current_status in (RecoveryStatus.FAILED, RecoveryStatus.COMPENSATED)
     assert any("Expired REC" in log for log in record.escalation_log)
+
 
 def test_rec_missing(engine, proposal, signer):
     record = engine.run(
         proposal=proposal,
         canary_episodes=[],
         certificate=None,
-        signer_public_key_b64=signer.public_key_b64()
+        signer_public_key_b64=signer.public_key_b64(),
     )
 
     assert record.machine.current_status in (RecoveryStatus.FAILED, RecoveryStatus.COMPENSATED)
     assert any("No REC provided" in log for log in record.escalation_log)
+
 
 def test_rec_dry_run_ignores(engine, proposal, valid_rec, signer):
     # DRY_RUN shouldn't mandate REC verification if it doesn't execute mutate
@@ -121,8 +135,8 @@ def test_rec_dry_run_ignores(engine, proposal, valid_rec, signer):
     record = engine.run(
         proposal=proposal,
         canary_episodes=[],
-        certificate=None, # Missing!
-        signer_public_key_b64=signer.public_key_b64()
+        certificate=None,  # Missing!
+        signer_public_key_b64=signer.public_key_b64(),
     )
 
     # Still succeeds / commits

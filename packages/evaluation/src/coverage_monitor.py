@@ -9,6 +9,7 @@ In a production deployment this module would subscribe to a Kafka / Pub-Sub
 topic of new diagnosis events.  For the prototype it operates on an in-memory
 list of events and a CalibrationDataset.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -24,17 +25,20 @@ from packages.evaluation.src.calibration import (
 
 # ─── Events ───────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class DiagnosisEvent:
     """Represents a completed diagnosis arriving in the production stream."""
+
     run_id: str
-    certificate_status: str    # CERTIFIED | UNCERTIFIED | REJECTED at issue time
+    certificate_status: str  # CERTIFIED | UNCERTIFIED | REJECTED at issue time
     issued_at: datetime
 
 
 @dataclass
 class DowngradeEvent:
     """Emitted when a previously CERTIFIED diagnosis has its cert downgraded."""
+
     run_id: str
     original_status: str
     new_status: str
@@ -43,6 +47,7 @@ class DowngradeEvent:
 
 
 # ─── Monitor ──────────────────────────────────────────────────────────────────
+
 
 class CoverageMonitor:
     """

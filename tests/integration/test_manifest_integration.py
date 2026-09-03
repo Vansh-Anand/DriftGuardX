@@ -11,17 +11,14 @@ async def test_replay_manifest_generation(client: AsyncClient):
         "query": "Integration test query",
         "use_experimental_retriever": True,
         "is_synthetic": True,
-        "seed": 42
+        "seed": 42,
     }
     run_resp = await client.post("/v1/runs", json=run_payload)
     assert run_resp.status_code == 201
     run_id = run_resp.json()["id"]
 
     # 2. Trigger a replay
-    replay_payload = {
-        "swap_retriever_to_stable": True,
-        "seed": 42
-    }
+    replay_payload = {"swap_retriever_to_stable": True, "seed": 42}
     replay_resp = await client.post(f"/v1/runs/{run_id}/replays", json=replay_payload)
     assert replay_resp.status_code == 201
     replay_data = replay_resp.json()

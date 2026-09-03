@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Benchmark Recovery Models
 """
+
 import enum
 
 from packages.contracts.src.recovery_models import FaultSource
@@ -21,10 +22,14 @@ class SourceSelector:
         outcome: StoppingOutcome,
         policy: SourceSelectionPolicy,
         cumulative_threshold: float = 0.90,
-        min_posterior: float = 0.05
+        min_posterior: float = 0.05,
     ) -> list[FaultSource]:
 
-        if outcome == StoppingOutcome.UNRESOLVED or outcome == StoppingOutcome.RESOURCE_EXHAUSTED or outcome == StoppingOutcome.NO_ADMISSIBLE_EXPERIMENT:
+        if (
+            outcome == StoppingOutcome.UNRESOLVED
+            or outcome == StoppingOutcome.RESOURCE_EXHAUSTED
+            or outcome == StoppingOutcome.NO_ADMISSIBLE_EXPERIMENT
+        ):
             # Automatic recovery shouldn't proceed
             return []
 

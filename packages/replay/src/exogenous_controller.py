@@ -14,6 +14,7 @@ Usage (as context manager):
 
 from __future__ import annotations
 
+import contextlib
 import random
 import unittest.mock as mock
 from datetime import UTC, datetime
@@ -196,10 +197,8 @@ class LLMStubController:
 
     def __exit__(self, *args: Any) -> None:
         for p in reversed(self._patches):
-            try:
+            with contextlib.suppress(ValueError, RuntimeError, KeyError, TypeError, OSError):
                 p.stop()
-            except (ValueError, RuntimeError, KeyError, TypeError, OSError):
-                pass
         self._patches.clear()
 
 

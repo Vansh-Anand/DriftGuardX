@@ -4,14 +4,19 @@ DriftGuard-X v2 — Content-Addressed Artifact Storage
 Provides a storage interface for large payloads (prompts, raw tool outputs).
 Currently backed by local filesystem mock.
 """
+
 import hashlib
 import json
 import os
 from abc import ABC, abstractmethod
 from typing import Any
 
+import tempfile
+
 # Default storage location for local mock
-_STORAGE_DIR = os.environ.get("DGX_ARTIFACT_STORAGE_DIR", "/tmp/dgx_artifacts")
+_STORAGE_DIR = os.environ.get(
+    "DGX_ARTIFACT_STORAGE_DIR", os.path.join(tempfile.gettempdir(), "dgx_artifacts")
+)
 
 
 class ArtifactStore(ABC):
@@ -35,7 +40,7 @@ class LocalFilesystemArtifactStore(ArtifactStore):
         return "sha256:" + hashlib.sha256(serialized).hexdigest()
 
     def _serialize(self, payload: Any) -> bytes:
-        if isinstance(payload, (dict, list)):
+        if isinstance(payload, dict | list):
             return json.dumps(payload, sort_keys=True, default=str).encode()
         elif isinstance(payload, str):
             return payload.encode()
@@ -73,6 +78,7 @@ class LocalFilesystemArtifactStore(ArtifactStore):
 
 # Singleton instance for dependency injection
 artifact_store = LocalFilesystemArtifactStore()
+
 
 async def get_artifact_store() -> ArtifactStore:
     return artifact_store

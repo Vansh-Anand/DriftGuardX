@@ -3,7 +3,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SHA256_IMAGE = re.compile(r"^.+@sha256:([0-9a-f]{64})$")
 

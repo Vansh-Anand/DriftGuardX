@@ -10,10 +10,11 @@ Key changes from previous version:
 - StoppingPolicy.is_sufficient() receives full belief state + resource context
 - PolicyEngine.authorize() accepts SignedCapability objects
 """
+
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
 from packages.contracts.src.interfaces import (
@@ -35,14 +36,16 @@ from packages.contracts.src.interfaces import (
     TraceProvider,
     TransportabilityGate,
 )
-from packages.contracts.src.recovery_models import FailureTarget
-from packages.contracts.src.transport_models import (
-    CausalEnvironmentDescriptor,
-    RecoveryMechanismFootprint,
-)
-from packages.memory.src.auth import AccessContext
 from packages.recovery.src.incident_state_machine import IncidentStateMachine
 from packages.replay.src.stopping_rule import StoppingOutcome
+
+if TYPE_CHECKING:
+    from packages.contracts.src.recovery_models import FailureTarget
+    from packages.contracts.src.transport_models import (
+        CausalEnvironmentDescriptor,
+        RecoveryMechanismFootprint,
+    )
+    from packages.memory.src.auth import AccessContext
 
 
 class CausalRecoveryOrchestrator:
@@ -138,19 +141,25 @@ class CausalRecoveryOrchestrator:
             # 3. Generate candidates and build envelope
             candidates = self.intervention_generator.generate_candidates(incident_state)
             if not candidates:
-                machine.transition(IncidentStatus.EVIDENCE_INSUFFICIENT, "No candidate interventions.")
+                machine.transition(
+                    IncidentStatus.EVIDENCE_INSUFFICIENT, "No candidate interventions."
+                )
                 return ""
 
             envelope = self.envelope_builder.build_envelope(incident_state.incident_id, candidates)
             incident_state.envelope_id = envelope.trace_id
 
             if not self.raeb_gateway.check_admissibility(envelope):
-                machine.transition(IncidentStatus.EVIDENCE_INSUFFICIENT, "RAEB admissibility rejected envelope.")
+                machine.transition(
+                    IncidentStatus.EVIDENCE_INSUFFICIENT, "RAEB admissibility rejected envelope."
+                )
                 return ""
 
             # 4. Sequential causal experiment loop
             # Governed by EvidentiaryStoppingRule — no hard max_iters
-            machine.transition(IncidentStatus.REPLAYING, "Starting sequential causal experiment loop.")
+            machine.transition(
+                IncidentStatus.REPLAYING, "Starting sequential causal experiment loop."
+            )
 
             all_replays: list[dict[str, Any]] = []
             remaining_candidates = list(candidates)
@@ -217,15 +226,18 @@ class CausalRecoveryOrchestrator:
                     )
                     if actual_cost <= 0.0:
                         actual_cost = reservation.estimate.cost_usd
-                    reservation.commit(ResourceMeasurement(
-                        cost_usd=actual_cost,
-                        replay_count=len(replays),
-                        wall_seconds=time.monotonic() - execution_started,
-                    ))
+                    reservation.commit(
+                        ResourceMeasurement(
+                            cost_usd=actual_cost,
+                            replay_count=len(replays),
+                            wall_seconds=time.monotonic() - execution_started,
+                        )
+                    )
 
                 tested_id = experiment.get("candidate_id", experiment.get("id", ""))
                 remaining_candidates = [
-                    candidate for candidate in remaining_candidates
+                    candidate
+                    for candidate in remaining_candidates
                     if candidate.get("candidate_id", candidate.get("id", "")) != tested_id
                 ]
 
@@ -272,27 +284,31 @@ class CausalRecoveryOrchestrator:
             valid_replays = [r for r in all_replays if r.get("status") == "completed"]
             invalid_replays = [r for r in all_replays if r.get("status") != "completed"]
 
-            incident_state.telemetry.update({
-                "stop_outcome": stop_outcome.value,
-                "stop_reason": stop_reason,
-                "top_posterior": top_posterior,
-                "posterior_margin": margin,
-                "entropy": self.belief_model.entropy(),
-                "replay_count": resource_context.replay_count,
-                "valid_replay_count": len(valid_replays),
-                "invalid_replay_count": len(invalid_replays),
-                "resource_state": {
-                    "budget_used_usd": resource_context.spent_usd,
-                    "elapsed_seconds": resource_context.elapsed_seconds,
+            incident_state.telemetry.update(
+                {
+                    "stop_outcome": stop_outcome.value,
+                    "stop_reason": stop_reason,
+                    "top_posterior": top_posterior,
+                    "posterior_margin": margin,
+                    "entropy": self.belief_model.entropy(),
+                    "replay_count": resource_context.replay_count,
+                    "valid_replay_count": len(valid_replays),
+                    "invalid_replay_count": len(invalid_replays),
+                    "resource_state": {
+                        "budget_used_usd": resource_context.spent_usd,
+                        "elapsed_seconds": resource_context.elapsed_seconds,
+                    },
                 }
-            })
+            )
 
             if stop_outcome == StoppingOutcome.CONFIRMED:
-                machine.transition(IncidentStatus.EVIDENCE_SUFFICIENT, f"Evidence confirmed: {stop_reason}")
+                machine.transition(
+                    IncidentStatus.EVIDENCE_SUFFICIENT, f"Evidence confirmed: {stop_reason}"
+                )
             else:
                 machine.transition(
                     IncidentStatus.EVIDENCE_INSUFFICIENT,
-                    f"Evidence insufficient. Outcome: {stop_outcome.value} - {stop_reason}"
+                    f"Evidence insufficient. Outcome: {stop_outcome.value} - {stop_reason}",
                 )
                 return ""
 
@@ -301,11 +317,15 @@ class CausalRecoveryOrchestrator:
             fault_sources = incident_state.root_cause_posterior or {}
             cut = self.recovery_solver.solve(failure_targets, fault_sources)
             if not cut:
-                machine.transition(IncidentStatus.RECOVERY_REJECTED, "Impossible to find valid cut.")
+                machine.transition(
+                    IncidentStatus.RECOVERY_REJECTED, "Impossible to find valid cut."
+                )
                 return ""
 
             # 7. Validate in controlled replay with signed capabilities
-            machine.transition(IncidentStatus.RECOVERY_VALIDATING, "Validating cut in controlled replay.")
+            machine.transition(
+                IncidentStatus.RECOVERY_VALIDATING, "Validating cut in controlled replay."
+            )
             if access_context is None or not access_context.is_valid():
                 machine.transition(
                     IncidentStatus.RECOVERY_REJECTED,
@@ -325,20 +345,31 @@ class CausalRecoveryOrchestrator:
                 return ""
 
             # 8. Policy authorization with signed capabilities
-            machine.transition(IncidentStatus.AWAITING_AUTHORIZATION, "Checking policy capabilities.")
+            machine.transition(
+                IncidentStatus.AWAITING_AUTHORIZATION, "Checking policy capabilities."
+            )
             if not self.policy_engine.authorize(val_result, capabilities):
                 machine.transition(IncidentStatus.RECOVERY_REJECTED, "Authorization failed.")
                 return ""
 
             # 9. Canary & Commit
             if not val_result.eligible_for_canary:
-                machine.transition(IncidentStatus.RECOVERY_REJECTED, "Recovery not eligible for canary deployment.")
+                machine.transition(
+                    IncidentStatus.RECOVERY_REJECTED, "Recovery not eligible for canary deployment."
+                )
                 return ""
 
             machine.transition(IncidentStatus.CANARY, "Deploying canary.")
-            machine.transition(IncidentStatus.RECOVERED, "Canary successful. Recovery deployed.")
-
-            # 10. Record certificate
+            
+            # We do not have a real canary deployment mechanism yet.
+            # We must explicitly fail or halt rather than fabricating success.
+            # No fake quarantine confirmation or simulated successful recovery.
+            if incident_state.envelope_id: # placeholder check
+                machine.transition(
+                    IncidentStatus.RECOVERY_REJECTED, 
+                    "Real canary deployments are currently blocked pending production support. Refusing to fabricate recovery success."
+                )
+                return ""
             cert = {
                 "incident_id": incident_state.incident_id,
                 "trace_hash": trace.get("hash", ""),
@@ -358,6 +389,7 @@ class CausalRecoveryOrchestrator:
 
         except Exception as e:
             import traceback
+
             traceback.print_exc()
             # Security fail-closed
             terminal_states = {

@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Incident State Models
 PRIVATE — All Rights Reserved.
 """
+
 import enum
 from typing import Any
 
@@ -28,6 +29,7 @@ class IncidentStatus(str, enum.Enum):
 
 class IncidentState(DGXBaseModel):
     """Persists diagnostic and recovery state for an incident."""
+
     incident_id: str = Field(default_factory=lambda: str(_new_uuid()))
     status: IncidentStatus = IncidentStatus.OBSERVING
 

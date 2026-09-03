@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Causal Recovery Cut
 PRIVATE — All Rights Reserved.
 """
+
 import hashlib
 import json
 from itertools import combinations
@@ -52,7 +53,7 @@ class FailurePathEnumerator:
 
                 for neighbor in self.adj.get(curr, []):
                     if neighbor not in path:  # Avoid cycles
-                        stack.append((neighbor, path + [neighbor]))
+                        stack.append((neighbor, [*path, neighbor]))
 
         return all_paths
 
@@ -69,17 +70,14 @@ class CutOptimizer:
     def _cost(self, action: RecoveryAction) -> float:
         # Simple weighted sum (can be customized)
         return (
-            action.change_cost * 1.0 +
-            action.blast_radius * 1.5 +
-            action.regression_risk * 2.0 +
-            action.expected_downtime * 0.5
+            action.change_cost * 1.0
+            + action.blast_radius * 1.5
+            + action.regression_risk * 2.0
+            + action.expected_downtime * 0.5
         )
 
     def optimize(
-        self,
-        paths: list[list[str]],
-        sources: list[FaultSource],
-        targets: list[FailureTarget]
+        self, paths: list[list[str]], sources: list[FaultSource], targets: list[FailureTarget]
     ) -> CausalRecoveryCut:
         """
         Finds the optimal set of actions to 'hit' (block) every path.
@@ -102,11 +100,12 @@ class CutOptimizer:
         useful_actions = [a for a in self.available_actions if action_coverage[a.action_id]]
 
         best_combo: tuple[RecoveryAction, ...] | None = None
-        best_cost = float('inf')
+        best_cost = float("inf")
 
         # Check if we should use exact branch-and-bound/combinations or greedy heuristic
-        total_combos = sum(1 for k in range(1, len(useful_actions) + 1)
-                           for _ in combinations(useful_actions, k))
+        total_combos = sum(
+            1 for k in range(1, len(useful_actions) + 1) for _ in combinations(useful_actions, k)
+        )
 
         if total_combos <= self.MAX_EXACT_COMBINATIONS:
             opt_method = OptimizationMethod.EXACT
@@ -147,7 +146,7 @@ class CutOptimizer:
                         best_action = act
 
                 if not best_action:
-                    break # Cannot cover remaining paths
+                    break  # Cannot cover remaining paths
 
                 selected_actions.append(best_action)
                 uncovered -= action_coverage[best_action.action_id]
@@ -176,7 +175,7 @@ class CutOptimizer:
         residual_paths: list[list[str]],
         sources: list[FaultSource],
         targets: list[FailureTarget],
-        opt_method: OptimizationMethod
+        opt_method: OptimizationMethod,
     ) -> CausalRecoveryCut:
 
         t_cost = sum(a.change_cost for a in selected_actions)
@@ -185,11 +184,14 @@ class CutOptimizer:
         t_down = sum(a.expected_downtime for a in selected_actions)
 
         # Simple evidence hash based on targets and sources
-        evidence_payload = json.dumps({
-            "targets": [t.node_id for t in targets],
-            "sources": [s.node_id for s in sources],
-            "actions": [a.action_id for a in selected_actions]
-        }, sort_keys=True)
+        evidence_payload = json.dumps(
+            {
+                "targets": [t.node_id for t in targets],
+                "sources": [s.node_id for s in sources],
+                "actions": [a.action_id for a in selected_actions],
+            },
+            sort_keys=True,
+        )
         evidence_hash = hashlib.sha256(evidence_payload.encode()).hexdigest()
 
         return CausalRecoveryCut(
@@ -203,5 +205,5 @@ class CutOptimizer:
             regression_risk=t_risk,
             expected_downtime=t_down,
             optimization_method=opt_method,
-            evidence_hash=evidence_hash
+            evidence_hash=evidence_hash,
         )

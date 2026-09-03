@@ -5,11 +5,14 @@ from packages.replay.src.bandit import ResourceAdmittedBCRBController
 
 def _create_eval(info: float, harm: float) -> RAEBEvaluation:
     return RAEBEvaluation(
-        equivalence_vector=EquivalenceVector(freshness_score=1.0, determinism_score=1.0, dependency_impact_score=1.0),
+        equivalence_vector=EquivalenceVector(
+            freshness_score=1.0, determinism_score=1.0, dependency_impact_score=1.0
+        ),
         admissibility=AdmissibilityScore.ADMISSIBLE,
         information_gain_estimate=info,
-        risk_score=harm
+        risk_score=harm,
     )
+
 
 def test_pareto_dominance_2d():
     scheduler = ResourceAdmittedBCRBController(total_budget=10.0)
@@ -17,10 +20,10 @@ def test_pareto_dominance_2d():
     # 3 arms. Cost is identical, so only IG and Harm matter.
     # Maximize IG, Minimize Harm
     arms = [
-        CandidateArm(arm_id="A", cost=1.0, prior=0.5), # info=10, harm=2 -> frontier
-        CandidateArm(arm_id="B", cost=1.0, prior=0.5), # info=5, harm=1 -> frontier
-        CandidateArm(arm_id="C", cost=1.0, prior=0.5), # info=5, harm=3 -> dominated by B
-        CandidateArm(arm_id="D", cost=1.0, prior=0.5), # info=9, harm=2 -> dominated by A
+        CandidateArm(arm_id="A", cost=1.0, prior=0.5),  # info=10, harm=2 -> frontier
+        CandidateArm(arm_id="B", cost=1.0, prior=0.5),  # info=5, harm=1 -> frontier
+        CandidateArm(arm_id="C", cost=1.0, prior=0.5),  # info=5, harm=3 -> dominated by B
+        CandidateArm(arm_id="D", cost=1.0, prior=0.5),  # info=9, harm=2 -> dominated by A
     ]
 
     evals = {
@@ -35,34 +38,31 @@ def test_pareto_dominance_2d():
 
     assert frontier_ids == {"A", "B"}
 
+
 def test_pareto_duplicates():
     scheduler = ResourceAdmittedBCRBController(total_budget=10.0)
     # E and F are identical in objectives. Tie-break should drop the one with higher arm_id.
     arms = [
         CandidateArm(arm_id="E", cost=1.0, prior=0.5),
-        CandidateArm(arm_id="F", cost=1.0, prior=0.5)
+        CandidateArm(arm_id="F", cost=1.0, prior=0.5),
     ]
-    evals = {
-        "E": _create_eval(10.0, 1.0),
-        "F": _create_eval(10.0, 1.0)
-    }
+    evals = {"E": _create_eval(10.0, 1.0), "F": _create_eval(10.0, 1.0)}
     pareto_set = scheduler.select_pareto_set(arms, evals)
     frontier_ids = {c.arm_id for c in pareto_set.candidates}
     assert frontier_ids == {"E"}
+
 
 def test_pareto_nan_handling():
     scheduler = ResourceAdmittedBCRBController(total_budget=10.0)
     arms = [
         CandidateArm(arm_id="G", cost=1.0, prior=0.5),
-        CandidateArm(arm_id="H", cost=1.0, prior=0.5)
+        CandidateArm(arm_id="H", cost=1.0, prior=0.5),
     ]
-    evals = {
-        "G": _create_eval(float("nan"), 1.0),
-        "H": _create_eval(10.0, 1.0)
-    }
+    evals = {"G": _create_eval(float("nan"), 1.0), "H": _create_eval(10.0, 1.0)}
     pareto_set = scheduler.select_pareto_set(arms, evals)
     frontier_ids = {c.arm_id for c in pareto_set.candidates}
     assert frontier_ids == {"H"}
+
 
 def test_pareto_property_no_point_dominated():
     scheduler = ResourceAdmittedBCRBController(total_budget=10.0)
@@ -99,4 +99,6 @@ def test_pareto_property_no_point_dominated():
             no_worse = info_geq and harm_leq and cost_leq
             strictly_better = info_strict or harm_strict or cost_strict
 
-            assert not (no_worse and strictly_better), f"{c2.arm_id} dominates {c1.arm_id} in returned frontier!"
+            assert not (
+                no_worse and strictly_better
+            ), f"{c2.arm_id} dominates {c1.arm_id} in returned frontier!"

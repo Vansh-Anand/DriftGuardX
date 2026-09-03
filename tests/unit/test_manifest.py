@@ -36,7 +36,7 @@ def test_manifest_hashing_and_pinning():
         dependency_lockfile_hash="lock-hash",
         trace_root_hash="trace-hash",
         original_query_hash="query-hash",
-        corpus_version_id="corpus-v1"
+        corpus_version_id="corpus-v1",
     )
 
     assert manifest_full.is_fully_pinned() is True
@@ -48,8 +48,8 @@ def test_manifest_hashing_and_pinning():
 
     # Check exclude of transient fields
     manifest_full_2 = ReplayStateManifest(
-        run_id=uuid4(), # different run ID
-        tenant_id=uuid4(), # different tenant
+        run_id=uuid4(),  # different run ID
+        tenant_id=uuid4(),  # different tenant
         model_provider="openai",
         model_identifier="gpt-4",
         model_config_hash="abc",
@@ -67,8 +67,7 @@ def test_manifest_hashing_and_pinning():
         dependency_lockfile_hash="lock-hash",
         trace_root_hash="trace-hash",
         original_query_hash="query-hash",
-        corpus_version_id="corpus-v1"
+        corpus_version_id="corpus-v1",
     )
 
     assert manifest_full.manifest_hash == manifest_full_2.manifest_hash
-

@@ -43,9 +43,9 @@ def _mock_replay() -> ReplayEpisode:
 
 def test_raeb_ig_maximum_at_half_split():
     # If N=100, the maximum information gain is when impact = 0.5 (K=50).
-    gateway = RAEBGateway()
-    trace = _mock_trace(100)
-    replay = _mock_replay()
+    RAEBGateway()
+    _mock_trace(100)
+    _mock_replay()
 
     # We patch the impact temporarily inside evaluate_admissibility or just test the math directly.
     # The determinism is 0.95. Let's trace it.

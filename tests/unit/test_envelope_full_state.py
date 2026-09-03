@@ -2,6 +2,7 @@
 Unit tests: Full-state ReplayEquivalenceEnvelope model.
 Verifies HMAC envelope hash computation, field binding, and tamper detection.
 """
+
 import os
 
 os.environ.setdefault("DGX_CAPABILITY_SECRET", "test-secret-key")
@@ -18,7 +19,9 @@ from packages.contracts.src.recovery_models import (
 def _make_cut() -> CausalRecoveryCut:
     return CausalRecoveryCut(
         fault_sources=[FaultSource(node_id="retriever", probability=0.9)],
-        failure_targets=[FailureTarget(node_id="output", failure_type="degradation", severity="high")],
+        failure_targets=[
+            FailureTarget(node_id="output", failure_type="degradation", severity="high")
+        ],
         selected_actions=[],
         optimization_method=OptimizationMethod.EXACT,
         evidence_hash="abc123",
@@ -50,24 +53,32 @@ def test_envelope_verify_passes():
         frozen_variables={"node_a": "hash_abc"},
         policy_binding="policy-hash-xyz",
     )
-    assert env.verify_envelope_hash(), "verify_envelope_hash should return True for unmodified envelope"
+    assert (
+        env.verify_envelope_hash()
+    ), "verify_envelope_hash should return True for unmodified envelope"
 
 
 def test_envelope_hash_changes_with_different_trace_id():
     cut = _make_cut()
     env1 = ReplayEquivalenceEnvelope(trace_id="trace-001", recovery_cut=cut, invariants=[])
     env2 = ReplayEquivalenceEnvelope(trace_id="trace-002", recovery_cut=cut, invariants=[])
-    assert env1.envelope_hash != env2.envelope_hash, "Different trace_id must produce different hash"
+    assert (
+        env1.envelope_hash != env2.envelope_hash
+    ), "Different trace_id must produce different hash"
 
 
 def test_envelope_hash_changes_with_different_frozen_vars():
     cut = _make_cut()
     env1 = ReplayEquivalenceEnvelope(
-        trace_id="t", recovery_cut=cut, invariants=[],
+        trace_id="t",
+        recovery_cut=cut,
+        invariants=[],
         frozen_variables={"node_a": "hash_1"},
     )
     env2 = ReplayEquivalenceEnvelope(
-        trace_id="t", recovery_cut=cut, invariants=[],
+        trace_id="t",
+        recovery_cut=cut,
+        invariants=[],
         frozen_variables={"node_a": "hash_DIFFERENT"},
     )
     assert env1.envelope_hash != env2.envelope_hash

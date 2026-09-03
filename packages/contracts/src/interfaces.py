@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Orchestration Interfaces
 PRIVATE — All Rights Reserved.
 """
+
 import abc
 from typing import TYPE_CHECKING, Any
 
@@ -29,6 +30,7 @@ class DivergenceReport:
     Structured result of divergence validation — not a bare bool.
     Returned by DivergenceValidator.validate_divergence().
     """
+
     def __init__(
         self,
         valid: bool,
@@ -59,11 +61,13 @@ class ResourceBudget:
     budget_usd: float = 10.0
     max_wall_seconds: float = 300.0
 
+
 @dataclass
 class ResourceEstimate:
     cost_usd: float = 0.0
     replay_count: int = 1
     wall_seconds: float = 0.0
+
 
 @dataclass
 class ResourceMeasurement:
@@ -71,13 +75,14 @@ class ResourceMeasurement:
     replay_count: int = 1
     wall_seconds: float = 0.0
 
+
 @dataclass
 class ResourceReservation:
     estimate: ResourceEstimate
     reservation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     committed: bool = False
     released: bool = False
-    context: 'ResourceContext' = field(repr=False, default=None)
+    context: "ResourceContext" = field(repr=False, default=None)
 
     def commit(self, measurement: ResourceMeasurement) -> None:
         """Commit the reservation using actual measurements."""
@@ -91,8 +96,10 @@ class ResourceReservation:
             self.context.release(self)
             self.released = True
 
+
 class ResourceContext:
     """Tracks resource consumption during the experiment loop with thread-safety."""
+
     def __init__(self, budget_usd: float = 10.0, max_wall_seconds: float = 300.0) -> None:
         self.budget = ResourceBudget(budget_usd=budget_usd, max_wall_seconds=max_wall_seconds)
         self.spent_usd: float = 0.0
@@ -135,8 +142,9 @@ class ResourceContext:
 
     def budget_exhausted(self) -> bool:
         with self._lock:
-            return (self.spent_usd + self.reserved_usd >= self.budget.budget_usd) or \
-                   (self.elapsed_seconds >= self.budget.max_wall_seconds)
+            return (self.spent_usd + self.reserved_usd >= self.budget.budget_usd) or (
+                self.elapsed_seconds >= self.budget.max_wall_seconds
+            )
 
     # Legacy compatibility properties
     @property
@@ -181,6 +189,7 @@ class ExogenousStateController(abc.ABC):
     Controls all non-deterministic external state during replay.
     Intercepts: RNG, time, API responses, DB snapshots, LLMs, tools, feature flags.
     """
+
     @abc.abstractmethod
     def __enter__(self) -> "ExogenousStateController":
         pass
@@ -248,7 +257,7 @@ class StoppingPolicy(abc.ABC):
         resource_context: ResourceContext,
         belief_model: BeliefModel,
         remaining_candidates: list[dict[str, Any]],
-    ) -> tuple[bool, 'StoppingOutcome', str]:
+    ) -> tuple[bool, "StoppingOutcome", str]:
         """
         Returns (should_stop, outcome, reason).
         Evaluates: posterior confidence, margin, entropy convergence,

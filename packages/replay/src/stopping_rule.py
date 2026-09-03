@@ -16,14 +16,16 @@ Stopping criteria (evaluated in priority order):
 The hard max_experiments value is a safety cap only — all other criteria
 take precedence and can stop earlier or later as evidence warrants.
 """
+
 from __future__ import annotations
 
 import enum
 from collections import deque
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from packages.contracts.src.incident_models import IncidentState
-from packages.contracts.src.interfaces import BeliefModel, ResourceContext
+if TYPE_CHECKING:
+    from packages.contracts.src.incident_models import IncidentState
+    from packages.contracts.src.interfaces import BeliefModel, ResourceContext
 
 
 class StoppingOutcome(str, enum.Enum):
@@ -83,11 +85,19 @@ class EvidentiaryStoppingRule:
 
         # Priority 1: Resource exhaustion
         if resource_context.budget_exhausted():
-            return True, StoppingOutcome.RESOURCE_EXHAUSTED, "Resource budget exhausted (USD or time limit)."
+            return (
+                True,
+                StoppingOutcome.RESOURCE_EXHAUSTED,
+                "Resource budget exhausted (USD or time limit).",
+            )
 
         # Priority 2: Hard safety cap
         if resource_context.replay_count >= self.max_experiments:
-            return True, StoppingOutcome.SAFETY_LIMIT, f"Hard safety cap reached: {self.max_experiments} experiments."
+            return (
+                True,
+                StoppingOutcome.SAFETY_LIMIT,
+                f"Hard safety cap reached: {self.max_experiments} experiments.",
+            )
 
         has_min_evidence = self._replay_count >= self.min_replays
 
@@ -128,7 +138,11 @@ class EvidentiaryStoppingRule:
 
         # Priority 6: Information exhaustion
         if not remaining_candidates:
-            return True, StoppingOutcome.NO_ADMISSIBLE_EXPERIMENT, "No remaining candidates to experiment on."
+            return (
+                True,
+                StoppingOutcome.NO_ADMISSIBLE_EXPERIMENT,
+                "No remaining candidates to experiment on.",
+            )
 
         # Not sufficient
         reasons = []
@@ -138,4 +152,3 @@ class EvidentiaryStoppingRule:
         reasons.append(f"entropy={entropy:.4f}")
         reasons.append(f"replays={self._replay_count}")
         return False, StoppingOutcome.UNRESOLVED, "Evidence insufficient: " + ", ".join(reasons)
-

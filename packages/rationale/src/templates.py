@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 Provides fully deterministic fallback rationale text generation.
 These templates must be complete enough for operation without any LLM.
 """
+
 from packages.rationale.src.models import RationaleInputContract, RationaleOutput, RationaleStyle
 
 
@@ -22,7 +23,11 @@ def format_limitations(limitations: list[str]) -> str:
 
 def generate_operator_summary(contract: RationaleInputContract) -> str:
     cert_status = "CERTIFIED" if contract.is_certified else "UNCERTIFIED"
-    bound_info = f"(Bound: {contract.bound_method}, epsilon={contract.epsilon}, delta={contract.delta})" if contract.bound_method else ""
+    bound_info = (
+        f"(Bound: {contract.bound_method}, epsilon={contract.epsilon}, delta={contract.delta})"
+        if contract.bound_method
+        else ""
+    )
     return (
         f"[Diagnosis] Root cause localized to component `{contract.ranked_cause_component}` "
         f"(Path: {' -> '.join(contract.symptom_to_cause_path)}).\n"
@@ -72,7 +77,9 @@ def generate_patent_note(contract: RationaleInputContract) -> str:
     )
 
 
-def generate_template_rationale(contract: RationaleInputContract, style: RationaleStyle) -> RationaleOutput:
+def generate_template_rationale(
+    contract: RationaleInputContract, style: RationaleStyle
+) -> RationaleOutput:
     """Generates the requested deterministic template for the input contract."""
     content = ""
     if style == RationaleStyle.OPERATOR_SUMMARY:

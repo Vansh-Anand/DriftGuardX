@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Dataset Generators for Replay
 PRIVATE — All Rights Reserved.
 """
+
 import json
 import os
 
@@ -30,8 +31,8 @@ def generate_fault_episodes(output_dir: str):
                 "trace_digest": f"fake_digest_for_{recipe.id}",
                 "capsule": {
                     "query": f"Test query for {recipe.name}",
-                    "random_seeds": {"global": 42}
-                }
+                    "random_seeds": {"global": 42},
+                },
             }
             f.write(json.dumps(episode) + "\n")
 

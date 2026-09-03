@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Incident CLI
 PRIVATE — All Rights Reserved.
 """
+
 import argparse
 import sys
 
@@ -12,54 +13,71 @@ def mock_authorization(func):
             print("Error: Debug API cannot bypass authorization. Please provide a valid token.")
             sys.exit(1)
         return func(args)
+
     return wrapper
 
+
 @mock_authorization
-def diagnose(args):
+def diagnose(args) -> None:
     print(f"Diagnosing incident {args.incident_id}...")
     print("State: DIAGNOSING")
 
+
 @mock_authorization
-def show_experiments(args):
+def show_experiments(args) -> None:
     print(f"Showing candidate experiments for {args.incident_id}...")
 
+
 @mock_authorization
-def show_envelope(args):
+def show_envelope(args) -> None:
     print(f"Showing Replay Equivalence Envelope for {args.incident_id}...")
 
+
 @mock_authorization
-def show_divergence(args):
+def show_divergence(args) -> None:
     print(f"Showing Causal Divergence Report for {args.incident_id}...")
 
+
 @mock_authorization
-def show_belief(args):
+def show_belief(args) -> None:
     print(f"Showing Belief State (posterior) for {args.incident_id}...")
 
+
 @mock_authorization
-def show_stopping(args):
+def show_stopping(args) -> None:
     print(f"Showing Stopping Decision for {args.incident_id}...")
 
+
 @mock_authorization
-def show_recovery_cut(args):
+def show_recovery_cut(args) -> None:
     print(f"Showing Minimum Causal Recovery Cut for {args.incident_id}...")
 
+
 @mock_authorization
-def show_validation(args):
+def show_validation(args) -> None:
     print(f"Showing Recovery Validation for {args.incident_id}...")
 
+
 @mock_authorization
-def show_transport(args):
+def show_transport(args) -> None:
     print(f"Showing Transportability Decision for {args.incident_id}...")
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="DriftGuard-X Incident CLI")
     parser.add_argument("--token", type=str, help="Authorization token (required)")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     commands = [
-        "diagnose", "show-experiments", "show-envelope", "show-divergence",
-        "show-belief", "show-stopping", "show-recovery-cut", "show-validation",
-        "show-transport"
+        "diagnose",
+        "show-experiments",
+        "show-envelope",
+        "show-divergence",
+        "show-belief",
+        "show-stopping",
+        "show-recovery-cut",
+        "show-validation",
+        "show-transport",
     ]
 
     for cmd in commands:
@@ -76,6 +94,7 @@ def main():
     else:
         print(f"Unknown command: {args.command}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -6,13 +6,17 @@ POST /v1/ingest/spans — OpenTelemetry-compatible span ingestion
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import get_db
 from apps.api.src.dependencies import get_current_tenant
 from apps.api.src.schemas import SpanIngestRequest, SpanIngestResponse
 from apps.api.src.services.ingestion import IngestionService
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/v1", tags=["ingest"])
 

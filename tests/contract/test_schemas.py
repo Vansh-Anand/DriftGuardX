@@ -4,6 +4,7 @@ DriftGuard-X v2 — Schema/Contract Tests (8 tests)
 Validates all Pydantic v2 schemas for correctness, required fields,
 validation errors, and serialization.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -30,6 +31,7 @@ def _utcnow() -> datetime:
 
 # ─── Schema Tests ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.contract
 def test_tenant_valid() -> None:
     """Tenant schema accepts valid input."""
@@ -43,6 +45,7 @@ def test_tenant_valid() -> None:
 def test_tenant_slug_uppercase_rejected() -> None:
     """Tenant slug must be lowercase."""
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         Tenant(name="Acme", slug="Acme")  # uppercase violates pattern
 
@@ -65,6 +68,7 @@ def test_component_version_valid() -> None:
 def test_agent_pipeline_duplicate_component_type_rejected() -> None:
     """AgentPipeline must not have duplicate component types."""
     import pydantic
+
     cv1 = ComponentVersion(
         component_type=ComponentType.RETRIEVER,
         version_tag="v1",
@@ -89,6 +93,7 @@ def test_agent_pipeline_duplicate_component_type_rejected() -> None:
 def test_span_record_end_before_start_rejected() -> None:
     """SpanRecord must reject end_time < start_time."""
     import pydantic
+
     start = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
     end = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)  # before start!
     with pytest.raises(pydantic.ValidationError, match="end_time must be"):
@@ -108,6 +113,7 @@ def test_span_record_end_before_start_rejected() -> None:
 def test_request_run_reliability_out_of_range() -> None:
     """RequestRun reliability_score must be 0.0–1.0."""
     import pydantic
+
     with pytest.raises(pydantic.ValidationError, match="reliability_score"):
         RequestRun(
             tenant_id=uuid.uuid4(),

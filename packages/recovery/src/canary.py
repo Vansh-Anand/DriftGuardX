@@ -18,6 +18,7 @@ Canary design:
     ALL thresholds pass does VERIFYING → COMMITTED fire.
   - If verification fails and policy allows, COMPENSATING fires automatically.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -27,11 +28,12 @@ from datetime import UTC, datetime
 @dataclass
 class CanaryEpisode:
     """One canary replay episode with baseline and post-action metrics."""
+
     episode_id: str
-    baseline_quality: float     # 0–1
+    baseline_quality: float  # 0–1
     baseline_cost_usd: float
     baseline_latency_ms: float
-    baseline_safe: bool         # True = no safety violation
+    baseline_safe: bool  # True = no safety violation
     post_quality: float
     post_cost_usd: float
     post_latency_ms: float
@@ -40,14 +42,15 @@ class CanaryEpisode:
 
 @dataclass
 class CanaryThresholds:
-    min_quality_delta: float = -0.02    # quality may drop by at most 2%
-    max_cost_delta_usd: float = 0.20    # cost may increase by at most $0.20
-    max_latency_delta_ms: float = 200.0 # latency may increase by at most 200ms
+    min_quality_delta: float = -0.02  # quality may drop by at most 2%
+    max_cost_delta_usd: float = 0.20  # cost may increase by at most $0.20
+    max_latency_delta_ms: float = 200.0  # latency may increase by at most 200ms
 
 
 @dataclass
 class CanaryVerificationResult:
     """Verification outcome for the canary replay set."""
+
     proposal_id: str
     n_episodes: int
     safety_pass: bool
@@ -89,17 +92,23 @@ def run_canary_verification(
 
     if not episodes:
         return CanaryVerificationResult(
-            proposal_id=proposal_id, n_episodes=0,
-            safety_pass=False, quality_pass=False, cost_pass=False, latency_pass=False,
+            proposal_id=proposal_id,
+            n_episodes=0,
+            safety_pass=False,
+            quality_pass=False,
+            cost_pass=False,
+            latency_pass=False,
             overall_pass=False,
-            mean_quality_delta=0.0, mean_cost_delta=0.0, mean_latency_delta=0.0,
+            mean_quality_delta=0.0,
+            mean_cost_delta=0.0,
+            mean_latency_delta=0.0,
             safety_violations_post=0,
             failure_reasons=["No canary episodes provided."],
         )
 
     n = len(episodes)
     quality_deltas = [ep.post_quality - ep.baseline_quality for ep in episodes]
-    cost_deltas    = [ep.post_cost_usd - ep.baseline_cost_usd for ep in episodes]
+    cost_deltas = [ep.post_cost_usd - ep.baseline_cost_usd for ep in episodes]
     latency_deltas = [ep.post_latency_ms - ep.baseline_latency_ms for ep in episodes]
     safety_violations_post = sum(1 for ep in episodes if not ep.post_safe)
 
@@ -111,9 +120,9 @@ def run_canary_verification(
     baseline_violations = sum(1 for ep in episodes if not ep.baseline_safe)
     safety_pass = safety_violations_post <= baseline_violations
 
-    quality_pass  = mean_q >= thresholds.min_quality_delta
-    cost_pass     = mean_c <= thresholds.max_cost_delta_usd
-    latency_pass  = mean_l <= thresholds.max_latency_delta_ms
+    quality_pass = mean_q >= thresholds.min_quality_delta
+    cost_pass = mean_c <= thresholds.max_cost_delta_usd
+    latency_pass = mean_l <= thresholds.max_latency_delta_ms
 
     failure_reasons = []
     if not safety_pass:

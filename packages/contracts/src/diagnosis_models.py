@@ -2,13 +2,14 @@
 DriftGuard-X v2 — Diagnosis Models
 PRIVATE — All Rights Reserved.
 """
+
+from datetime import datetime
 from typing import Any
 from uuid import UUID
-from datetime import datetime
+
 from pydantic import Field
 
-from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow
-from packages.contracts.src.models import ComponentType
+from packages.contracts.src.models import ComponentType, DGXBaseModel, _new_uuid, _utcnow
 
 
 class CandidateScore(DGXBaseModel):

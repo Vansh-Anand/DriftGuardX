@@ -14,6 +14,7 @@ Covers all acceptance gates:
   [9] Default deny on unknown action.
   [10] Inheritance tightening: child DENY overrides parent ALLOW.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -37,6 +38,7 @@ from packages.policy.src.resolver import InheritanceResolver, PolicyConflictErro
 from packages.policy.src.shadow import HistoricalEvent, shadow_evaluate
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 def _make_registry(
     tenant_id: str = "tenant_acme",
@@ -64,7 +66,9 @@ def _make_registry(
                 action_pattern="schedule_replay",
                 verdict=RuleVerdict.ALLOW if allow_replay else RuleVerdict.DENY,
                 risk_tier=RiskTier.MEDIUM,
-                rationale="Org-level: replay allowed." if allow_replay else "Org-level: replay denied.",
+                rationale=(
+                    "Org-level: replay allowed." if allow_replay else "Org-level: replay denied."
+                ),
                 source_level=PolicyLevel.ORGANIZATION,
             ),
             PolicyRule(
@@ -105,6 +109,7 @@ def _make_engine(tenant_id: str = "tenant_acme") -> PolicyEngine:
 
 # ─── [1] Cross-Tenant Isolation ───────────────────────────────────────────────
 
+
 def test_cross_tenant_policy_isolation():
     """Tenant B's policy nodes must not affect Tenant A's resolution."""
     reg_a = _make_registry(tenant_id="tenant_a")
@@ -137,6 +142,7 @@ def test_tenant_b_cannot_read_tenant_a_decisions():
 
 # ─── [2] Confused Deputy ──────────────────────────────────────────────────────
 
+
 def test_confused_deputy_low_role_cannot_execute_high_action():
     """A viewer role should not be allowed to apply_rollback."""
     reg = PolicyRegistry()
@@ -162,14 +168,18 @@ def test_confused_deputy_low_role_cannot_execute_high_action():
     engine = PolicyEngine(reg, svc)
 
     decision = engine.evaluate(
-        "apply_rollback", "tenant_acme", "org_acme",
-        requester_id="user_viewer", requester_role="viewer",
+        "apply_rollback",
+        "tenant_acme",
+        "org_acme",
+        requester_id="user_viewer",
+        requester_role="viewer",
     )
     assert decision.verdict == "deny"
     assert "viewer" in decision.rationale.lower() or "role" in decision.rationale.lower()
 
 
 # ─── [3] Self-Approval Blocked ────────────────────────────────────────────────
+
 
 def test_self_approval_is_blocked():
     """The requester cannot approve their own request."""
@@ -189,6 +199,7 @@ def test_self_approval_is_blocked():
 
 
 # ─── [4] Unauthorized Approver ────────────────────────────────────────────────
+
 
 def test_unauthorized_approver_is_blocked():
     """An actor not in the delegated_approvers list must be rejected."""
@@ -227,12 +238,17 @@ def test_delegated_approver_succeeds():
 
 # ─── [5] Critical Action Without Approvers ────────────────────────────────────
 
+
 def test_critical_action_blocked_without_approval():
     """CRITICAL actions cannot execute without the configured approvals."""
     engine = _make_engine()
     # delete_memory is CRITICAL — must never auto-allow
     decision = engine.evaluate(
-        "delete_memory", "tenant_acme", "pipeline_rag_v2", "user_admin", "admin",
+        "delete_memory",
+        "tenant_acme",
+        "pipeline_rag_v2",
+        "user_admin",
+        "admin",
     )
     # The hierarchy has a DENY rule for delete_memory → must be denied
     assert decision.verdict == "deny"
@@ -265,6 +281,7 @@ def test_critical_action_needs_two_approvers():
 
 # ─── [6] Break-Glass ──────────────────────────────────────────────────────────
 
+
 def test_break_glass_requires_justification():
     """Break-glass without sufficient justification must be rejected."""
     svc = ApprovalService()
@@ -294,7 +311,9 @@ def test_break_glass_is_audited():
         risk_tier="high",
     )
     svc.create_request(req)
-    svc.break_glass(req.request_id, "user_bob", "Production outage detected; immediate rollback required.")
+    svc.break_glass(
+        req.request_id, "user_bob", "Production outage detected; immediate rollback required."
+    )
 
     audit = svc.audit_log()
     bg_entries = [e for e in audit if e["event"] == "BREAK_GLASS"]
@@ -304,6 +323,7 @@ def test_break_glass_is_audited():
 
 
 # ─── [7] Determinism ──────────────────────────────────────────────────────────
+
 
 def test_effective_policy_is_deterministic():
     """Same inputs must always produce the same effective policy."""
@@ -321,17 +341,25 @@ def test_effective_policy_is_deterministic():
 
 # ─── [8] Shadow Evaluation ────────────────────────────────────────────────────
 
+
 def test_shadow_evaluation_detects_policy_relaxation():
     """Shadow report flags a relaxation when candidate allows a previously-denied action."""
     # Active policy: replay DENIED
-    active_reg = _make_registry(allow_replay=False)
+    _make_registry(allow_replay=False)
 
     # Candidate policy: replay ALLOWED (relaxation)
     candidate_reg = _make_registry(allow_replay=True)
 
     historical = [
-        HistoricalEvent("ev1", "schedule_replay", "tenant_acme", "pipeline_rag_v2",
-                        "user_alice", "operator", "deny"),
+        HistoricalEvent(
+            "ev1",
+            "schedule_replay",
+            "tenant_acme",
+            "pipeline_rag_v2",
+            "user_alice",
+            "operator",
+            "deny",
+        ),
     ]
     report = shadow_evaluate(historical, candidate_reg, "candidate_v2")
     assert report.n_relaxed == 1
@@ -341,16 +369,22 @@ def test_shadow_evaluation_detects_policy_relaxation():
 
 # ─── [9] Default Deny ─────────────────────────────────────────────────────────
 
+
 def test_default_deny_on_unknown_action():
     """Unknown actions must be denied regardless of context."""
     engine = _make_engine()
     decision = engine.evaluate(
-        "invoke_magic_action", "tenant_acme", "pipeline_rag_v2", "user_alice", "admin",
+        "invoke_magic_action",
+        "tenant_acme",
+        "pipeline_rag_v2",
+        "user_alice",
+        "admin",
     )
     assert decision.verdict == "deny"
 
 
 # ─── [10] Tightening Inheritance ─────────────────────────────────────────────
+
 
 def test_child_deny_overrides_parent_allow():
     """Pipeline-level DENY must override org-level ALLOW (tightening)."""
@@ -418,11 +452,11 @@ def test_child_cannot_relax_without_justification():
         rules=[
             PolicyRule(
                 action_pattern="schedule_replay",
-                verdict=RuleVerdict.ALLOW,     # tries to relax
+                verdict=RuleVerdict.ALLOW,  # tries to relax
                 risk_tier=RiskTier.LOW,
                 rationale="Tries to allow without justification.",
                 source_level=PolicyLevel.PIPELINE,
-                override_justification=None,   # missing!
+                override_justification=None,  # missing!
             ),
         ],
     )

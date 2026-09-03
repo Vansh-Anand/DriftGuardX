@@ -5,11 +5,12 @@ Revises: 407792c02e8c
 Create Date: 2026-08-22 14:39:12.984504
 
 """
+
 from __future__ import annotations
 
 # revision identifiers, used by Alembic.
-revision: str = 'c9562519a269'
-down_revision: str | None = '407792c02e8c'
+revision: str = "c9562519a269"
+down_revision: str | None = "407792c02e8c"
 branch_labels: str | None = None
 depends_on: str | None = None
 

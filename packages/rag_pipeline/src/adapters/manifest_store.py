@@ -5,10 +5,10 @@ class ManifestStore:
     def __init__(self, bucket_name: str = "manifests"):
         self.storage = MinioStorage(bucket_name=bucket_name)
 
-    async def save_manifest(self, manifest_hash: str, payload_json: str):
+    async def save_manifest(self, manifest_hash: str, payload_json: str) -> None:
         """Saves the canonical JSON representation of the manifest to MinIO."""
         # Convert the string to bytes
-        data = payload_json.encode('utf-8')
+        data = payload_json.encode("utf-8")
         # MinioStorage uses sync upload
         self.storage.upload_bytes(f"{manifest_hash}.json", data, content_type="application/json")
 

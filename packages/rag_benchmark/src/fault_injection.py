@@ -35,7 +35,7 @@ class BenchmarkFaultInjector(FaultInjector):
             # Monkey-patch generate to simulate a real failure
             original_generate = pipeline.llm.generate
 
-            def failing_generate(prompt, temperature=0.7, trace_ctx=None):
+            def failing_generate(prompt, temperature=0.7, trace_ctx=None) -> str:
                 return "MODEL DRIFT FAILURE: Output is garbled."
 
             pipeline.llm.generate = failing_generate
@@ -68,7 +68,7 @@ class BenchmarkFaultInjector(FaultInjector):
             # Dummy LLM will simulate a tool failing
             original_generate = pipeline.llm.generate
 
-            def tool_failing_generate(prompt, temperature=0.7, trace_ctx=None):
+            def tool_failing_generate(prompt, temperature=0.7, trace_ctx=None) -> str:
                 return "TOOL_ERROR: database connection refused"
 
             pipeline.llm.generate = tool_failing_generate
@@ -77,7 +77,7 @@ class BenchmarkFaultInjector(FaultInjector):
             # Simulate API timeout or failure
             original_generate = pipeline.llm.generate
 
-            def api_failing_generate(prompt, temperature=0.7, trace_ctx=None):
+            def api_failing_generate(prompt, temperature=0.7, trace_ctx=None) -> str:
                 return "API_TIMEOUT"
 
             pipeline.llm.generate = api_failing_generate

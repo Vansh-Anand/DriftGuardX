@@ -17,6 +17,7 @@ Tightening-only rules:
 
 Every call is deterministic: same inputs → same EffectivePolicy.
 """
+
 from __future__ import annotations
 
 from packages.policy.src.hierarchy import (
@@ -54,12 +55,15 @@ _LEVEL_ORDER = [
 
 # ─── Conflict ─────────────────────────────────────────────────────────────────
 
+
 class PolicyConflictError(ValueError):
     """Raised when a child rule attempts to relax a parent restriction without justification."""
+
     pass
 
 
 # ─── PolicyRegistry ───────────────────────────────────────────────────────────
+
 
 class PolicyRegistry:
     """
@@ -82,6 +86,7 @@ class PolicyRegistry:
 
 
 # ─── Resolver ─────────────────────────────────────────────────────────────────
+
 
 class InheritanceResolver:
     """
@@ -164,7 +169,9 @@ class InheritanceResolver:
                 # This rule is MORE restrictive — allowed
                 effective_verdict = rule.verdict
                 winning_rule = rule
-            elif i > 0 and _VERDICT_PRECEDENCE[rule.verdict] > _VERDICT_PRECEDENCE[effective_verdict]:
+            elif (
+                i > 0 and _VERDICT_PRECEDENCE[rule.verdict] > _VERDICT_PRECEDENCE[effective_verdict]
+            ):
                 # Child is LESS restrictive than parent
                 if not rule.override_justification:
                     raise PolicyConflictError(

@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Symptom Registry
 """
+
 from uuid import UUID
 
 from packages.contracts.src.models import (
@@ -26,7 +27,7 @@ class SymptomRegistry:
         run_id: UUID,
         graph_node_id: str,
         detector_output: DetectorOutput,
-        detector_version: str = "v1"
+        detector_version: str = "v1",
     ) -> SymptomRegistryEntry:
         """Register a new symptom if it's an anomaly."""
         # Only register if it breaches threshold or is explicitly marked anomaly
@@ -39,13 +40,16 @@ class SymptomRegistry:
             channel = CausalDriftChannel(detector_output.drift_channel)
         else:
             import warnings
-            warnings.warn(f"Detector {detector_output.detector_name} did not explicitly register a drift channel. Defaulting to UNKNOWN.")
+
+            warnings.warn(
+                f"Detector {detector_output.detector_name} did not explicitly register a drift channel. Defaulting to UNKNOWN."
+            )
             channel = CausalDriftChannel.UNKNOWN
 
         typed_map = TypedCausalMap(
             primary_channel=channel,
             channel_scores={channel: detector_output.value},
-            containment_partition_id=graph_node_id
+            containment_partition_id=graph_node_id,
         )
 
         entry = SymptomRegistryEntry(
@@ -59,7 +63,7 @@ class SymptomRegistry:
             evidence_snippet=str(detector_output.evidence),
             uncertainty=0.1,  # Baseline uncertainty
             typed_causal_map=typed_map,
-            detected_at=_utcnow()
+            detected_at=_utcnow(),
         )
         self._entries.append(entry)
         return entry
@@ -73,11 +77,7 @@ class SymptomRegistry:
         return [e for e in self._entries if e.run_id == run_id and e.graph_node_id == graph_node_id]
 
     def register_gat_result(
-        self,
-        tenant_id: UUID,
-        run_id: UUID,
-        gat_result: dict,
-        detector_version: str = "gat-v1"
+        self, tenant_id: UUID, run_id: UUID, gat_result: dict, detector_version: str = "gat-v1"
     ) -> list[SymptomRegistryEntry]:
         """Convert GAT detector results into symptom registry entries."""
         created_entries = []
@@ -85,7 +85,11 @@ class SymptomRegistry:
             return created_entries
 
         prob = gat_result.get("fault_probability", 0.0)
-        likelihood = SymptomLikelihood.HIGH if prob > 0.7 else (SymptomLikelihood.MEDIUM if prob > 0.4 else SymptomLikelihood.LOW)
+        likelihood = (
+            SymptomLikelihood.HIGH
+            if prob > 0.7
+            else (SymptomLikelihood.MEDIUM if prob > 0.4 else SymptomLikelihood.LOW)
+        )
 
         for candidate in gat_result.get("root_cause_candidates", []):
             node_id = candidate.get("span_id", "unknown_span")
@@ -99,11 +103,11 @@ class SymptomRegistry:
                 detector_version=detector_version,
                 evidence_snippet=f"Self-time ratio: {candidate.get('self_time_ratio', 0.0):.2f}, error: {candidate.get('is_error', False)}, prob: {prob:.3f}",
                 uncertainty=round(1.0 - prob, 3),
-                detected_at=_utcnow()
+                detected_at=_utcnow(),
             )
             self._entries.append(entry)
             created_entries.append(entry)
         return created_entries
 
-    def clear(self):
+    def clear(self) -> None:
         self._entries.clear()

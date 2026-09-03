@@ -27,5 +27,5 @@ class EvaluationEpisode(BaseModel):
             "difficulty": self.difficulty,
             "corpus_version": self.corpus_version_id,
             "fault_id": self.fault_id or "none",
-            "ground_truth_rca": self.ground_truth_root_cause or "none"
+            "ground_truth_rca": self.ground_truth_root_cause or "none",
         }

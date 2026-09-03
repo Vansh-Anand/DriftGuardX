@@ -3,6 +3,7 @@ DriftGuard-X v2 — Deterministic Verifier Contracts
 Update 7: Attaching cheap, non-LLM checks to execution traces.
 Update 15: Delegated normalization to utils.unicode
 """
+
 from typing import Any
 
 from packages.utils.src.unicode import aggressive_normalize_for_banlist
@@ -16,15 +17,14 @@ class DeterministicVerifier:
     """
 
     @staticmethod
-    def verify_tool_calls_present(trace_attributes: dict[str, Any], required_tools: list[str]) -> bool:
+    def verify_tool_calls_present(
+        trace_attributes: dict[str, Any], required_tools: list[str]
+    ) -> bool:
         """
         Verify that specific tools were invoked in the trace.
         """
         invoked_tools = trace_attributes.get("dgx.tools.invoked", [])
-        for tool in required_tools:
-            if tool not in invoked_tools:
-                return False
-        return True
+        return all(tool in invoked_tools for tool in required_tools)
 
     @staticmethod
     def verify_no_forbidden_words(text: str, forbidden_words: list[str]) -> bool:
@@ -46,14 +46,16 @@ class DeterministicVerifier:
         Verify that the output is valid JSON (if expected).
         """
         import json
+
         try:
             json.loads(text)
             return True
         except json.JSONDecodeError:
             return False
 
-
-    def run_all_contracts(self, trace_attributes: dict[str, Any], final_output: str, constraints: dict[str, Any]) -> bool:
+    def run_all_contracts(
+        self, trace_attributes: dict[str, Any], final_output: str, constraints: dict[str, Any]
+    ) -> bool:
         """
         Execute all requested contracts. Fails fast if any fail.
         """

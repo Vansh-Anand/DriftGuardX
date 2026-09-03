@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Hosted-provider Drift Beacons
 Update 11: Probe black-box dependencies to detect silent provider shifts.
 """
+
 import hashlib
 from datetime import UTC, datetime
 from typing import Any
@@ -18,11 +19,12 @@ class DriftBeacon:
     Runs sealed behavioral probes through material agent paths to detect
     silent shifts in hosted provider behavior (e.g. LLM API changes).
     """
+
     def __init__(
         self,
         provider_id: str,
         baseline_outputs: dict[str, str],
-        encoder: SemanticEncoder | None = None
+        encoder: SemanticEncoder | None = None,
     ):
         self.provider_id = provider_id
         self.baseline_outputs = baseline_outputs
@@ -36,7 +38,7 @@ class DriftBeacon:
         Computes exact SHA-256 hash for artifact identity and integrity logging.
         NOT used for semantic drift decisions.
         """
-        return hashlib.sha256(output.encode('utf-8')).hexdigest()
+        return hashlib.sha256(output.encode("utf-8")).hexdigest()
 
     def run_probe(self, probe_id: str, probe_input: Any, runner_func) -> dict[str, Any]:
         """
@@ -75,7 +77,7 @@ class DriftBeacon:
                 "latency_ms": latency_ms,
                 "identity_hash": identity_hash,
                 "diagnostics": diagnostics,
-                "timestamp": end_time
+                "timestamp": end_time,
             }
         except Exception as e:
             end_time = datetime.now(UTC)
@@ -84,5 +86,5 @@ class DriftBeacon:
                 "provider_id": self.provider_id,
                 "is_drifted": True,
                 "error": str(e),
-                "timestamp": end_time
+                "timestamp": end_time,
             }

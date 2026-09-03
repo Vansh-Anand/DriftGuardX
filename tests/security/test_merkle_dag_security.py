@@ -9,10 +9,12 @@ def test_set_instability():
     # A set {1, 2, "a"} might stringify differently.
 
     class UnstableObj:
-        def __str__(self): return "Unstable"
+        def __str__(self):
+            return "Unstable"
 
     class UnstableObj2:
-        def __str__(self): return "Unstable"
+        def __str__(self):
+            return "Unstable"
 
     # Different objects with same str() representation cause a hash collision!
     # UPDATE: We now strictly require JSON-serializable payloads to prevent this.
@@ -25,6 +27,7 @@ def test_set_instability():
     # JSON serializes tuples as lists, which is a known limitation but safe for deterministic trees
     # because lists and tuples convey the same ordered data. We accept this collision.
     assert n3.node_hash == n4.node_hash
+
 
 def test_dag_cycle_pollution():
     from packages.replay.src.merkle_dag import MerkleDAGStore
@@ -51,4 +54,3 @@ def test_dag_cycle_pollution():
     # Because 'root' has in-degree 0, it gets processed and forked to 'root_fork'
     # before the cycle stops Kahn's algorithm and raises the error!
     assert "root_fork" not in store._nodes, "VULNERABILITY: Graph polluted before cycle detection!"
-

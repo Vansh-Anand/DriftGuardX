@@ -10,6 +10,7 @@ async def test_auth_rejection(client: AsyncClient):
     # Should be unauthorized without token
     assert response.status_code == 401
 
+
 @pytest.mark.asyncio
 async def test_auth_acceptance(client: AsyncClient):
     """Verify mock auth token allows access."""
@@ -18,6 +19,7 @@ async def test_auth_acceptance(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
     assert "runs" in data
+
 
 @pytest.mark.asyncio
 async def test_invalid_token_rejected(client: AsyncClient):

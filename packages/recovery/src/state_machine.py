@@ -22,6 +22,7 @@ Partial failure contract:
   - COMPENSATING → failure → FAILED (manual intervention required)
   - A result of COMMITTED is ONLY set after VERIFYING passes.
 """
+
 from __future__ import annotations
 
 import enum
@@ -31,40 +32,53 @@ from typing import Any
 
 
 class RecoveryStatus(str, enum.Enum):
-    PROPOSED         = "proposed"
-    POLICY_CHECKING  = "policy_checking"
+    PROPOSED = "proposed"
+    POLICY_CHECKING = "policy_checking"
     PENDING_APPROVAL = "pending_approval"
-    PREPARING        = "preparing"
-    EXECUTING        = "executing"
-    VERIFYING        = "verifying"
-    COMMITTED        = "committed"
-    COMPENSATING     = "compensating"
-    COMPENSATED      = "compensated"
-    FAILED           = "failed"
-    CANCELLED        = "cancelled"
+    PREPARING = "preparing"
+    EXECUTING = "executing"
+    VERIFYING = "verifying"
+    COMMITTED = "committed"
+    COMPENSATING = "compensating"
+    COMPENSATED = "compensated"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 # Terminal states — no further transitions permitted
-TERMINAL_STATES = frozenset({
-    RecoveryStatus.COMMITTED,
-    RecoveryStatus.COMPENSATED,
-    RecoveryStatus.FAILED,
-    RecoveryStatus.CANCELLED,
-})
+TERMINAL_STATES = frozenset(
+    {
+        RecoveryStatus.COMMITTED,
+        RecoveryStatus.COMPENSATED,
+        RecoveryStatus.FAILED,
+        RecoveryStatus.CANCELLED,
+    }
+)
 
 # Allowed transitions (from → set of allowed tos)
 ALLOWED_TRANSITIONS: dict[RecoveryStatus, frozenset] = {
-    RecoveryStatus.PROPOSED:         frozenset({RecoveryStatus.POLICY_CHECKING, RecoveryStatus.CANCELLED}),
-    RecoveryStatus.POLICY_CHECKING:  frozenset({RecoveryStatus.PENDING_APPROVAL, RecoveryStatus.PREPARING, RecoveryStatus.FAILED, RecoveryStatus.CANCELLED}),
-    RecoveryStatus.PENDING_APPROVAL: frozenset({RecoveryStatus.PREPARING, RecoveryStatus.CANCELLED}),
-    RecoveryStatus.PREPARING:        frozenset({RecoveryStatus.EXECUTING, RecoveryStatus.FAILED, RecoveryStatus.CANCELLED}),
-    RecoveryStatus.EXECUTING:        frozenset({RecoveryStatus.VERIFYING, RecoveryStatus.COMPENSATING}),
-    RecoveryStatus.VERIFYING:        frozenset({RecoveryStatus.COMMITTED, RecoveryStatus.COMPENSATING}),
-    RecoveryStatus.COMPENSATING:     frozenset({RecoveryStatus.COMPENSATED, RecoveryStatus.FAILED}),
-    RecoveryStatus.COMMITTED:        frozenset(),
-    RecoveryStatus.COMPENSATED:      frozenset(),
-    RecoveryStatus.FAILED:           frozenset(),
-    RecoveryStatus.CANCELLED:        frozenset(),
+    RecoveryStatus.PROPOSED: frozenset({RecoveryStatus.POLICY_CHECKING, RecoveryStatus.CANCELLED}),
+    RecoveryStatus.POLICY_CHECKING: frozenset(
+        {
+            RecoveryStatus.PENDING_APPROVAL,
+            RecoveryStatus.PREPARING,
+            RecoveryStatus.FAILED,
+            RecoveryStatus.CANCELLED,
+        }
+    ),
+    RecoveryStatus.PENDING_APPROVAL: frozenset(
+        {RecoveryStatus.PREPARING, RecoveryStatus.CANCELLED}
+    ),
+    RecoveryStatus.PREPARING: frozenset(
+        {RecoveryStatus.EXECUTING, RecoveryStatus.FAILED, RecoveryStatus.CANCELLED}
+    ),
+    RecoveryStatus.EXECUTING: frozenset({RecoveryStatus.VERIFYING, RecoveryStatus.COMPENSATING}),
+    RecoveryStatus.VERIFYING: frozenset({RecoveryStatus.COMMITTED, RecoveryStatus.COMPENSATING}),
+    RecoveryStatus.COMPENSATING: frozenset({RecoveryStatus.COMPENSATED, RecoveryStatus.FAILED}),
+    RecoveryStatus.COMMITTED: frozenset(),
+    RecoveryStatus.COMPENSATED: frozenset(),
+    RecoveryStatus.FAILED: frozenset(),
+    RecoveryStatus.CANCELLED: frozenset(),
 }
 
 
@@ -75,6 +89,7 @@ class InvalidTransitionError(ValueError):
 @dataclass
 class StateEvent:
     """Immutable log entry for one state transition."""
+
     from_status: RecoveryStatus
     to_status: RecoveryStatus
     actor: str
@@ -91,13 +106,12 @@ class RecoveryStateMachine:
     All transitions are validated. Terminal states are immutable.
     The event log is append-only and never truncated.
     """
+
     proposal_id: str
     current_status: RecoveryStatus = RecoveryStatus.PROPOSED
     capsule_id: str | None = None
     event_log: list[StateEvent] = field(default_factory=list)
-    timeout_at: datetime = field(
-        default_factory=lambda: datetime.now(UTC) + timedelta(minutes=30)
-    )
+    timeout_at: datetime = field(default_factory=lambda: datetime.now(UTC) + timedelta(minutes=30))
     retry_count: int = 0
     max_retries: int = 2
     escalated: bool = False
@@ -164,8 +178,7 @@ class RecoveryStateMachine:
 
     def should_retry(self) -> bool:
         return (
-            self.current_status == RecoveryStatus.EXECUTING
-            and self.retry_count < self.max_retries
+            self.current_status == RecoveryStatus.EXECUTING and self.retry_count < self.max_retries
         )
 
     def record_retry(self) -> None:

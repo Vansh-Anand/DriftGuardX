@@ -2,8 +2,8 @@ import json
 import os
 import uuid
 
-from packages.evaluation.src.verifier import DeterministicVerifier
 from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.evaluation.src.verifier import DeterministicVerifier
 from packages.rag_benchmark.src.fault_injector import FaultInjector
 from packages.rag_benchmark.src.rag_pipeline import RAGPipeline
 

@@ -1,10 +1,15 @@
 """
 DriftGuard-X v2 — API Smoke Tests (6 tests)
 """
+
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
-from httpx import AsyncClient
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
 
@@ -56,7 +61,12 @@ async def test_create_run_experimental_lower_reliability(client: AsyncClient) ->
     # Stable run
     resp_stable = await client.post(
         "/v1/runs",
-        json={"query": "test", "use_experimental_retriever": False, "seed": 42, "is_synthetic": True},
+        json={
+            "query": "test",
+            "use_experimental_retriever": False,
+            "seed": 42,
+            "is_synthetic": True,
+        },
     )
     assert resp_stable.status_code == 201
     stable_score = resp_stable.json()["reliability_score"]
@@ -64,14 +74,19 @@ async def test_create_run_experimental_lower_reliability(client: AsyncClient) ->
     # Experimental run
     resp_exp = await client.post(
         "/v1/runs",
-        json={"query": "test", "use_experimental_retriever": True, "seed": 42, "is_synthetic": True},
+        json={
+            "query": "test",
+            "use_experimental_retriever": True,
+            "seed": 42,
+            "is_synthetic": True,
+        },
     )
     assert resp_exp.status_code == 201
     exp_score = resp_exp.json()["reliability_score"]
 
-    assert exp_score < stable_score, (
-        f"Experimental score {exp_score} should be less than stable {stable_score}"
-    )
+    assert (
+        exp_score < stable_score
+    ), f"Experimental score {exp_score} should be less than stable {stable_score}"
 
 
 @pytest.mark.unit
@@ -80,7 +95,12 @@ async def test_get_run_by_id(client: AsyncClient) -> None:
     # Create a run first
     resp = await client.post(
         "/v1/runs",
-        json={"query": "test", "use_experimental_retriever": False, "seed": 42, "is_synthetic": True},
+        json={
+            "query": "test",
+            "use_experimental_retriever": False,
+            "seed": 42,
+            "is_synthetic": True,
+        },
     )
     run_id = resp.json()["id"]
 
@@ -93,6 +113,7 @@ async def test_get_run_by_id(client: AsyncClient) -> None:
 async def test_get_run_not_found(client: AsyncClient) -> None:
     """GET /v1/runs/{id} returns 404 for unknown ID."""
     import uuid
+
     fake_id = uuid.uuid4()
     resp = await client.get(f"/v1/runs/{fake_id}")
     assert resp.status_code == 404

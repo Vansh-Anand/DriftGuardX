@@ -13,12 +13,13 @@ def test_contribution_vector():
         latency_delta_ms=50.0,
         risk_penalty=0.0,
         invalid_count=0,
-        total_trials=3
+        total_trials=3,
     )
 
     assert vec.reliability_improvement_mean > 0.1
     assert vec.aggregate_score > 0.0
     assert vec.invalid_rate == 0.0
+
 
 def test_benchmark_negative_controls():
     runner = ExhaustiveBenchmarkRunner(trials_per_candidate=3)
@@ -37,6 +38,7 @@ def test_benchmark_negative_controls():
     should_abstain = RCAMetricsEvaluator.check_abstention(noop_score, threshold=0.05)
     assert should_abstain is True
 
+
 def test_rca_metrics_multi_fault():
     # True faults are Retriever and Generator
     ground_truth = {"retriever_v1", "generator_v2"}
@@ -50,4 +52,4 @@ def test_rca_metrics_multi_fault():
 
     assert p1 == 0.5  # 1 hit out of 2 true faults in top 1
     assert p3 == 1.0  # 2 hits out of 2 true faults in top 3
-    assert mrr == 1.0 # First hit is at rank 1
+    assert mrr == 1.0  # First hit is at rank 1

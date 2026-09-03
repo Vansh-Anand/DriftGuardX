@@ -9,8 +9,8 @@ from typing import Any
 
 from pydantic import Field
 
-from packages.contracts.src.models import DGXBaseModel
 from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.models import DGXBaseModel
 
 
 class FaultType(str, enum.Enum):

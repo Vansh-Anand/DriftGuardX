@@ -9,12 +9,13 @@ from packages.evaluation.src.experiments.tracker import MLflowTracker
 
 logger = logging.getLogger(__name__)
 
+
 class ExperimentOrchestrator:
     def __init__(self, config: ExperimentConfig, tracker: MLflowTracker):
         self.config = config
         self.tracker = tracker
 
-    def run(self):
+    def run(self) -> None:
         with self.tracker.start_run(run_name=self.config.experiment_name):
             self.tracker.log_params(self.config.model_dump())
 
@@ -26,7 +27,7 @@ class ExperimentOrchestrator:
             elif self.config.regime == "tool-use":
                 adapter = ToolBenchAdapter()
             else:
-                adapter = BEIRAdapter() # Fallback
+                adapter = BEIRAdapter()  # Fallback
 
             clean_episodes = adapter.get_dataset()
 
@@ -55,10 +56,22 @@ class ExperimentOrchestrator:
                 # Budget caps & quotas
                 cost_so_far = (start_index + i + 1) * 0.05
                 if cost_so_far > self.config.budget_cap_usd:
-                    raw_predictions.append({"episode_id": str(ep.replay_id), "status": "BUDGET_EXCEEDED", "result": None})
+                    raw_predictions.append(
+                        {
+                            "episode_id": str(ep.replay_id),
+                            "status": "BUDGET_EXCEEDED",
+                            "result": None,
+                        }
+                    )
                     break
                 if cost_so_far > provider_quota_usd:
-                    raw_predictions.append({"episode_id": str(ep.replay_id), "status": "QUOTA_EXCEEDED", "result": None})
+                    raw_predictions.append(
+                        {
+                            "episode_id": str(ep.replay_id),
+                            "status": "QUOTA_EXCEEDED",
+                            "result": None,
+                        }
+                    )
                     break
 
                 # Simulate success based on overlay
@@ -68,7 +81,13 @@ class ExperimentOrchestrator:
                 if is_success:
                     successes += 1
 
-                raw_predictions.append({"episode_id": str(ep.replay_id), "status": "SUCCESS" if is_success else "FAILURE", "metrics": rel_vector})
+                raw_predictions.append(
+                    {
+                        "episode_id": str(ep.replay_id),
+                        "status": "SUCCESS" if is_success else "FAILURE",
+                        "metrics": rel_vector,
+                    }
+                )
 
                 # Update checkpoint
                 with open(checkpoint_file, "w") as f:

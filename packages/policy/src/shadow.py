@@ -8,6 +8,7 @@ WITHOUT activating it. Produces a shadow report showing:
   - Diff against the decisions recorded under the currently active policy.
   - Summary statistics: # newly blocked, # newly allowed, # unchanged.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -19,19 +20,21 @@ from packages.policy.src.resolver import InheritanceResolver, PolicyRegistry
 @dataclass
 class HistoricalEvent:
     """A recorded policy decision from a past run."""
+
     event_id: str
     action: str
     tenant_id: str
     node_id: str
     requester_id: str
     requester_role: str
-    recorded_verdict: str   # "allow" | "deny" | "needs_approval"
+    recorded_verdict: str  # "allow" | "deny" | "needs_approval"
     recorded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
 class ShadowResult:
     """Shadow evaluation result for a single historical event."""
+
     event_id: str
     action: str
     recorded_verdict: str
@@ -45,11 +48,12 @@ class ShadowResult:
 @dataclass
 class ShadowReport:
     """Full shadow evaluation report for a candidate policy."""
+
     candidate_policy_id: str
     n_events: int
     n_unchanged: int
-    n_tightened: int          # events that would be more restricted
-    n_relaxed: int            # events that would be less restricted (flag for review)
+    n_tightened: int  # events that would be more restricted
+    n_relaxed: int  # events that would be less restricted (flag for review)
     results: list[ShadowResult]
     generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
@@ -107,16 +111,18 @@ def shadow_evaluate(
             change_direction = "relaxed"
             n_relaxed += 1
 
-        results.append(ShadowResult(
-            event_id=ev.event_id,
-            action=ev.action,
-            recorded_verdict=ev.recorded_verdict,
-            shadow_verdict=shadow_verdict,
-            changed=changed,
-            change_direction=change_direction,
-            shadow_rule_id=shadow_rule_id,
-            shadow_rationale=shadow_rationale,
-        ))
+        results.append(
+            ShadowResult(
+                event_id=ev.event_id,
+                action=ev.action,
+                recorded_verdict=ev.recorded_verdict,
+                shadow_verdict=shadow_verdict,
+                changed=changed,
+                change_direction=change_direction,
+                shadow_rule_id=shadow_rule_id,
+                shadow_rationale=shadow_rationale,
+            )
+        )
 
     return ShadowReport(
         candidate_policy_id=candidate_policy_id,

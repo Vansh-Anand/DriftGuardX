@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Exhaustive Benchmark Runner
 PRIVATE — All Rights Reserved.
 """
+
 from uuid import UUID
 
 from packages.contracts.src.models import ComponentType
@@ -16,7 +17,9 @@ class ExhaustiveBenchmarkRunner:
     def __init__(self, trials_per_candidate: int = 3):
         self.trials_per_candidate = trials_per_candidate
 
-    def execute_matched_set(self, run_id: UUID, target_component: ComponentType) -> dict[str, ContributionVector]:
+    def execute_matched_set(
+        self, run_id: UUID, target_component: ComponentType
+    ) -> dict[str, ContributionVector]:
         """
         Executes matched replays. In a real system, this would call ReplayPlanner.
         For benchmarking, we simulate the results including negative controls.
@@ -31,7 +34,7 @@ class ExhaustiveBenchmarkRunner:
             latency_delta_ms=50.0,
             risk_penalty=0.0,
             invalid_count=0,
-            total_trials=self.trials_per_candidate
+            total_trials=self.trials_per_candidate,
         )
 
         # 2. Negative Control: No-Op
@@ -42,7 +45,7 @@ class ExhaustiveBenchmarkRunner:
             latency_delta_ms=0.0,
             risk_penalty=0.0,
             invalid_count=0,
-            total_trials=self.trials_per_candidate
+            total_trials=self.trials_per_candidate,
         )
 
         # 3. Negative Control: Irrelevant Component
@@ -53,7 +56,7 @@ class ExhaustiveBenchmarkRunner:
             latency_delta_ms=200.0,
             risk_penalty=0.1,
             invalid_count=0,
-            total_trials=self.trials_per_candidate
+            total_trials=self.trials_per_candidate,
         )
 
         # 4. Negative Control: Random Candidate Ranking
@@ -62,8 +65,8 @@ class ExhaustiveBenchmarkRunner:
             cost_delta_usd=0.10,
             latency_delta_ms=100.0,
             risk_penalty=0.5,
-            invalid_count=1, # 1 invalid out of 3
-            total_trials=self.trials_per_candidate
+            invalid_count=1,  # 1 invalid out of 3
+            total_trials=self.trials_per_candidate,
         )
 
         return results

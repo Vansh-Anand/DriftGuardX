@@ -2,11 +2,12 @@
 DriftGuard-X v2 — Reference Multi-Agent Runtime
 PRIVATE — All Rights Reserved.
 """
-from typing import Any, Protocol
-from datetime import datetime
-from packages.contracts.src.agent_models import AgentInvocation, AgentMessage, MessageRole
-from packages.contracts.src.models import _new_uuid, _utcnow
+
 import uuid
+from typing import Any, Protocol
+
+from packages.contracts.src.agent_models import AgentInvocation, AgentMessage, MessageRole
+from packages.contracts.src.models import _utcnow
 
 
 class AgentState(Protocol):
@@ -44,29 +45,25 @@ class BaseAgent:
             run_id=uuid.UUID(state.run_id),
             tenant_id=uuid.UUID(state.tenant_id),
             agent_name=self.name,
-            start_time=start_time
+            start_time=start_time,
         )
-        
+
         try:
             output = self._process(state)
             invocation.output_message = AgentMessage(
-                role=MessageRole.ASSISTANT,
-                content=output,
-                name=self.name
+                role=MessageRole.ASSISTANT, content=output, name=self.name
             )
             state.history.append(invocation.output_message)
         except Exception as e:
             invocation.output_message = AgentMessage(
-                role=MessageRole.ASSISTANT,
-                content=f"Error: {str(e)}",
-                name=self.name
+                role=MessageRole.ASSISTANT, content=f"Error: {e!s}", name=self.name
             )
             invocation.metadata["error"] = str(e)
-            
+
         invocation.end_time = _utcnow()
         state.invocations.append(invocation)
         return invocation
-        
+
     def _process(self, state: ReferenceState) -> str:
         raise NotImplementedError
 
@@ -87,7 +84,10 @@ class RetrievalAgent(BaseAgent):
 
     def _process(self, state: ReferenceState) -> str:
         # Simulated retrieval
-        state.context["retrieved_docs"] = ["Doc 1: The system is healthy.", "Doc 2: Policies require approval."]
+        state.context["retrieved_docs"] = [
+            "Doc 1: The system is healthy.",
+            "Doc 2: Policies require approval.",
+        ]
         state.current_agent = "reasoning"
         return f"Retrieved {len(state.context['retrieved_docs'])} documents."
 
@@ -159,15 +159,15 @@ class AgentPipeline:
             "policy": PolicyAgent(),
             "response": ResponseAgent(),
         }
-        
+
     def run(self, query: str, run_id: str, tenant_id: str) -> ReferenceState:
         state = ReferenceState(query, run_id, tenant_id)
-        
+
         while not state.is_finished:
             agent = self.agents.get(state.current_agent)
             if not agent:
                 raise ValueError(f"Unknown agent: {state.current_agent}")
-                
+
             agent.execute(state)
-            
+
         return state

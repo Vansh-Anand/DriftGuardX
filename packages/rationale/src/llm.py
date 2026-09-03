@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 Optional LLM rationale adapter that receives structured fields and strict instructions.
 Includes deterministic fallback if factual validation fails.
 """
+
 import json
 import logging
 import os
@@ -41,17 +42,23 @@ def build_system_prompt(style: RationaleStyle) -> str:
     if style == RationaleStyle.OPERATOR_SUMMARY:
         return base + "Style: Concise, actionable summary for an SRE operator."
     elif style == RationaleStyle.EXECUTIVE_SUMMARY:
-        return base + "Style: High-level business summary focusing on metrics and policy decisions. Avoid deep technical jargon."
+        return (
+            base
+            + "Style: High-level business summary focusing on metrics and policy decisions. Avoid deep technical jargon."
+        )
     elif style == RationaleStyle.INCIDENT_TICKET:
         return base + "Style: Structured incident ticket format (Root Cause, Action, Resolution)."
     elif style == RationaleStyle.PATENT_NOTE:
-        return base + "Style: Highly technical experiment record. Avoid legal advice or global safety claims."
+        return (
+            base
+            + "Style: Highly technical experiment record. Avoid legal advice or global safety claims."
+        )
     return base
 
 
 def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[str, float]:
     """
-    Invokes the LLM. 
+    Invokes the LLM.
     In development, uses a local mock that generates text to test the validator.
     In production, this would call OpenAI/Anthropic via their respective clients.
     """
@@ -59,14 +66,15 @@ def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[st
 
     if os.getenv("DGX_USE_REAL_LLM") == "1" and os.getenv("OPENAI_API_KEY"):
         import openai
+
         client = openai.Client()
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": f"Evidence:\n{json_evidence}"}
+                {"role": "user", "content": f"Evidence:\n{json_evidence}"},
             ],
-            temperature=0.0
+            temperature=0.0,
         )
         content = response.choices[0].message.content or ""
     else:
@@ -85,7 +93,7 @@ def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[st
 def generate_rationale(
     contract: RationaleInputContract,
     style: RationaleStyle = RationaleStyle.OPERATOR_SUMMARY,
-    use_llm: bool = True
+    use_llm: bool = True,
 ) -> RationaleOutput:
     """
     Main entrypoint. Tries LLM generation, validates facts, falls back to templates if needed.
@@ -127,7 +135,7 @@ def generate_rationale(
             prompt_version="v1",
             model_version=model_version,
             latency_ms=latency,
-            cost_usd=0.001  # Mock cost
+            cost_usd=0.001,  # Mock cost
         )
 
     except Exception as e:

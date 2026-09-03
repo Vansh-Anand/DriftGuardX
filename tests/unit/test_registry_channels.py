@@ -17,7 +17,7 @@ def test_registry_explicit_channel():
         value=0.9,
         likelihood=SymptomLikelihood.HIGH,
         is_anomaly=True,
-        drift_channel=CausalDriftChannel.RETRIEVAL
+        drift_channel=CausalDriftChannel.RETRIEVAL,
     )
 
     with warnings.catch_warnings(record=True) as w:
@@ -26,6 +26,7 @@ def test_registry_explicit_channel():
 
         assert entry.typed_causal_map.primary_channel == CausalDriftChannel.RETRIEVAL
         assert len(w) == 0
+
 
 def test_registry_unknown_fallback():
     registry = SymptomRegistry()
@@ -39,7 +40,7 @@ def test_registry_unknown_fallback():
         value=0.9,
         likelihood=SymptomLikelihood.HIGH,
         is_anomaly=True,
-        drift_channel=None
+        drift_channel=None,
     )
 
     with warnings.catch_warnings(record=True) as w:
@@ -48,4 +49,6 @@ def test_registry_unknown_fallback():
 
         assert entry.typed_causal_map.primary_channel == CausalDriftChannel.UNKNOWN
         assert len(w) == 1
-        assert "did not explicitly register a drift channel. Defaulting to UNKNOWN" in str(w[-1].message)
+        assert "did not explicitly register a drift channel. Defaulting to UNKNOWN" in str(
+            w[-1].message
+        )

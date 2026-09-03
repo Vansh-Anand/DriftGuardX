@@ -8,14 +8,18 @@ dead-letter logging for malformed telemetry.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.models import RequestRunORM, SpanRecordORM
-from apps.api.src.schemas import SpanIngestItem
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from apps.api.src.schemas import SpanIngestItem
 
 logger = logging.getLogger(__name__)
 

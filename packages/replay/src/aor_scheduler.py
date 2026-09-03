@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Asynchronous Optimizer Recomputing (AOR) Scheduler
 Hardware-Gated Compute Scheduler.
 """
+
 import concurrent.futures
 import threading
 from collections.abc import Callable
@@ -18,8 +19,11 @@ class TaskStatus:
     BLOCKED = "BLOCKED"
     DIAGNOSING = "DIAGNOSING"
 
+
 class AORTask:
-    def __init__(self, task_id: str, func: Callable, inputs: dict[str, Any], dependencies: list[str] = None):
+    def __init__(
+        self, task_id: str, func: Callable, inputs: dict[str, Any], dependencies: list[str] | None = None
+    ):
         self.task_id = task_id
         self.func = func
         self.inputs = inputs
@@ -28,6 +32,7 @@ class AORTask:
         self.result = None
         self.error = None
         self.diagnostic_result = None
+
 
 class AORScheduler:
     def __init__(self, max_workers: int = 4):
@@ -38,7 +43,7 @@ class AORScheduler:
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         self._diagnostic_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
-    def add_task(self, task: AORTask):
+    def add_task(self, task: AORTask) -> None:
         with self._lock:
             self.tasks[task.task_id] = task
 
@@ -50,7 +55,11 @@ class AORScheduler:
                 for dep_id in task.dependencies:
                     dep_task = self.tasks.get(dep_id)
                     if dep_task:
-                        if dep_task.status in (TaskStatus.FAILED, TaskStatus.BLOCKED, TaskStatus.DIAGNOSING):
+                        if dep_task.status in (
+                            TaskStatus.FAILED,
+                            TaskStatus.BLOCKED,
+                            TaskStatus.DIAGNOSING,
+                        ):
                             task.status = TaskStatus.BLOCKED
                             can_run = False
                             break
@@ -61,7 +70,7 @@ class AORScheduler:
                     ready.append(task)
         return ready
 
-    def _execute_task(self, task: AORTask):
+    def _execute_task(self, task: AORTask) -> None:
         try:
             result = task.func(**task.inputs)
             with self._lock:
@@ -79,17 +88,21 @@ class AORScheduler:
 
                 self._condition.notify_all()
 
-    def _run_diagnostic(self, task: AORTask):
+    def _run_diagnostic(self, task: AORTask) -> None:
         """
         Background sandboxed execution (VTI) for counterfactual testing.
         """
         import asyncio
+
         executor = LocalDevExecutor()
         try:
             # We wrap the function in the LocalDevExecutor to physically isolate the test
             diag_result = asyncio.run(executor.execute(task.func, budget_seconds=5, **task.inputs))
             with self._lock:
-                task.diagnostic_result = {"payload": diag_result.payload, "error": diag_result.error}
+                task.diagnostic_result = {
+                    "payload": diag_result.payload,
+                    "error": diag_result.error,
+                }
                 task.status = TaskStatus.FAILED
                 self._condition.notify_all()
         except Exception as e:
@@ -98,7 +111,7 @@ class AORScheduler:
                 task.status = TaskStatus.FAILED
                 self._condition.notify_all()
 
-    def run(self):
+    def run(self) -> None:
         """
         Main scheduler loop.
         """
@@ -126,6 +139,6 @@ class AORScheduler:
         with self._lock:
             return self.tasks.get(task_id)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self._executor.shutdown(wait=True)
         self._diagnostic_executor.shutdown(wait=True)

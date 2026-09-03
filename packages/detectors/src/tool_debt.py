@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Tool Evidence-Debt and Corroboration
 Update 10: Score tool results by freshness, stability, and verifier history.
 """
+
 from typing import Any
 
 
@@ -10,6 +11,7 @@ class ToolEvidenceDebtMonitor:
     Scores each tool result to prevent tool corruption from bypassing output metrics.
     High-debt evidence may inform diagnosis but cannot authorize recovery.
     """
+
     def __init__(self):
         # In a real system, these would be fetched from a DB
         self.tool_history: dict[str, dict[str, Any]] = {}
@@ -36,7 +38,7 @@ class ToolEvidenceDebtMonitor:
 
         # 3. Verifier history debt (did this tool fail deterministic checks recently?)
         failure_rate = history.get("verifier_failure_rate", 0.0)
-        debt += (failure_rate * 0.5)
+        debt += failure_rate * 0.5
 
         return min(1.0, debt)
 

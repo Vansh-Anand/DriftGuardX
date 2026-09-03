@@ -19,6 +19,7 @@ Development/sandbox mode (default):
 Production adapters require DRIFTGUARDX_ENV=production env var.
 They are injected via the executor factory and are NOT imported by default.
 """
+
 from __future__ import annotations
 
 import abc
@@ -41,6 +42,7 @@ from packages.recovery.src.capsule import (
 
 # ─── Result ───────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ExecutionResult:
     proposal_id: str
@@ -55,27 +57,33 @@ class ExecutionResult:
 
 # ─── Errors ───────────────────────────────────────────────────────────────────
 
+
 class IdempotencyConflictError(ValueError):
     """Raised when the idempotency key has already been used."""
+
     pass
 
 
 class StaleVersionError(ValueError):
     """Raised when the live component version doesn't match expected."""
+
     pass
 
 
 class ActionNotAllowedError(PermissionError):
     """Raised when the action type is not in the registry allowlist."""
+
     pass
 
 
 class ParamValidationError(ValueError):
     """Raised when required params are missing or unknown params are present."""
+
     pass
 
 
 # ─── Abstract Executor ────────────────────────────────────────────────────────
+
 
 class RecoveryExecutor(abc.ABC):
     """
@@ -193,6 +201,7 @@ class RecoveryExecutor(abc.ABC):
 
 # ─── Local Dev Executor (Sandbox / Fixture-backed) ────────────────────────────
 
+
 class LocalDevExecutor(RecoveryExecutor):
     """
     Fully in-memory, deterministic executor for development and tests.
@@ -218,15 +227,17 @@ class LocalDevExecutor(RecoveryExecutor):
         target = dict(proposal.params)
 
         component_id = proposal.params.get("component_id", "unknown")
-        current_version = self._live_versions.get(component_id)
+        self._live_versions.get(component_id)
 
         constraints = []
         if proposal.expected_version_id and component_id != "unknown":
-            constraints.append(CompatibilityConstraint(
-                component_id=component_id,
-                expected_version_id=proposal.expected_version_id,
-                description="Component must be at expected version for safe rollback.",
-            ))
+            constraints.append(
+                CompatibilityConstraint(
+                    component_id=component_id,
+                    expected_version_id=proposal.expected_version_id,
+                    description="Component must be at expected version for safe rollback.",
+                )
+            )
 
         return RollbackCapsule(
             proposal_id=proposal.proposal_id,
@@ -235,8 +246,9 @@ class LocalDevExecutor(RecoveryExecutor):
             component_id=component_id,
             previous_state=prev,
             target_state=target,
-            artifact_hashes={component_id: hashlib.sha256(
-                str(prev).encode()).hexdigest()[:16]} if prev else {},
+            artifact_hashes=(
+                {component_id: hashlib.sha256(str(prev).encode()).hexdigest()[:16]} if prev else {}
+            ),
             compatibility_constraints=constraints,
             rollback_params=prev,  # rollback = restore previous state
             verify_steps=["canary_replay", "metric_delta_check"],
@@ -272,6 +284,7 @@ class LocalDevExecutor(RecoveryExecutor):
             pid = params.get("partition_id", "")
             # Assume not quarantined initially if not tracked, store handles reality
             from packages.memory.src.store import global_provenance_store
+
             is_quarantined = global_provenance_store._is_quarantined(pid)
             return {"partition_id": pid, "quarantined": is_quarantined}
         if t == RecoveryActionType.REVERT_PROMPT_VERSION:
@@ -294,13 +307,15 @@ class LocalDevExecutor(RecoveryExecutor):
                 max_k = int(params.get("max_allowed_top_k", 100))
                 if new_k > max_k:
                     return ExecutionResult(
-                        proposal_id=proposal.proposal_id, success=False,
+                        proposal_id=proposal.proposal_id,
+                        success=False,
                         outcome_description=f"new_top_k={new_k} exceeds max={max_k}.",
                         error="top_k_exceeds_limit",
                     )
                 self._top_k_store[cid] = new_k
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"top_k for {cid!r} set to {new_k}.",
                     side_effects={"top_k": new_k},
                 )
@@ -309,7 +324,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 cid = params["component_id"]
                 strategy = params["strategy"]
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Retrieval strategy for {cid!r} set to {strategy!r}.",
                     side_effects={"strategy": strategy},
                 )
@@ -319,7 +335,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 idx = params["target_index_id"]
                 self._index_store[cid] = idx
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Index for {cid!r} switched to {idx!r}.",
                     side_effects={"index_id": idx},
                 )
@@ -329,7 +346,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 rr = params["reranker_id"]
                 self._reranker_store[cid] = rr
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Reranker for {cid!r} set to {rr!r}.",
                     side_effects={"reranker_id": rr},
                 )
@@ -339,7 +357,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 alias = params["stable_model_alias"]
                 self._model_store[cid] = alias
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Model for {cid!r} routed to {alias!r}.",
                     side_effects={"model": alias},
                 )
@@ -348,7 +367,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 tid = params["tool_id"]
                 self._tools_disabled.add(tid)
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Tool {tid!r} disabled.",
                     side_effects={"tool_id": tid, "disabled": True},
                 )
@@ -357,7 +377,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 ns = params["namespace_id"]
                 self._quarantined_ns.add(ns)
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Namespace {ns!r} quarantined (read-only).",
                     side_effects={"namespace_id": ns, "quarantined": True},
                 )
@@ -372,14 +393,30 @@ class LocalDevExecutor(RecoveryExecutor):
                 from packages.memory.src.auth import AccessContext
                 from packages.memory.src.capabilities import CapabilityVerifier
                 from packages.memory.src.store import global_provenance_store
+
                 secret = os.environ.get("DGX_CAPABILITY_SECRET")
                 verifier = CapabilityVerifier(secret.encode("utf-8") if secret else None)
-                cap = SignedCapability(capability_id=uuid.uuid4().hex, requester_id="executor", tenant_id=proposal.tenant_id, action="QUARANTINE", resource=pid, expires_at=datetime.now(UTC)+timedelta(minutes=5))
+                cap = SignedCapability(
+                    capability_id=uuid.uuid4().hex,
+                    requester_id="executor",
+                    tenant_id=proposal.tenant_id,
+                    action="QUARANTINE",
+                    resource=pid,
+                    expires_at=datetime.now(UTC) + timedelta(minutes=5),
+                )
                 cap = verifier.sign(cap)
-                ctx = AccessContext(requester_id="executor", tenant_id=proposal.tenant_id, expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
-                global_provenance_store.quarantine_partition(pid, context=ctx, reason=f"Quarantined by proposal {proposal.proposal_id}")
+                ctx = AccessContext(
+                    requester_id="executor",
+                    tenant_id=proposal.tenant_id,
+                    expires_at=datetime.now(UTC) + timedelta(minutes=5),
+                    capabilities=[cap],
+                )
+                global_provenance_store.quarantine_partition(
+                    pid, context=ctx, reason=f"Quarantined by proposal {proposal.proposal_id}"
+                )
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Provenance partition {pid!r} quarantined globally.",
                     side_effects={"partition_id": pid, "quarantined": True},
                 )
@@ -389,7 +426,8 @@ class LocalDevExecutor(RecoveryExecutor):
                 vtag = params["target_version_tag"]
                 self._prompt_versions[pid] = vtag
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Prompt {pid!r} reverted to {vtag!r}.",
                     side_effects={"prompt_id": pid, "version_tag": vtag},
                 )
@@ -399,20 +437,23 @@ class LocalDevExecutor(RecoveryExecutor):
                 target_vid = params["target_version_id"]
                 self._live_versions[cid] = target_vid
                 return ExecutionResult(
-                    proposal_id=proposal.proposal_id, success=True,
+                    proposal_id=proposal.proposal_id,
+                    success=True,
                     outcome_description=f"Component {cid!r} rolled back to {target_vid!r}.",
                     side_effects={"component_id": cid, "version_id": target_vid},
                 )
 
         except (KeyError, ValueError) as exc:
             return ExecutionResult(
-                proposal_id=proposal.proposal_id, success=False,
+                proposal_id=proposal.proposal_id,
+                success=False,
                 outcome_description=f"Execution error: {exc}",
                 error=str(exc),
             )
 
         return ExecutionResult(
-            proposal_id=proposal.proposal_id, success=False,
+            proposal_id=proposal.proposal_id,
+            success=False,
             outcome_description=f"Action {t!r} not implemented in LocalDevExecutor.",
             error="not_implemented",
         )
@@ -447,31 +488,49 @@ class LocalDevExecutor(RecoveryExecutor):
                     from packages.memory.src.auth import AccessContext
                     from packages.memory.src.capabilities import CapabilityVerifier
                     from packages.memory.src.store import global_provenance_store
+
                     secret = os.environ.get("DGX_CAPABILITY_SECRET")
                     verifier = CapabilityVerifier(secret.encode("utf-8") if secret else None)
-                    cap = SignedCapability(capability_id=uuid.uuid4().hex, requester_id="executor", tenant_id="system", action="UNQUARANTINE", resource=prev["partition_id"], expires_at=datetime.now(UTC)+timedelta(minutes=5))
+                    cap = SignedCapability(
+                        capability_id=uuid.uuid4().hex,
+                        requester_id="executor",
+                        tenant_id="system",
+                        action="UNQUARANTINE",
+                        resource=prev["partition_id"],
+                        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+                    )
                     cap = verifier.sign(cap)
-                    ctx = AccessContext(requester_id="executor", tenant_id="system", expires_at=datetime.now(UTC)+timedelta(minutes=5), capabilities=[cap])
-                    global_provenance_store.unquarantine_partition(prev["partition_id"], context=ctx)
+                    ctx = AccessContext(
+                        requester_id="executor",
+                        tenant_id="system",
+                        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+                        capabilities=[cap],
+                    )
+                    global_provenance_store.unquarantine_partition(
+                        prev["partition_id"], context=ctx
+                    )
             elif t == RecoveryActionType.REVERT_PROMPT_VERSION.value:
                 self._prompt_versions[prev["prompt_id"]] = prev["version_tag"]
             elif t == RecoveryActionType.ROLLBACK_COMPONENT.value:
                 self._live_versions[prev["component_id"]] = prev["version_id"]
             else:
                 return ExecutionResult(
-                    proposal_id=capsule.proposal_id, success=False,
+                    proposal_id=capsule.proposal_id,
+                    success=False,
                     outcome_description=f"No rollback handler for action {t!r}.",
                     error="no_rollback_handler",
                 )
         except (KeyError, TypeError) as exc:
             return ExecutionResult(
-                proposal_id=capsule.proposal_id, success=False,
+                proposal_id=capsule.proposal_id,
+                success=False,
                 outcome_description=f"Rollback failed: {exc}",
                 error=str(exc),
             )
 
         return ExecutionResult(
-            proposal_id=capsule.proposal_id, success=True,
+            proposal_id=capsule.proposal_id,
+            success=True,
             outcome_description=f"Rolled back {t!r} using capsule {capsule.capsule_id!r}.",
             capsule_id=capsule.capsule_id,
         )

@@ -42,11 +42,12 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 # ─── Thresholds ──────────────────────────────────────────────────────────────
-MIN_N_HOEFFDING = 30   # below this we flag low-n but still return
-MIN_N_BOOTSTRAP = 10   # below this we return UnsupportedBound
+MIN_N_HOEFFDING = 30  # below this we flag low-n but still return
+MIN_N_BOOTSTRAP = 10  # below this we return UnsupportedBound
 N_BOOTSTRAP_RESAMPLES = 2000
 
 # ─── Result Dataclass ─────────────────────────────────────────────────────────
+
 
 @dataclass
 class BoundResult:
@@ -68,6 +69,7 @@ class BoundResult:
     epsilon:          Half-width of the interval (upper - point_estimate), or None.
     delta:            Failure probability = 1 - nominal_confidence, or None.
     """
+
     method: Literal["hoeffding", "bootstrap", "conformal", "unsupported"]
     is_supported: bool
     point_estimate: float
@@ -83,6 +85,7 @@ class BoundResult:
 
 
 # ─── Unsupported Sentinel ─────────────────────────────────────────────────────
+
 
 def unsupported_bound(
     observations: list[float],
@@ -103,6 +106,7 @@ def unsupported_bound(
 
 
 # ─── Hoeffding Analytic Bound ─────────────────────────────────────────────────
+
 
 def hoeffding_bound(
     observations: list[float],
@@ -127,8 +131,9 @@ def hoeffding_bound(
 
     if reward_max <= reward_min:
         return unsupported_bound(
-            observations, nominal_confidence,
-            f"Degenerate reward range: [{reward_min}, {reward_max}]"
+            observations,
+            nominal_confidence,
+            f"Degenerate reward range: [{reward_min}, {reward_max}]",
         )
 
     assumptions_met = []
@@ -139,9 +144,10 @@ def hoeffding_bound(
     out_of_range = [x for x in observations if x < reward_min - 1e-9 or x > reward_max + 1e-9]
     if out_of_range:
         return unsupported_bound(
-            observations, nominal_confidence,
+            observations,
+            nominal_confidence,
             f"{len(out_of_range)} observations fall outside [{reward_min}, {reward_max}]; "
-            "Hoeffding boundedness assumption violated."
+            "Hoeffding boundedness assumption violated.",
         )
     assumptions_met.append(f"All {n} rewards in [{reward_min}, {reward_max}].")
 
@@ -185,6 +191,7 @@ def hoeffding_bound(
 
 # ─── Bootstrap Empirical Bound ────────────────────────────────────────────────
 
+
 def bootstrap_bound(
     observations: list[float],
     nominal_confidence: float = 0.90,
@@ -203,8 +210,9 @@ def bootstrap_bound(
 
     if n < MIN_N_BOOTSTRAP:
         return unsupported_bound(
-            observations, nominal_confidence,
-            f"n={n} < {MIN_N_BOOTSTRAP}: insufficient data for bootstrap resampling."
+            observations,
+            nominal_confidence,
+            f"n={n} < {MIN_N_BOOTSTRAP}: insufficient data for bootstrap resampling.",
         )
 
     rng = random.Random(seed)
@@ -245,6 +253,7 @@ def bootstrap_bound(
 
 # ─── Conformal Prediction Interval ───────────────────────────────────────────
 
+
 def conformal_bound(
     calibration_scores: list[float],
     new_score: float,
@@ -269,8 +278,9 @@ def conformal_bound(
 
     if n_cal < 10:
         return unsupported_bound(
-            calibration_scores, nominal_confidence,
-            f"Calibration set has only {n_cal} scores; need >= 10 for conformal guarantee."
+            calibration_scores,
+            nominal_confidence,
+            f"Calibration set has only {n_cal} scores; need >= 10 for conformal guarantee.",
         )
 
     alpha = 1.0 - nominal_confidence
@@ -282,7 +292,7 @@ def conformal_bound(
     q_idx = min(int(math.floor(q_level * n_cal)), n_cal - 1)
     tau = sorted_scores[q_idx]
 
-    mean_cal = sum(calibration_scores) / n_cal
+    sum(calibration_scores) / n_cal
     lower = new_score - tau
     upper = new_score + tau
 

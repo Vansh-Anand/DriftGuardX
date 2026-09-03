@@ -4,6 +4,7 @@ Update 14: Atomic execution budget and multiprocessing OS limits.
 PRIVATE — All Rights Reserved.
 """
 
+import contextlib
 import hashlib
 import json
 import multiprocessing
@@ -265,10 +266,8 @@ def _sandboxed_execution_wrapper(
             ensure_ascii=True,
             separators=(",", ":"),
         ).encode("utf-8")
-        try:
+        with contextlib.suppress(BrokenPipeError, EOFError, OSError):
             connection.send_bytes(b"X" + error[: 64 * 1024])
-        except (BrokenPipeError, EOFError, OSError):
-            pass
     finally:
         connection.close()
 

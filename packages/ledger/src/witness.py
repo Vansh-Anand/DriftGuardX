@@ -2,6 +2,7 @@
 DriftGuard-X v2 — Witnessed Recovery Certificate
 Update 4: Commits certificates to an independent transparency log.
 """
+
 import hashlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -15,11 +16,13 @@ class WitnessCommitResult:
     certificate_commit_hash: str
     ledger_entry_hash: str
 
+
 class TransparencyWitness:
     """
-    Periodically commits certificate Merkle roots to an independent 
+    Periodically commits certificate Merkle roots to an independent
     witness or transparency log using a TransparencyStore.
     """
+
     def __init__(self, store: TransparencyStore | None = None):
         # Default to SQLite store if none provided
         self.store = store if store is not None else SQLiteTransparencyStore()
@@ -34,14 +37,19 @@ class TransparencyWitness:
         new_level = []
         for i in range(0, len(hashes), 2):
             left = hashes[i]
-            right = hashes[i+1] if i+1 < len(hashes) else left
+            right = hashes[i + 1] if i + 1 < len(hashes) else left
             # Domain separation for internal node
             combined = hashlib.sha256(b"\x01" + left.encode() + right.encode()).hexdigest()
             new_level.append(combined)
 
         return self._compute_merkle_root(new_level)
 
-    def commit_certificates(self, certificates: list[RecoveryCertificate], policy_snapshot_hash: str, canary_result: bool) -> WitnessCommitResult:
+    def commit_certificates(
+        self,
+        certificates: list[RecoveryCertificate],
+        policy_snapshot_hash: str,
+        canary_result: bool,
+    ) -> WitnessCommitResult:
         """
         Commits a batch of certificates and binds the policy snapshot and canary results.
         Returns the WitnessCommitResult containing both the commit hash and the ledger entry hash.
@@ -59,14 +67,13 @@ class TransparencyWitness:
             "merkle_root": root,
             "certificate_count": len(cert_hashes),
             "policy_snapshot": policy_snapshot_hash,
-            "canary_passed": canary_result
+            "canary_passed": canary_result,
         }
 
         append_result = self.store.append(entry)
 
         return WitnessCommitResult(
-            certificate_commit_hash=commit_hash,
-            ledger_entry_hash=append_result.entry_hash
+            certificate_commit_hash=commit_hash, ledger_entry_hash=append_result.entry_hash
         )
 
     def verify_ledger_entry(self, entry_hash: str) -> bool:

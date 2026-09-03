@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Statistical Baselines for Drift Detectors
 """
+
 from collections.abc import Sequence
 
 import numpy as np

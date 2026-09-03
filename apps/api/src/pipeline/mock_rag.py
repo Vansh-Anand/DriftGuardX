@@ -10,6 +10,7 @@ This is the pipeline that generates real traces during Prompt 01.
 
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -46,6 +47,7 @@ from packages.replay.src.engine import (
 from packages.trace_sdk.src.tracer import TraceContext, hash_payload
 
 # ─── Registered Component Versions ────────────────────────────────────────────
+
 
 def _make_config_hash(ct: str, tag: str) -> str:
     return hashlib.sha256(f"{ct}:{tag}".encode()).hexdigest()
@@ -158,9 +160,14 @@ PIPELINE_WITH_STABLE_RETRIEVER = AgentPipeline(
     name="Mock RAG Pipeline (Stable)",
     version="1.0.0",
     component_versions=[
-        RETRIEVER_V1, RERANKER_V1, GENERATOR_V1,
-        MEMORY_READ_V1, MEMORY_WRITE_V1, TOOL_CALL_V1,
-        POLICY_CHECK_V1, FINAL_RESPONSE_V1,
+        RETRIEVER_V1,
+        RERANKER_V1,
+        GENERATOR_V1,
+        MEMORY_READ_V1,
+        MEMORY_WRITE_V1,
+        TOOL_CALL_V1,
+        POLICY_CHECK_V1,
+        FINAL_RESPONSE_V1,
     ],
 )
 
@@ -170,9 +177,14 @@ PIPELINE_WITH_EXPERIMENTAL_RETRIEVER = AgentPipeline(
     name="Mock RAG Pipeline (Experimental Retriever)",
     version="1.1.0-exp",
     component_versions=[
-        RETRIEVER_V2_EXP, RERANKER_V1, GENERATOR_V1,
-        MEMORY_READ_V1, MEMORY_WRITE_V1, TOOL_CALL_V1,
-        POLICY_CHECK_V1, FINAL_RESPONSE_V1,
+        RETRIEVER_V2_EXP,
+        RERANKER_V1,
+        GENERATOR_V1,
+        MEMORY_READ_V1,
+        MEMORY_WRITE_V1,
+        TOOL_CALL_V1,
+        POLICY_CHECK_V1,
+        FINAL_RESPONSE_V1,
     ],
 )
 
@@ -230,7 +242,7 @@ class MockRAGPipeline:
         pipeline_id = self.pipeline.id
 
         # Check policy before running
-        policy_check = evaluate_policy("create_run", "pipeline", {"pipeline_id": str(pipeline_id)})
+        evaluate_policy("create_run", "pipeline", {"pipeline_id": str(pipeline_id)})
 
         ctx = TraceContext(
             tenant_id=tenant_id,
@@ -311,8 +323,8 @@ class MockRAGPipeline:
         # Finish root span
         root_builder._end_time = datetime.now(UTC)
         root_builder._latency_ms = (
-            (root_builder._end_time - root_builder._start_time).total_seconds() * 1000
-        )
+            root_builder._end_time - root_builder._start_time
+        ).total_seconds() * 1000
         root_builder._status_code = "ERROR" if has_error else "OK"
         root_span = root_builder.build()
         all_spans.insert(0, root_span)
@@ -330,7 +342,9 @@ class MockRAGPipeline:
         )
 
         # Compute reliability
-        reliability_vector = compute_reliability_vector(trace, faithfulness_score=faithfulness_score)
+        reliability_vector = compute_reliability_vector(
+            trace, faithfulness_score=faithfulness_score
+        )
         reliability_score = aggregate_reliability_score(reliability_vector)
 
         # Compute totals

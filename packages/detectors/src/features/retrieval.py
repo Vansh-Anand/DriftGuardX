@@ -1,6 +1,7 @@
 """
 DriftGuard-X v2 — Retrieval Drift Detectors
 """
+
 from typing import Any
 
 from packages.contracts.src.models import DetectorOutput, SymptomLikelihood
@@ -13,12 +14,10 @@ class RetrievalDriftDetector(DriftDetector):
         return "retrieval_drift_detector"
 
     def evaluate(
-        self,
-        trace_or_span: Any,
-        thresholds: dict[str, Any] | None = None,
-        **kwargs: Any
+        self, trace_or_span: Any, thresholds: dict[str, Any] | None = None, **kwargs: Any
     ) -> list[DetectorOutput]:
         from packages.detectors.src.baselines import check_threshold
+
         thresholds = thresholds or {}
         outputs = []
 
@@ -37,7 +36,7 @@ class RetrievalDriftDetector(DriftDetector):
                 value=overlap_score,
                 is_anomaly=is_anom,
                 likelihood=SymptomLikelihood.HIGH if is_anom else SymptomLikelihood.NONE,
-                evidence={"overlap": overlap_score}
+                evidence={"overlap": overlap_score},
             )
         )
 
@@ -50,7 +49,7 @@ class RetrievalDriftDetector(DriftDetector):
                 value=ks_p_value,
                 is_anomaly=is_anom,
                 likelihood=SymptomLikelihood.MEDIUM if is_anom else SymptomLikelihood.NONE,
-                evidence={"ks_p_value": ks_p_value}
+                evidence={"ks_p_value": ks_p_value},
             )
         )
 
@@ -63,7 +62,7 @@ class RetrievalDriftDetector(DriftDetector):
                 value=doc_age_days,
                 is_anomaly=is_anom,
                 likelihood=SymptomLikelihood.LOW if is_anom else SymptomLikelihood.NONE,
-                evidence={"avg_doc_age_days": doc_age_days}
+                evidence={"avg_doc_age_days": doc_age_days},
             )
         )
 
@@ -76,7 +75,7 @@ class RetrievalDriftDetector(DriftDetector):
                 value=stale_evidence,
                 is_anomaly=is_anom,
                 likelihood=SymptomLikelihood.MEDIUM if is_anom else SymptomLikelihood.NONE,
-                evidence={"stale_evidence_ratio": stale_evidence}
+                evidence={"stale_evidence_ratio": stale_evidence},
             )
         )
 
@@ -89,7 +88,7 @@ class RetrievalDriftDetector(DriftDetector):
                 value=citation_support,
                 is_anomaly=is_anom,
                 likelihood=SymptomLikelihood.HIGH if is_anom else SymptomLikelihood.NONE,
-                evidence={"citation_support_ratio": citation_support}
+                evidence={"citation_support_ratio": citation_support},
             )
         )
 

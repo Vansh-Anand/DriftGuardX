@@ -4,6 +4,7 @@ RAM Optimization: Lazily hydrates only the sub-graph variables directly connecte
 to the failing node identified by the GAT, rather than forking the entire agent memory state.
 PRIVATE — All Rights Reserved.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -82,9 +83,7 @@ class JITGraphHydrator:
             frontier = next_frontier
         return visited
 
-    def hydrate_for_node(
-        self, failing_node: str, depth: int = 1
-    ) -> dict[str, Any]:
+    def hydrate_for_node(self, failing_node: str, depth: int = 1) -> dict[str, Any]:
         """
         JIT hydrate only the variables in the failing node's neighbourhood.
 

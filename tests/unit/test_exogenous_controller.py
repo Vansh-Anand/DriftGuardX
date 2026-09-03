@@ -2,6 +2,7 @@
 Unit tests: Exogenous-State Controller.
 Tests RNG seeding, time freezing, API stubbing, LLM stubbing, feature flags, and tool stubs.
 """
+
 import os
 import random
 
@@ -37,7 +38,9 @@ class TestRNGController:
 
 class TestAPIResponseController:
     def test_registered_url_returns_stub(self):
-        stubs = {"https://api.example.com/data": {"json": {"result": "stubbed"}, "status_code": 200}}
+        stubs = {
+            "https://api.example.com/data": {"json": {"result": "stubbed"}, "status_code": 200}
+        }
         with APIResponseController(stubs) as ctrl:
             # When httpx.get is patched, calling it should return the stub
             # We test through the stub function directly
@@ -90,11 +93,13 @@ class TestToolCallController:
 
 class TestExogenousStateControllerCompose:
     def test_from_envelope_vars_constructs_correctly(self):
-        ctrl = ExogenousStateController.from_envelope_vars({
-            "rng_seed": 77,
-            "feature_flags": {"flag_a": True},
-            "tool_stubs": {"calc": 42},
-        })
+        ctrl = ExogenousStateController.from_envelope_vars(
+            {
+                "rng_seed": 77,
+                "feature_flags": {"flag_a": True},
+                "tool_stubs": {"calc": 42},
+            }
+        )
         assert ctrl._rng._seed == 77
         assert ctrl._flags.get("flag_a") is True
         assert ctrl._tools.get_stub("calc") == 42

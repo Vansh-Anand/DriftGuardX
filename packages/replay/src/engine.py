@@ -14,6 +14,7 @@ PRIVATE — All Rights Reserved.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import multiprocessing
 import time
@@ -21,6 +22,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
@@ -32,7 +34,6 @@ from packages.contracts.src.models import (
     SpanRecord,
     TraceArtifact,
 )
-from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.evaluation.src.reliability import (
     aggregate_reliability_score,
     compute_reliability_delta,
@@ -133,10 +134,8 @@ def _component_process_entry(
             ensure_ascii=True,
             separators=(",", ":"),
         ).encode("utf-8")
-        try:
+        with contextlib.suppress(BrokenPipeError, EOFError, OSError):
             connection.send_bytes(b"X" + error_payload[:4096])
-        except (BrokenPipeError, EOFError, OSError):
-            pass
     finally:
         connection.close()
 
@@ -311,7 +310,7 @@ class MockGeneratorV1(ComponentExecutor):
         self, inputs: dict[str, Any], *, version: ComponentVersion, seed: int = 42
     ) -> dict[str, Any]:
         docs = inputs.get("ranked_documents", [])
-        query = inputs.get("query", "")
+        inputs.get("query", "")
         context = " | ".join(d.get("text", "") for d in docs[:2])
         is_stale = any("STALE" in d.get("text", "") for d in docs)
         return {
