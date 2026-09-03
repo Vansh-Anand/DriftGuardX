@@ -37,16 +37,26 @@ class EndToEndRecoveryPipeline:
         Returns a RecoveryCertificate if successful.
         """
 
-        # 1. Candidate Generation
-        candidates = self.planner.generate_candidates(list(invocations), run_id, failure_symptom)
+        from packages.contracts.src.bcrb_models import BCRBSession
+        from packages.bcrb.src.orchestrator import BCRBOrchestrator
+        import uuid
+
+        # 1. Create a BCRBSession
+        session = BCRBSession(
+            run_id=uuid.UUID(run_id),
+            tenant_id=uuid.UUID(self.tenant_id),
+            budget_usd=1.00 # Example budget constraint
+        )
+
+        # 2. Execute BCRB loop using the orchestrator
+        orchestrator = BCRBOrchestrator(self.tenant_id)
+        session = orchestrator.execute_session(session, list(invocations), failure_symptom)
+        
+        candidates = session.candidates
+        evaluated_steps = session.steps
+
         if not candidates:
             return None
-
-        # 2. Canary Evaluation
-        evaluated_steps = []
-        for candidate in candidates:
-            step = self.canary_framework.execute_canary(candidate, run_id)
-            evaluated_steps.append(step)
 
         # 3. Diagnosis Aggregation
         diagnosis = self.engine.generate_diagnosis(run_id, evaluated_steps, candidates)

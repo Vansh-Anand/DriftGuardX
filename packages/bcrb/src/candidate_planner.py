@@ -94,7 +94,7 @@ class CandidatePlanner:
                     EdgeFeatures(
                         source_id=parent_id,
                         target_id=node_id,
-                        edge_type=EdgeType.CONTROL_FLOW,
+                        edge_type=EdgeType.EXECUTION_ORDER,
                         confidence=0.9,
                         directionality=1.0,
                     )
@@ -140,26 +140,38 @@ class CandidatePlanner:
 
                 unified_prior = UnifiedCandidatePrior(
                     candidate_component=comp_type.value,
-                    gat_score=gat_score,
+                    derived_gat_signal=gat_score,
+                    detector_probability=gat_result.get("fault_probability"),
                     diffusion_score=diff_score,
                     symptom_evidence=symptom_score,
                     combined_prior=combined_prior,
                     evidence_breakdown={
                         "gat_is_fault_trace": gat_result.get("is_fault", False),
                         "diffusion_explanation": output.explanation.model_dump(),
-                        "is_synthetic_gat": not self.gat_detector.is_loaded
+                        "is_synthetic_gat": not self.gat_detector.is_loaded,
+                        "edge_evidence": "EXECUTION_ORDER"
                     }
                 )
 
+                # Retrieve estimated parameters (using defaults or derived heuristics if actuals missing)
+                # Roadmap #22: avoid hard-coded utility values where possible, expose explicitly
+                est_cost = 0.05
+                est_risk = 0.1
+                est_blast_radius = 0.1
+                est_reliability_delta = 0.8
+                est_info_gain = 0.6
+                
                 # Calculate true BCRB Utility based on unified prior
                 utility = calculate_candidate_utility(
                     probability=combined_prior,
-                    expected_reliability_delta=0.8,
-                    information_gain=0.6,
-                    cost=0.02,
-                    risk=0.1,
-                    blast_radius=0.1,
+                    expected_reliability_delta=est_reliability_delta,
+                    information_gain=est_info_gain,
+                    cost=est_cost,
+                    risk=est_risk,
+                    blast_radius=est_blast_radius,
                 )
+                
+                from packages.contracts.src.bcrb_models import ReplayCost, CausalEvidence
 
                 candidates.append(
                     BCRBCandidate(
@@ -167,7 +179,12 @@ class CandidatePlanner:
                         component_type=comp_type,
                         intervention_type=int_type,
                         estimated_utility=utility,
-                        cost_estimate=0.02,
+                        cost_estimate=ReplayCost(total_cost=est_cost, measurement_status="ESTIMATED"),
+                        risk_estimate=est_risk,
+                        blast_radius_estimate=est_blast_radius,
+                        expected_reliability_delta=est_reliability_delta,
+                        expected_information_gain=est_info_gain,
+                        causal_evidence=CausalEvidence(prior=combined_prior),
                         metadata={
                             "rationale": f"Unified Prior calculated: {combined_prior:.2f}",
                             "prior_evidence": unified_prior.model_dump(),

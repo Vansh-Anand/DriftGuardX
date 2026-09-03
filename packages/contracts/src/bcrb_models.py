@@ -25,22 +25,63 @@ class BCRBStepStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
+    BUDGET_BLOCKED = "budget_blocked"
 
 
 class UnifiedCandidatePrior(DGXBaseModel):
     candidate_component: str
-    gat_score: float
+    derived_gat_signal: float
+    detector_probability: float | None = None
     diffusion_score: float
     symptom_evidence: float
     combined_prior: float
     evidence_breakdown: dict[str, Any]
+
+
+class ReplayCost(DGXBaseModel):
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    api_cost: float | None = None
+    compute_seconds: float | None = None
+    infrastructure_cost: float | None = None
+    total_cost: float = 0.0
+    measurement_status: str = "ESTIMATED"  # ESTIMATED or ACTUAL
+
+
+class RecoveryEffect(DGXBaseModel):
+    reliability_delta: float
+    latency_delta: float | None = None
+    safety_delta: float | None = None
+    cost_delta: float | None = None
+
+
+class ContaminationState(str, enum.Enum):
+    CLEAN = "clean"
+    CONTAMINATED = "contaminated"
+    CONFOUNDED = "confounded"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+
+
+class CausalEvidence(DGXBaseModel):
+    prior: float
+    posterior: float | None = None
+    intervention_evidence: dict[str, Any] = Field(default_factory=dict)
+    counterfactual_support: dict[str, Any] | None = None
+    contamination_status: ContaminationState = ContaminationState.INSUFFICIENT_EVIDENCE
+    confounding_reason: str | None = None
+
 
 class BCRBCandidate(DGXBaseModel):
     candidate_id: UUID = Field(default_factory=_new_uuid)
     component_type: ComponentType
     intervention_type: InterventionType
     estimated_utility: float = 0.0
-    cost_estimate: float = 0.0
+    cost_estimate: ReplayCost = Field(default_factory=ReplayCost)
+    risk_estimate: float = 0.0
+    blast_radius_estimate: float = 0.0
+    expected_reliability_delta: float = 0.0
+    expected_information_gain: float = 0.0
+    causal_evidence: CausalEvidence = Field(default_factory=lambda: CausalEvidence(prior=0.0))
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -51,9 +92,11 @@ class BCRBStep(DGXBaseModel):
     status: BCRBStepStatus = BCRBStepStatus.PLANNED
     replay_episode_id: UUID | None = None
     utility_observed: float | None = None
-    cost_incurred: float = 0.0
+    cost_incurred: ReplayCost | None = None
+    recovery_effect: RecoveryEffect | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
+    decision_reason: str | None = None
 
 
 class StoppingCondition(str, enum.Enum):
@@ -62,11 +105,17 @@ class StoppingCondition(str, enum.Enum):
     BUDGET_EXHAUSTED = "budget_exhausted"
     ALL_SAFE_CANDIDATES_TESTED = "all_safe_candidates_tested"
     EXPECTED_UTILITY_BELOW_THRESHOLD = "expected_utility_below_threshold"
+    NO_SAFE_INTERVENTION = "no_safe_intervention"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 
 
 class DiagnosisOutcome(str, enum.Enum):
-    CONFIRMED = "confirmed"
+    ROOT_CAUSE_SUPPORTED = "root_cause_supported"
+    ROOT_CAUSE_UNCERTAIN = "root_cause_uncertain"
     UNKNOWN = "unknown"
+    NO_SAFE_INTERVENTION = "no_safe_intervention"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 
 
 class BCRBSession(DGXBaseModel):

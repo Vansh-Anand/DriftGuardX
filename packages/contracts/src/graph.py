@@ -44,6 +44,7 @@ class NodeType(str, enum.Enum):
 class EdgeType(str, enum.Enum):
     DATA_DEPENDENCY = "data_dependency"
     CONTROL_FLOW = "control_flow"
+    EXECUTION_ORDER = "execution_order"
     VERSION_LINEAGE = "version_lineage"
     POLICY_DEPENDENCY = "policy_dependency"
     MEMORY_INFLUENCE = "memory_influence"

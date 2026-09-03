@@ -48,21 +48,34 @@ class DiagnosisEngine:
 
         candidate_map = {c.candidate_id: c for c in candidates}
 
-        # Find the best step (highest utility)
-        best_step = max(
-            evaluated_steps,
-            key=lambda s: s.utility_observed if s.utility_observed is not None else -1.0,
-        )
+        from packages.contracts.src.bcrb_models import DiagnosisOutcome
 
-        best_candidate = candidate_map.get(best_step.candidate_id)
+        # Find the best step by actual CAUSAL CONFIDENCE (Bayesian posterior), not just utility
+        best_candidate = None
+        best_step = None
+        highest_posterior = -1.0
 
-        # We consider a candidate successful if its utility observed is > 0.8
-        if best_step.utility_observed and best_step.utility_observed > 0.8 and best_candidate:
+        for step in evaluated_steps:
+            cand = candidate_map.get(step.candidate_id)
+            if cand and cand.causal_evidence and cand.causal_evidence.posterior is not None:
+                if cand.causal_evidence.posterior > highest_posterior:
+                    highest_posterior = cand.causal_evidence.posterior
+                    best_candidate = cand
+                    best_step = step
+
+        # We require high causal confidence (e.g. > 0.9) to claim a root cause, separating this from recovery utility.
+        diagnosis_outcome = DiagnosisOutcome.UNKNOWN
+
+        if best_candidate and highest_posterior >= 0.9:
+            diagnosis_outcome = DiagnosisOutcome.ROOT_CAUSE_SUPPORTED
             root_cause_component = ComponentType(best_candidate.component_type)
+            
+            # Separate recovery effect from causal description
+            recovery_delta = best_step.recovery_effect.reliability_delta if best_step and best_step.recovery_effect else 0.0
+            
             root_cause_description = (
-                f"Root cause isolated to {best_candidate.component_type}. "
-                f"Intervention '{best_candidate.intervention_type}' successfully restored reliability "
-                f"to {best_step.utility_observed:.2f}."
+                f"Root cause isolated to {best_candidate.component_type} with Bayesian posterior {highest_posterior:.2f}. "
+                f"Intervention '{best_candidate.intervention_type}' produced a reliability delta of {recovery_delta:.2f}."
             )
 
             claims.append(
@@ -70,19 +83,23 @@ class DiagnosisEngine:
                     claim_id=str(uuid.uuid4()),
                     description=f"{best_candidate.component_type} is responsible for the failure.",
                     status=DiagnosisClaimStatus.MEASURED,
-                    evidence=[f"Replay ID: {best_step.replay_episode_id}"],
-                    confidence=best_step.utility_observed,
+                    evidence=[
+                        f"Replay ID: {best_step.replay_episode_id}",
+                        f"Bayesian Posterior: {highest_posterior:.2f}"
+                    ],
+                    confidence=highest_posterior,
                 )
             )
         else:
-            root_cause_description = "Exhaustive evaluation failed to find a definitive root cause."
+            diagnosis_outcome = DiagnosisOutcome.INSUFFICIENT_EVIDENCE
+            root_cause_description = "Evidence is insufficient to confirm a root cause."
             claims.append(
                 DiagnosisClaim(
                     claim_id=str(uuid.uuid4()),
-                    description="Multiple components may be interacting to cause the failure.",
+                    description="Outcome UNKNOWN due to insufficient causal evidence.",
                     status=DiagnosisClaimStatus.INFERRED,
                     evidence=[],
-                    confidence=0.5,
+                    confidence=max(highest_posterior, 0.0),
                 )
             )
 
