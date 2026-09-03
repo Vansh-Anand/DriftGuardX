@@ -35,3 +35,19 @@ During our audit, we identified several areas where the repository was improperl
 3. **Introduced InterventionSpec**
    - Exposed InterventionSpec in ReplayCreateRequest enabling flexible intervention configurations.
    - Adjusted Pydantic models (e.g., ReplayEpisode, InterventionSpec) to ensure strict typing with enums (ComponentType, InterventionType) with proper coercions.
+
+## Phase 3: Agent Tracing and Causal Execution Evidence (Prompt #9-#14)
+
+1. **Pipeline Tracing Integration**
+   - Connected the 7-agent pipeline (packages/rag_pipeline/src/agents.py) to the DriftGuardX TraceContext.
+2. **Explicit Agent Execution Spans**
+   - Emitted distinct SpanRecord spans using ComponentType.AGENT for every agent invocation (Orchestrator, Retrieval, Reasoning, Tool, Verifier, Policy, Response).
+3. **Stable Identity and Version Metadata**
+   - Populated identity fields into the ttributes of agent spans, including dgx.agent.id, dgx.agent.type, dgx.agent.version, dgx.model.provider, dgx.model.id, dgx.prompt.hash, dgx.config.hash, and dgx.tool_registry.hash.
+4. **Causal Edge Tracking**
+   - Established correct parent-child relationships where appropriate and added dgx.causal.source_span_id explicitly logging causal message passing.
+5. **Memory Operation Linking**
+   - Instrumented state-level memory reads (
+ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMORY_WRITE trace spans as children of the originating agent.
+6. **Agent Decision Preservation**
+   - Recorded internal agent decisions and provenance signals (e.g. dgx.decision.outcome = 'allow', dgx.evidence.classification = 'synthetic_simulation') in the span output.
