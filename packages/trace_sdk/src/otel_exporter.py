@@ -111,9 +111,21 @@ class DriftGuardSpanExporter(SpanExporter):
             return SpanExportResult.FAILURE
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
+        """
+        The DriftGuardSpanExporter processes batches synchronously as they are handed to it
+        by the OpenTelemetry BatchSpanProcessor. It maintains no internal queue, meaning
+        all handed-off work is already flushed.
+        """
+        if self._is_shutdown:
+            logger.warning("force_flush called after shutdown")
+            return False
         return True
 
     def shutdown(self) -> None:
+        """
+        Idempotently mark the exporter as shutdown. The OTel SDK ensures pending work
+        is flushed to export() before shutdown() is called.
+        """
         self._is_shutdown = True
 
 

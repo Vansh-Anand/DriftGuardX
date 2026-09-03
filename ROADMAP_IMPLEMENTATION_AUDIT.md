@@ -320,3 +320,15 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - ✅ Replay queries inherently bind to tenant_id natively by using properly scoped UUID lookups.
 ### Status
 - [x] COMPLETE
+
+## PROMPT 16 — REMEDIATE REAL REPLAY EXECUTION + SDK RETRY/FLUSH SEMANTICS
+### Verification Results
+- ✅ **#39 (Batching failure/retry semantics):** Implemented exponential backoff for 5xx/transport errors in `DriftGuardClient.batch_spans` (both sync and async). Validated permanent failure on non-retryable 4xx errors, capping at 3 attempts max.
+- ✅ **#41 (OTel Exporter lifecycle):** Corrected `force_flush` and `shutdown` semantics in `DriftGuardSpanExporter` to explicitly reflect the synchronous integration model of the underlying OTel `BatchSpanProcessor`. Documented lack of internal queuing.
+- ✅ **#38 (Finalization durability):** Remediated `finalize_run` to explicitly await `db.commit()` before returning the 200 OK response. Added `test_finalize_durability_failure` to prove HTTP 500 rejection if the underlying database transaction fails to commit, averting false positive state transitions.
+- ✅ **#35 (Real Replay Determinism):** Re-audited and explicitly updated status to **PARTIAL**. The deterministic harness is mathematically sound and cryptographically constrained by `hash_identity`, but true execution relies on `MockComponentExecutor` internally. `REAL_EXECUTION_REPLAY` is blocked until runtime integration completes.
+- ✅ **#32–#34 & #40 (Manifest/Reproducibility Re-audit):** Re-audited isolation and reproducibility mechanisms. Proven stable on mock synthetic executions. Real-world boundary integration (OTel) mapped and validated.
+
+### Status
+- [x] COMPLETE (SDK/Durability semantics hardened)
+- [ ] PARTIAL (Real Replay Determinism - Blocked on runtime executors)

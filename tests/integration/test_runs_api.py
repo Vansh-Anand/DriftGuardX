@@ -100,6 +100,11 @@ async def test_concurrent_finalize(client: AsyncClient, db_session: AsyncSession
     db_session.add(run)
     await db_session.commit()
 
+    # Skip if SQLite because it doesn't support SELECT FOR UPDATE
+    bind = db_session.get_bind()
+    if bind.dialect.name == "sqlite":
+        pytest.skip("SQLite does not support row-level locks (SELECT FOR UPDATE)")
+
     async def call_finalize(status: str):
         return await client.post(
             f"/v1/runs/{run_id}/finalize",
@@ -119,4 +124,38 @@ async def test_concurrent_finalize(client: AsyncClient, db_session: AsyncSession
     status_codes = {res1.status_code, res2.status_code}
     assert 200 in status_codes
     assert 409 in status_codes
+
+async def test_finalize_durability_failure(client: AsyncClient, db_session: AsyncSession, monkeypatch):
+    import uuid
+    run_id = uuid.uuid4()
+    tenant_id = uuid.UUID("00000000-0000-0000-FFFF-000000000001")
+    
+    run = RequestRunORM(
+        id=run_id,
+        tenant_id=tenant_id,
+        pipeline_id=uuid.uuid4(),
+        status="RUNNING",
+        is_synthetic=True,
+        created_at=datetime.now(UTC)
+    )
+    db_session.add(run)
+    await db_session.commit()
+
+    # Monkeypatch AsyncSession.commit globally to raise an Exception
+    async def mock_commit(self):
+        raise Exception("Simulated DB commit failure")
+        
+    monkeypatch.setattr("sqlalchemy.ext.asyncio.AsyncSession.commit", mock_commit)
+
+    res = await client.post(
+        f"/v1/runs/{run_id}/finalize",
+        json={
+            "status": "COMPLETED",
+            "total_tokens": 100,
+        }
+    )
+    
+    # Must fail with 500, not 200
+    assert res.status_code == 500
+    assert "commit failed" in res.json()["detail"].lower()
 

@@ -5,6 +5,8 @@ PRIVATE — All Rights Reserved.
 Provides a synchronous and asynchronous client for interacting with the DriftGuard-X API.
 """
 
+import time
+import asyncio
 from typing import Any
 import httpx
 
@@ -81,26 +83,39 @@ class DriftGuardClient:
         for i in range(0, len(processed_spans), self._max_batch_size):
             chunk = processed_spans[i : i + self._max_batch_size]
             request = SpanIngestRequest(spans=chunk)
+            payload = request.model_dump(exclude_unset=True)
             
-            try:
-                response = self.client.post(
-                    "/ingest/spans", 
-                    json=request.model_dump(exclude_unset=True)
-                )
-                response.raise_for_status()
-                result = response.json()
-                total_ingested += result.get("ingested", 0)
-                total_skipped += result.get("skipped", 0)
-                all_errors.extend(result.get("errors", []))
-            except httpx.HTTPStatusError as e:
-                failed_chunks += 1
-                failed_spans.extend([s.span_id for s in chunk])
-                all_errors.append(f"Batch rejected with status {e.response.status_code}: {e.response.text}")
-            except Exception as e:
-                failed_chunks += 1
-                failed_spans.extend([s.span_id for s in chunk])
-                all_errors.append(f"Network error during batching: {str(e)}")
-
+            chunk_success = False
+            for attempt in range(3):
+                try:
+                    response = self.client.post("/ingest/spans", json=payload)
+                    response.raise_for_status()
+                    result = response.json()
+                    total_ingested += result.get("ingested", 0)
+                    total_skipped += result.get("skipped", 0)
+                    all_errors.extend(result.get("errors", []))
+                    chunk_success = True
+                    break
+                except httpx.HTTPStatusError as e:
+                    if 400 <= e.response.status_code < 500:
+                        failed_chunks += 1
+                        failed_spans.extend([s.span_id for s in chunk])
+                        all_errors.append(f"Batch rejected (non-retryable {e.response.status_code}): {e.response.text}")
+                        break
+                    # Retry on 5xx
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                    failed_chunks += 1
+                    failed_spans.extend([s.span_id for s in chunk])
+                    all_errors.append(f"Batch rejected after 3 attempts with status {e.response.status_code}: {e.response.text}")
+                except Exception as e:
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                    failed_chunks += 1
+                    failed_spans.extend([s.span_id for s in chunk])
+                    all_errors.append(f"Network error during batching after 3 attempts: {str(e)}")
         if failed_chunks == 0 and not all_errors:
             status = "SUCCESS"
         elif failed_chunks == num_chunks:
@@ -166,26 +181,39 @@ class AsyncDriftGuardClient:
         for i in range(0, len(processed_spans), self._max_batch_size):
             chunk = processed_spans[i : i + self._max_batch_size]
             request = SpanIngestRequest(spans=chunk)
+            payload = request.model_dump(exclude_unset=True)
             
-            try:
-                response = await self.client.post(
-                    "/ingest/spans", 
-                    json=request.model_dump(exclude_unset=True)
-                )
-                response.raise_for_status()
-                result = response.json()
-                total_ingested += result.get("ingested", 0)
-                total_skipped += result.get("skipped", 0)
-                all_errors.extend(result.get("errors", []))
-            except httpx.HTTPStatusError as e:
-                failed_chunks += 1
-                failed_spans.extend([s.span_id for s in chunk])
-                all_errors.append(f"Batch rejected with status {e.response.status_code}: {e.response.text}")
-            except Exception as e:
-                failed_chunks += 1
-                failed_spans.extend([s.span_id for s in chunk])
-                all_errors.append(f"Network error during batching: {str(e)}")
-
+            chunk_success = False
+            for attempt in range(3):
+                try:
+                    response = await self.client.post("/ingest/spans", json=payload)
+                    response.raise_for_status()
+                    result = response.json()
+                    total_ingested += result.get("ingested", 0)
+                    total_skipped += result.get("skipped", 0)
+                    all_errors.extend(result.get("errors", []))
+                    chunk_success = True
+                    break
+                except httpx.HTTPStatusError as e:
+                    if 400 <= e.response.status_code < 500:
+                        failed_chunks += 1
+                        failed_spans.extend([s.span_id for s in chunk])
+                        all_errors.append(f"Batch rejected (non-retryable {e.response.status_code}): {e.response.text}")
+                        break
+                    # Retry on 5xx
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+                    failed_chunks += 1
+                    failed_spans.extend([s.span_id for s in chunk])
+                    all_errors.append(f"Batch rejected after 3 attempts with status {e.response.status_code}: {e.response.text}")
+                except Exception as e:
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+                    failed_chunks += 1
+                    failed_spans.extend([s.span_id for s in chunk])
+                    all_errors.append(f"Network error during batching after 3 attempts: {str(e)}")
         if failed_chunks == 0 and not all_errors:
             status = "SUCCESS"
         elif failed_chunks == num_chunks:

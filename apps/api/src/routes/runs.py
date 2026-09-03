@@ -1019,6 +1019,12 @@ async def finalize_run(
 
     run_orm.completed_at = datetime.now(UTC)
 
-    await db.flush()
+    # Explicitly commit to guarantee durability BEFORE returning the HTTP 200 response.
+    # This prevents the client from receiving a success response if the DB commit fails.
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Database commit failed during finalization") from e
 
     return RunFinalizeResponse(id=run_id, status=run_orm.status)
