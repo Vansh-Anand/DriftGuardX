@@ -132,7 +132,16 @@ async def test_replay_endpoint_full_flow(client: AsyncClient) -> None:
     # Create replay
     replay_resp = await client.post(
         f"/v1/runs/{run_id}/replays",
-        json={"swap_retriever_to_stable": True, "seed": 42},
+        json={
+            "intervention": {
+                "target_component": "retriever",
+                "intervention_type": "rollback",
+                "current_version": "v2-exp",
+                "candidate_version": "v1",
+                "rollback_plan": "Test plan"
+            },
+            "seed": 42
+        },
     )
     assert replay_resp.status_code == 201
     replay_id = replay_resp.json()["id"]

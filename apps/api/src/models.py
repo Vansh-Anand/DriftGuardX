@@ -381,7 +381,7 @@ class ReplayEpisodeORM(Base):
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
 
     swapped_component_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    original_version_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    original_version_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     replay_version_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     original_version_tag: Mapped[str] = mapped_column(String(64), nullable=False)
     replay_version_tag: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -431,6 +431,7 @@ class ReplayStateManifestORM(Base):
     )
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
+    original_query: Mapped[str | None] = mapped_column(Text, nullable=True)
     original_query_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     corpus_version_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     model_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)

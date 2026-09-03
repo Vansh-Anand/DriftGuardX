@@ -19,7 +19,7 @@ from typing import Any
 from pydantic import Field, model_validator
 
 from packages.contracts.src.evidence import RecoveryEvidenceKind
-from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow
+from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow, ComponentType, InterventionType
 
 
 class OptimizationMethod(str, enum.Enum):
@@ -343,15 +343,25 @@ class CryptographicSignature(DGXBaseModel):
 
 class InterventionSpec(DGXBaseModel):
     spec_id: str = Field(default_factory=lambda: str(_new_uuid()))
-    target_component: str
+    target_component: ComponentType
     current_version: str | None = None
     candidate_version: str | None = None
-    intervention_type: str
+    intervention_type: InterventionType
     expected_cost: float = 0.0
     risk_score: float = 0.0
     blast_radius: float = 0.0
     rollback_plan: str | None = None
     dependencies: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_enums(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "target_component" in data and isinstance(data["target_component"], str):
+                data["target_component"] = ComponentType(data["target_component"])
+            if "intervention_type" in data and isinstance(data["intervention_type"], str):
+                data["intervention_type"] = InterventionType(data["intervention_type"])
+        return data
 
 
 class QuarantineAction(DGXBaseModel):

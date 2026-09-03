@@ -43,6 +43,11 @@ class ComponentType(str, enum.Enum):
     POLICY_CHECK = "policy_check"
     FINAL_RESPONSE = "final_response"
     AGENT = "agent"
+    PROMPT = "prompt"
+    ROUTING = "routing"
+    MODEL_VERSION = "model_version"
+    AGENT_CONFIGURATION = "agent_configuration"
+    TOOL = "tool"
 
 
 class ComponentVersionState(str, enum.Enum):
@@ -426,7 +431,7 @@ class ReplayEpisode(DGXBaseModel):
 
     # Version pinning — which component was swapped
     swapped_component_type: ComponentType
-    original_version_id: UUID
+    original_version_id: UUID | None = None
     replay_version_id: UUID
     original_version_tag: str
     replay_version_tag: str
@@ -472,6 +477,7 @@ class ReplayStateManifest(DGXBaseModel):
     tenant_id: UUID
 
     # Pinning state
+    original_query: str | None = None
     original_query_hash: str | None = None
     corpus_version_id: str | None = None
     model_provider: str | None = None
@@ -528,6 +534,7 @@ class ReplayStateManifest(DGXBaseModel):
     def is_fully_pinned(self) -> bool:
         """Returns True if all required pinning state is present."""
         required = [
+            self.original_query,
             self.original_query_hash,
             self.corpus_version_id,
             self.model_provider,

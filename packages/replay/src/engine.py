@@ -26,7 +26,6 @@ from packages.contracts.src.evidence import RecoveryEvidenceKind
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
-    Intervention,
     ReplayEpisode,
     ReplayStateManifest,
     ReplayStatus,
@@ -34,6 +33,7 @@ from packages.contracts.src.models import (
     SpanRecord,
     TraceArtifact,
 )
+from packages.contracts.src.recovery_models import InterventionSpec
 from packages.evaluation.src.reliability import (
     aggregate_reliability_score,
     compute_reliability_delta,
@@ -434,10 +434,9 @@ class ReplayEngine:
         *,
         original_run: RequestRun,
         original_trace: TraceArtifact,
-        intervention: Intervention,
+        intervention: InterventionSpec,
         replay_version: ComponentVersion,
         original_reliability_vector: dict[str, float],
-        request_inputs: dict[str, Any],
         seed: int = 42,
         manifest: ReplayStateManifest | None = None,
     ) -> tuple[ReplayEpisode, TraceArtifact]:
@@ -462,7 +461,7 @@ class ReplayEngine:
         for span in original_trace.spans:
             if span.component_type and span.component_version_id:
                 ct = str(span.component_type)
-                if ct != str(intervention.target_component_type):
+                if ct != str(intervention.target_component):
                     pinned_versions[ct] = str(span.component_version_id)
 
         # Create TraceContext for replay
@@ -473,18 +472,27 @@ class ReplayEngine:
         )
 
         # Execute pipeline with swapped component
-        pipeline_order = [
-            ComponentType.MEMORY_READ,
-            ComponentType.RETRIEVER,
-            ComponentType.RERANKER,
-            ComponentType.GENERATOR,
-            ComponentType.TOOL_CALL,
-            ComponentType.POLICY_CHECK,
-            ComponentType.MEMORY_WRITE,
-            ComponentType.FINAL_RESPONSE,
-        ]
+        pipeline_order = []
+        seen_types = set()
+        for span in original_trace.spans:
+            if span.component_type and span.component_type not in seen_types:
+                pipeline_order.append(span.component_type)
+                seen_types.add(span.component_type)
 
-        current_inputs = dict(request_inputs)
+        if not pipeline_order:
+            # Fallback for old traces
+            pipeline_order = [
+                ComponentType.MEMORY_READ,
+                ComponentType.RETRIEVER,
+                ComponentType.RERANKER,
+                ComponentType.GENERATOR,
+                ComponentType.TOOL_CALL,
+                ComponentType.POLICY_CHECK,
+                ComponentType.MEMORY_WRITE,
+                ComponentType.FINAL_RESPONSE,
+            ]
+
+        current_inputs = {"query": manifest.original_query, "seed": seed}
         if "tenant_id" not in current_inputs:
             current_inputs["tenant_id"] = str(tenant_id)
         if "partition_id" not in current_inputs:
@@ -501,7 +509,7 @@ class ReplayEngine:
 
         for component_type in pipeline_order:
             # Determine which version to use
-            if component_type == intervention.target_component_type:
+            if component_type == intervention.target_component:
                 cv = replay_version
             else:
                 # Use original version from pinned map
@@ -542,9 +550,14 @@ class ReplayEngine:
             finally:
                 end = datetime.now(UTC)
 
+            # Ensure component_type is an enum instance for SpanRecord strict validation
+            if isinstance(component_type, str):
+                component_type = ComponentType(component_type)
+
             # Build span
+            ct_str = component_type.value if hasattr(component_type, "value") else str(component_type)
             builder = ctx.start_span(
-                f"{component_type.value}/{cv.version_tag}",
+                f"{ct_str}/{cv.version_tag}",
                 parent_span_id=root_span_id,
             )
             builder.set_component(component_type, cv.id, cv.version_tag)
@@ -605,16 +618,22 @@ class ReplayEngine:
 
         original_score = aggregate_reliability_score(original_reliability_vector)
 
+        original_target_span = next(
+            (s for s in original_trace.spans if str(s.component_type) == str(intervention.target_component)),
+            None,
+        )
+        orig_version_id = original_target_span.component_version_id if original_target_span else None
+
         # Build ReplayEpisode
         episode = ReplayEpisode(
             replay_id=replay_id,
             run_id=original_run.id,
             tenant_id=tenant_id,
             swapped_component_type=ComponentType(replay_version.component_type),
-            original_version_id=intervention.from_version_id,
-            replay_version_id=intervention.to_version_id,
-            original_version_tag=intervention.from_version_tag,
-            replay_version_tag=intervention.to_version_tag,
+            original_version_id=orig_version_id,
+            replay_version_id=replay_version.id,
+            original_version_tag=intervention.current_version,
+            replay_version_tag=intervention.candidate_version,
             pinned_version_ids=pinned_versions,
             original_reliability_vector=original_reliability_vector,
             replay_reliability_vector=replay_vector,

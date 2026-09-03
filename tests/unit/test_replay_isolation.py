@@ -21,7 +21,7 @@ from apps.api.src.pipeline.mock_rag import (
 )
 from packages.contracts.src.models import (
     ComponentType,
-    Intervention,
+    ComponentType,
     InterventionType,
     ReplayStateManifest,
     RequestRun,
@@ -41,6 +41,7 @@ def _make_fully_pinned_manifest(run_id, tenant_id) -> ReplayStateManifest:
     return ReplayStateManifest(
         run_id=run_id,
         tenant_id=tenant_id,
+        original_query="test query",
         original_query_hash="query-hash",
         corpus_version_id="corpus-v1",
         model_provider="openai",
@@ -82,16 +83,13 @@ def test_replay_only_swaps_one_component() -> None:
     """The replay must swap only the retriever; all other versions must be pinned."""
     original_run, original_trace = _make_original_run_and_trace()
 
-    intervention = Intervention(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
+    from packages.contracts.src.recovery_models import InterventionSpec
+    intervention = InterventionSpec(
+        target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
-        from_version_id=RETRIEVER_V2_EXP.id,
-        to_version_id=RETRIEVER_V1.id,
-        from_version_tag=RETRIEVER_V2_EXP.version_tag,
-        to_version_tag=RETRIEVER_V1.version_tag,
-        rationale="Stale evidence detected",
+        current_version=RETRIEVER_V2_EXP.version_tag,
+        candidate_version=RETRIEVER_V1.version_tag,
+        rollback_plan="Stale evidence detected",
     )
 
     engine = ReplayEngine(_make_registry())
@@ -101,8 +99,7 @@ def test_replay_only_swaps_one_component() -> None:
         original_trace=original_trace,
         intervention=intervention,
         replay_version=RETRIEVER_V1,
-        original_reliability_vector=original_run.reliability_vector,
-        request_inputs={"query": "test query", "seed": 42},
+        original_reliability_vector=original_run.reliability_vector or {},
         seed=42,
         manifest=manifest,
     )
@@ -121,28 +118,23 @@ def test_replay_pins_non_swapped_versions() -> None:
     """Non-intervened components in the replay must match original versions."""
     original_run, original_trace = _make_original_run_and_trace()
 
-    intervention = Intervention(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
+    from packages.contracts.src.recovery_models import InterventionSpec
+    intervention = InterventionSpec(
+        target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
-        from_version_id=RETRIEVER_V2_EXP.id,
-        to_version_id=RETRIEVER_V1.id,
-        from_version_tag="v2-exp",
-        to_version_tag="v1",
-        rationale="test",
+        current_version=RETRIEVER_V2_EXP.version_tag,
+        candidate_version=RETRIEVER_V1.version_tag,
+        rollback_plan="Stale evidence detected",
     )
 
     engine = ReplayEngine(_make_registry())
     manifest = _make_fully_pinned_manifest(original_run.id, original_run.tenant_id)
-
     episode, replay_trace = engine.execute_replay(
         original_run=original_run,
         original_trace=original_trace,
         intervention=intervention,
         replay_version=RETRIEVER_V1,
-        original_reliability_vector=original_run.reliability_vector,
-        request_inputs={"query": "test", "seed": 42},
+        original_reliability_vector=original_run.reliability_vector or {},
         seed=42,
         manifest=manifest,
     )
@@ -160,16 +152,13 @@ def test_replay_improves_reliability_over_experimental() -> None:
     """Reliability score should improve when swapping from experimental to stable retriever."""
     original_run, original_trace = _make_original_run_and_trace()
 
-    intervention = Intervention(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
+    from packages.contracts.src.recovery_models import InterventionSpec
+    intervention = InterventionSpec(
+        target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
-        from_version_id=RETRIEVER_V2_EXP.id,
-        to_version_id=RETRIEVER_V1.id,
-        from_version_tag="v2-exp",
-        to_version_tag="v1",
-        rationale="test",
+        current_version=RETRIEVER_V2_EXP.version_tag,
+        candidate_version=RETRIEVER_V1.version_tag,
+        rollback_plan="test",
     )
 
     engine = ReplayEngine(_make_registry())
@@ -180,8 +169,7 @@ def test_replay_improves_reliability_over_experimental() -> None:
         original_trace=original_trace,
         intervention=intervention,
         replay_version=RETRIEVER_V1,
-        original_reliability_vector=original_run.reliability_vector,
-        request_inputs={"query": "test", "seed": 42},
+        original_reliability_vector=original_run.reliability_vector or {},
         seed=42,
         manifest=manifest,
     )
@@ -197,16 +185,13 @@ def test_replay_episode_has_correct_version_ids() -> None:
     """ReplayEpisode must record original and replay version IDs correctly."""
     original_run, original_trace = _make_original_run_and_trace()
 
-    intervention = Intervention(
-        run_id=original_run.id,
-        tenant_id=original_run.tenant_id,
+    from packages.contracts.src.recovery_models import InterventionSpec
+    intervention = InterventionSpec(
+        target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
-        from_version_id=RETRIEVER_V2_EXP.id,
-        to_version_id=RETRIEVER_V1.id,
-        from_version_tag="v2-exp",
-        to_version_tag="v1",
-        rationale="test",
+        current_version=RETRIEVER_V2_EXP.version_tag,
+        candidate_version=RETRIEVER_V1.version_tag,
+        rollback_plan="test",
     )
 
     engine = ReplayEngine(_make_registry())
@@ -217,8 +202,7 @@ def test_replay_episode_has_correct_version_ids() -> None:
         original_trace=original_trace,
         intervention=intervention,
         replay_version=RETRIEVER_V1,
-        original_reliability_vector=original_run.reliability_vector,
-        request_inputs={"query": "test", "seed": 42},
+        original_reliability_vector=original_run.reliability_vector or {},
         seed=42,
         manifest=manifest,
     )

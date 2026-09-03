@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import uuid
 from datetime import datetime
+from packages.contracts.src.recovery_models import InterventionSpec
 
 if TYPE_CHECKING:
     pass
@@ -115,10 +116,7 @@ class TraceResponse(APIBase):
 
 
 class ReplayCreateRequest(APIBase):
-    swap_retriever_to_stable: bool = Field(
-        default=True,
-        description="If True, swaps retriever to v1 (stable). Only supported intervention in Prompt 01.",
-    )
+    intervention: InterventionSpec
     seed: int = Field(default=42, ge=0, description="Must match original run seed for determinism")
 
 

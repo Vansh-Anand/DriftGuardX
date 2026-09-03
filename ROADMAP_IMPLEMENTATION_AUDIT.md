@@ -24,3 +24,14 @@ During our audit, we identified several areas where the repository was improperl
 - Extended `ProvenanceEnvelope` in `transfer_guard.py` to include `evidence_kind`.
 - Ensured tests in `test_recovery_pipeline.py` assert that `evidence_kind` is correctly propagated as `SYNTHETIC_SIMULATION` when using the mock framework.
 - Ensured `test_transfer_guard.py` correctly verifies that `SYNTHETIC_SIMULATION` is rejected.
+
+
+## Phase 2: Dynamic Replay and Generic Intervention Framework
+
+1. **Removed Hard-coded Replay Query**
+   - ReplayEngine now reconstructs the exact original run state from a ReplayStateManifest rather than executing a hard-coded or generic test query.
+2. **Removed Retriever-only Assumption**
+   - ReplayEngine now dynamically handles interventions over any ComponentType (e.g. GENERATOR, POLICY_CHECK, TOOL_CALL) rather than hardcoding retriever swaps.
+3. **Introduced InterventionSpec**
+   - Exposed InterventionSpec in ReplayCreateRequest enabling flexible intervention configurations.
+   - Adjusted Pydantic models (e.g., ReplayEpisode, InterventionSpec) to ensure strict typing with enums (ComponentType, InterventionType) with proper coercions.

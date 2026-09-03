@@ -102,8 +102,8 @@ def _build_replay_manifest(
     *,
     original_run: RequestRunORM,
     original_trace: TraceArtifactORM,
-    replay_version: ComponentVersion,
     seed: int,
+    original_query: str,
 ) -> ReplayStateManifest:
     """Bind a replay to actual code, lock, trace, policy, and component state."""
     lock_digest = _file_sha256("uv.lock")
@@ -124,11 +124,18 @@ def _build_replay_manifest(
         }
         for component in PIPELINE_WITH_STABLE_RETRIEVER.component_versions
     ]
+    # Get the original retriever version from the pipeline
+    retriever_cv = PIPELINE_WITH_STABLE_RETRIEVER.component_versions[0] # Usually retriever is first or we can get it from the trace
+    for cv in PIPELINE_WITH_STABLE_RETRIEVER.component_versions:
+        if cv.component_type == ComponentType.RETRIEVER:
+            retriever_cv = cv
+            break
+
     retriever_settings: dict[str, object] = {
         "top_k": len(MOCK_RETRIEVER_V1_DOCUMENT_IDS),
         "ordering": "score_desc",
-        "version_id": str(replay_version.id),
-        "config_hash": replay_version.config_hash,
+        "version_id": str(retriever_cv.id),
+        "config_hash": retriever_cv.config_hash,
     }
     policy_definition = {
         "always_allow": sorted(PolicyGate.ALWAYS_ALLOW_ACTIONS),
@@ -174,6 +181,7 @@ def _build_replay_manifest(
         tenant_id=original_run.tenant_id,
         # Raw prompts are deliberately not retained. This is the canonical hash
         # of the original request envelope containing the query and seed.
+        original_query=original_query,
         original_query_hash=original_run.request_hash,
         corpus_version_id=MOCK_RAG_CORPUS_VERSION_ID,
         model_provider="local-deterministic",
@@ -191,7 +199,7 @@ def _build_replay_manifest(
                 "source_module_sha256": replay_engine_digest,
             }
         ),
-        retriever_version=replay_version.version_tag,
+        retriever_version=retriever_cv.version_tag,
         retriever_settings=retriever_settings,
         retrieved_chunk_ids=list(MOCK_RETRIEVER_V1_DOCUMENT_IDS),
         embedding_model_version=MOCK_RAG_EMBEDDING_MODEL_VERSION,
@@ -386,6 +394,41 @@ async def create_run(
         total_span_count=len(trace_contract.spans),
     )
     db.add(trace_orm)
+
+    manifest_contract = _build_replay_manifest(
+        original_run=run_orm,
+        original_trace=trace_orm,
+        seed=request.seed,
+        original_query=request.query,
+    )
+
+    manifest_orm = ReplayStateManifestORM(
+        id=manifest_contract.id,
+        run_id=manifest_contract.run_id,
+        tenant_id=manifest_contract.tenant_id,
+        original_query=manifest_contract.original_query,
+        original_query_hash=manifest_contract.original_query_hash,
+        corpus_version_id=manifest_contract.corpus_version_id,
+        model_provider=manifest_contract.model_provider,
+        model_identifier=manifest_contract.model_identifier,
+        model_config_hash=manifest_contract.model_config_hash,
+        prompt_template_hash=manifest_contract.prompt_template_hash,
+        retriever_version=manifest_contract.retriever_version,
+        retriever_settings=manifest_contract.retriever_settings,
+        retrieved_chunk_ids=manifest_contract.retrieved_chunk_ids,
+        embedding_model_version=manifest_contract.embedding_model_version,
+        vector_index_snapshot_id=manifest_contract.vector_index_snapshot_id,
+        tool_schemas_hash=manifest_contract.tool_schemas_hash,
+        policy_config_hash=manifest_contract.policy_config_hash,
+        memory_snapshot_id=manifest_contract.memory_snapshot_id,
+        random_seed=manifest_contract.random_seed,
+        generation_parameters=manifest_contract.generation_parameters,
+        container_image_digest=manifest_contract.container_image_digest,
+        dependency_lockfile_hash=manifest_contract.dependency_lockfile_hash,
+        trace_root_hash=manifest_contract.trace_root_hash,
+        manifest_hash=manifest_contract.manifest_hash,
+    )
+    db.add(manifest_orm)
 
     await db.flush()
     response = _orm_to_run_response(run_orm)
@@ -705,97 +748,107 @@ async def create_replay(
         is_synthetic=original_run_orm.is_synthetic,
     )
 
-    # Determine swap: only retriever rollback supported in Prompt 01
-    from_version = RETRIEVER_V2_EXP
-    to_version = RETRIEVER_V1
+    # Determine swap dynamically
+    intervention_spec = request.intervention
+    target_component = intervention_spec.target_component
+    intervention_type = intervention_spec.intervention_type
+
+    registry = _build_version_registry()
+    
+    # Try fetching by tag if candidate_version looks like a tag, otherwise assume it might be a UUID.
+    # In Prompt 01, mock registry uses version_tags
+    to_version = None
+    if intervention_spec.candidate_version:
+        to_version = registry.get_by_type_and_tag(target_component, intervention_spec.candidate_version)
+        if not to_version:
+            try:
+                cv_id = uuid.UUID(intervention_spec.candidate_version)
+                to_version = registry.get(cv_id)
+            except ValueError:
+                pass
+    
+    if not to_version:
+        raise HTTPException(status_code=400, detail=f"Target component version not found: {intervention_spec.candidate_version}")
+
+    from_version = None
+    if intervention_spec.current_version:
+        from_version = registry.get_by_type_and_tag(target_component, intervention_spec.current_version)
+        if not from_version:
+            try:
+                cv_id = uuid.UUID(intervention_spec.current_version)
+                from_version = registry.get(cv_id)
+            except ValueError:
+                pass
+
+    if not from_version:
+        raise HTTPException(status_code=400, detail=f"Source component version not found: {intervention_spec.current_version}")
 
     # Create intervention record
-    intervention = Intervention(
+    intervention_orm = InterventionORM(
+        id=uuid.UUID(intervention_spec.spec_id),
         run_id=run_id,
         tenant_id=original_run_orm.tenant_id,
-        intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
+        intervention_type=str(intervention_type.value) if hasattr(intervention_type, "value") else str(intervention_type),
+        target_component_type=str(target_component.value) if hasattr(target_component, "value") else str(target_component),
         from_version_id=from_version.id,
         to_version_id=to_version.id,
         from_version_tag=from_version.version_tag,
         to_version_tag=to_version.version_tag,
-        rationale="Experimental retriever v2 returns stale evidence. Rolling back to stable v1.",
+        rationale=intervention_spec.rollback_plan or "",
         approved_by="demo-system",  # auto-approved for synthetic demo
         requires_human_approval=True,  # marked as required (not auto-applied to production)
     )
-
-    intervention_orm = InterventionORM(
-        id=intervention.id,
-        run_id=run_id,
-        tenant_id=intervention.tenant_id,
-        intervention_type=(
-            intervention.intervention_type.value
-            if hasattr(intervention.intervention_type, "value")
-            else intervention.intervention_type
-        ),
-        target_component_type=(
-            intervention.target_component_type.value
-            if hasattr(intervention.target_component_type, "value")
-            else intervention.target_component_type
-        ),
-        from_version_id=intervention.from_version_id,
-        to_version_id=intervention.to_version_id,
-        from_version_tag=intervention.from_version_tag,
-        to_version_tag=intervention.to_version_tag,
-        rationale=intervention.rationale,
-        approved_by=intervention.approved_by,
-        requires_human_approval=intervention.requires_human_approval,
-    )
     db.add(intervention_orm)
 
+    # Fetch manifest from DB
+    manifest_result = await db.execute(
+        select(ReplayStateManifestORM).where(
+            ReplayStateManifestORM.run_id == run_id,
+            ReplayStateManifestORM.tenant_id == tenant.id,
+        )
+    )
+    manifest_orm = manifest_result.scalar_one_or_none()
+    if not manifest_orm:
+        raise HTTPException(status_code=404, detail=f"Manifest for run {run_id} not found")
+
+    manifest_contract = ReplayStateManifest(
+        id=manifest_orm.id,
+        run_id=manifest_orm.run_id,
+        tenant_id=manifest_orm.tenant_id,
+        original_query=manifest_orm.original_query,
+        original_query_hash=manifest_orm.original_query_hash,
+        corpus_version_id=manifest_orm.corpus_version_id,
+        model_provider=manifest_orm.model_provider,
+        model_identifier=manifest_orm.model_identifier,
+        model_config_hash=manifest_orm.model_config_hash,
+        prompt_template_hash=manifest_orm.prompt_template_hash,
+        retriever_version=manifest_orm.retriever_version,
+        retriever_settings=manifest_orm.retriever_settings,
+        retrieved_chunk_ids=manifest_orm.retrieved_chunk_ids,
+        embedding_model_version=manifest_orm.embedding_model_version,
+        vector_index_snapshot_id=manifest_orm.vector_index_snapshot_id,
+        tool_schemas_hash=manifest_orm.tool_schemas_hash,
+        policy_config_hash=manifest_orm.policy_config_hash,
+        memory_snapshot_id=manifest_orm.memory_snapshot_id,
+        random_seed=manifest_orm.random_seed,
+        generation_parameters=manifest_orm.generation_parameters,
+        container_image_digest=manifest_orm.container_image_digest,
+        dependency_lockfile_hash=manifest_orm.dependency_lockfile_hash,
+        trace_root_hash=manifest_orm.trace_root_hash,
+        manifest_hash=manifest_orm.manifest_hash,
+    )
+
     # Execute replay
-    registry = _build_version_registry()
     engine = ReplayEngine(registry)
 
     original_rv = original_run_orm.reliability_vector or {}
-    request_inputs = {"query": "What are the latest AI safety guidelines?", "seed": request.seed}
-
-    manifest_contract = _build_replay_manifest(
-        original_run=original_run_orm,
-        original_trace=original_trace_orm,
-        replay_version=to_version,
-        seed=request.seed,
-    )
-
-    manifest_orm = ReplayStateManifestORM(
-        id=manifest_contract.id,
-        run_id=manifest_contract.run_id,
-        tenant_id=manifest_contract.tenant_id,
-        original_query_hash=manifest_contract.original_query_hash,
-        corpus_version_id=manifest_contract.corpus_version_id,
-        model_provider=manifest_contract.model_provider,
-        model_identifier=manifest_contract.model_identifier,
-        model_config_hash=manifest_contract.model_config_hash,
-        prompt_template_hash=manifest_contract.prompt_template_hash,
-        retriever_version=manifest_contract.retriever_version,
-        retriever_settings=manifest_contract.retriever_settings,
-        retrieved_chunk_ids=manifest_contract.retrieved_chunk_ids,
-        embedding_model_version=manifest_contract.embedding_model_version,
-        vector_index_snapshot_id=manifest_contract.vector_index_snapshot_id,
-        tool_schemas_hash=manifest_contract.tool_schemas_hash,
-        policy_config_hash=manifest_contract.policy_config_hash,
-        memory_snapshot_id=manifest_contract.memory_snapshot_id,
-        random_seed=manifest_contract.random_seed,
-        generation_parameters=manifest_contract.generation_parameters,
-        container_image_digest=manifest_contract.container_image_digest,
-        dependency_lockfile_hash=manifest_contract.dependency_lockfile_hash,
-        trace_root_hash=manifest_contract.trace_root_hash,
-        manifest_hash=manifest_contract.manifest_hash,
-    )
-    db.add(manifest_orm)
 
     episode, replay_trace = engine.execute_replay(
         original_run=original_run_contract,
         original_trace=original_trace,
-        intervention=intervention,
+        intervention=intervention_spec,
         replay_version=to_version,
         original_reliability_vector=original_rv,
-        request_inputs=request_inputs,
         seed=request.seed,
         manifest=manifest_contract,
     )
@@ -806,7 +859,7 @@ async def create_replay(
         original_run_id=run_id,
         tenant_id=episode.tenant_id,
         pipeline_id=original_run_orm.pipeline_id,
-        intervention_id=intervention.id,
+        intervention_id=intervention_orm.id,
         status=episode.status.value if hasattr(episode.status, "value") else episode.status,
         swapped_component_type=(
             episode.swapped_component_type.value
