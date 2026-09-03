@@ -178,7 +178,8 @@ async def test_sdk_batching():
         ))
         
     res = client.batch_spans(spans)
-    assert res["ingested"] == 10
+    assert res.status == "SUCCESS"
+    assert res.ingested_count == 10
     assert len(client.posted) == 4 # 10 / 3 = 4 batches (3, 3, 3, 1)
     assert len(client.posted[0]["spans"]) == 3
     assert len(client.posted[-1]["spans"]) == 1

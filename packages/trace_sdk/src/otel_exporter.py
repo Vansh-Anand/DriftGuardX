@@ -94,11 +94,16 @@ class DriftGuardSpanExporter(SpanExporter):
             
             if payload:
                 result = self.client.batch_spans(payload)
-                if result.get("errors"):
-                    for err in result["errors"]:
+                if result.errors:
+                    for err in result.errors:
                         logger.error(f"DriftGuardSpanExporter error: {err}")
-                    if result.get("ingested", 0) == 0:
-                        return SpanExportResult.FAILURE
+                        
+                if result.status == "SUCCESS":
+                    return SpanExportResult.SUCCESS
+                else:
+                    # PARTIAL_FAILURE or FAILURE maps to FAILURE to be safe
+                    # OTel recommends returning FAILURE if ANY spans were dropped.
+                    return SpanExportResult.FAILURE
                 
             return SpanExportResult.SUCCESS
         except Exception as e:

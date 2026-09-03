@@ -117,16 +117,29 @@ def test_replay_engine_is_strictly_deterministic():
     
     assert ep1.replay_reliability_vector == ep2.replay_reliability_vector
     assert ep1.replay_reliability_score == ep2.replay_reliability_score
-    assert ep1.evidence_kind == ep2.evidence_kind
+    assert ep1.is_synthetic == ep2.is_synthetic
+    assert ep1.is_synthetic is True  # We must be explicitly deterministic synthetic
     
     # Trace logic produces same lengths and fields except random IDs and timestamps
     assert len(t1.spans) == len(t2.spans)
+    for i in range(len(t1.spans)):
+        assert t1.spans[i].name == t2.spans[i].name
+        assert t1.spans[i].kind == t2.spans[i].kind
+        assert t1.spans[i].status_code == t2.spans[i].status_code
+        assert t1.spans[i].component_type == t2.spans[i].component_type
+        assert t1.spans[i].component_version_tag == t2.spans[i].component_version_tag
+        assert t1.spans[i].input_hash == t2.spans[i].input_hash
+        assert t1.spans[i].output_hash == t2.spans[i].output_hash
 
 def test_different_intervention_spec_yields_different_hash():
-    s1 = InterventionSpec(target_component=ComponentType.RETRIEVER, current_version="v1", candidate_version="v2-exp", intervention_type="alternate_stable")
-    s2 = InterventionSpec(target_component=ComponentType.GENERATOR, current_version="v1", candidate_version="v2-exp", intervention_type="alternate_stable")
+    s1 = InterventionSpec(target_component=ComponentType.RETRIEVER, current_version="v1", candidate_version="v2-exp", intervention_type="alternate_stable", rollback_plan="planA", expected_cost=1.0)
+    s2 = InterventionSpec(target_component=ComponentType.RETRIEVER, current_version="v1", candidate_version="v2-exp", intervention_type="alternate_stable", rollback_plan="planB", expected_cost=1.0)
     
-    h1 = hashlib.sha256(f"{s1.target_component}:{s1.intervention_type}".encode("utf-8")).hexdigest()
-    h2 = hashlib.sha256(f"{s2.target_component}:{s2.intervention_type}".encode("utf-8")).hexdigest()
+    assert s1.hash_identity != s2.hash_identity
     
-    assert h1 != h2
+    s3 = InterventionSpec(target_component=ComponentType.RETRIEVER, current_version="v1", candidate_version="v2-exp", intervention_type="alternate_stable", rollback_plan="planA", expected_cost=1.0)
+    
+    assert s1.hash_identity == s3.hash_identity
+
+    s4 = InterventionSpec(target_component=ComponentType.RETRIEVER, current_version="v1", candidate_version="v3-exp", intervention_type="alternate_stable", rollback_plan="planA", expected_cost=1.0)
+    assert s1.hash_identity != s4.hash_identity

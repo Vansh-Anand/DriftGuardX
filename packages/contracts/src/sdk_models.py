@@ -38,3 +38,10 @@ class SpanIngestItem(BaseModel):
 
 class SpanIngestRequest(BaseModel):
     spans: list[SpanIngestItem]
+
+class BatchResult(BaseModel):
+    status: Literal["SUCCESS", "PARTIAL_FAILURE", "FAILURE"]
+    ingested_count: int = 0
+    skipped_count: int = 0
+    failed_spans: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)

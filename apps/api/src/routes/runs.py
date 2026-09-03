@@ -979,9 +979,9 @@ async def finalize_run(
 ) -> RunFinalizeResponse:
     """Finalize a run by transitioning to a terminal state and recording telemetry."""
     result = await db.execute(
-        select(RequestRunORM).where(
-            RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id
-        )
+        select(RequestRunORM)
+        .where(RequestRunORM.id == run_id, RequestRunORM.tenant_id == tenant.id)
+        .with_for_update()
     )
     run_orm = result.scalar_one_or_none()
     if run_orm is None:

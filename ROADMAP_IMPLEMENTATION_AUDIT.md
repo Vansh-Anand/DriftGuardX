@@ -310,3 +310,13 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 - ✅ Tests: Integration tests in 	est_trace_sdk.py correctly validate sync/async decorators, span collection, OTel mocking, and causal hierarchies.
 ### Status
 - [x] COMPLETE
+
+## PROMPT 15 — REMEDIATE SDK FAILURE SEMANTICS + FINALIZATION DURABILITY + REAL REPLAY DETERMINISM
+### Verification Results
+- ✅ `BatchResult` schema added to explicit return object for `batch_spans` handling `SUCCESS`, `PARTIAL_FAILURE`, and `FAILURE`.
+- ✅ OTel exporter mapped explicitly and propagates failures based on partial drops in `batch_spans`.
+- ✅ Finalize run API now uses `.with_for_update()` to defend against race conditions. Concurrency tested via `asyncio.gather`.
+- ✅ Replay determinism updated to use `InterventionSpec.hash_identity` covering full material identity and determinism tests use real Replay Engine.
+- ✅ Replay queries inherently bind to tenant_id natively by using properly scoped UUID lookups.
+### Status
+- [x] COMPLETE

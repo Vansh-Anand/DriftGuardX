@@ -84,3 +84,39 @@ async def test_finalize_run_idempotency_and_validation(client: AsyncClient, db_s
     )
     assert res.status_code == 409
 
+async def test_concurrent_finalize(client: AsyncClient, db_session: AsyncSession):
+    import asyncio
+    run_id = uuid.uuid4()
+    tenant_id = uuid.UUID("00000000-0000-0000-FFFF-000000000001")
+    
+    run = RequestRunORM(
+        id=run_id,
+        tenant_id=tenant_id,
+        pipeline_id=uuid.uuid4(),
+        status="RUNNING",
+        is_synthetic=True,
+        created_at=datetime.now(UTC)
+    )
+    db_session.add(run)
+    await db_session.commit()
+
+    async def call_finalize(status: str):
+        return await client.post(
+            f"/v1/runs/{run_id}/finalize",
+            json={
+                "status": status,
+                "total_tokens": 100,
+            }
+        )
+
+    # Fire two concurrent finalize requests that conflict
+    res1, res2 = await asyncio.gather(
+        call_finalize("COMPLETED"),
+        call_finalize("FAILED")
+    )
+    
+    # One should succeed (200), one should fail due to transition conflict (409)
+    status_codes = {res1.status_code, res2.status_code}
+    assert 200 in status_codes
+    assert 409 in status_codes
+

@@ -353,6 +353,24 @@ class InterventionSpec(DGXBaseModel):
     rollback_plan: str | None = None
     dependencies: list[str] = Field(default_factory=list)
 
+    @property
+    def hash_identity(self) -> str:
+        """
+        Returns a canonical cryptographic hash representing the complete material identity
+        of this intervention.
+        """
+        from packages.trace_sdk.src.tracer import hash_payload
+        
+        return hash_payload({
+            "target_component": str(self.target_component.value) if hasattr(self.target_component, "value") else str(self.target_component),
+            "intervention_type": str(self.intervention_type.value) if hasattr(self.intervention_type, "value") else str(self.intervention_type),
+            "current_version": self.current_version,
+            "candidate_version": self.candidate_version,
+            "expected_cost": self.expected_cost,
+            "rollback_plan": self.rollback_plan,
+            "dependencies": sorted(self.dependencies)
+        })
+
     @model_validator(mode="before")
     @classmethod
     def coerce_enums(cls, data: Any) -> Any:
