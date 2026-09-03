@@ -82,6 +82,8 @@ async def verify_token(token: str) -> dict[str, Any]:
             payload = jwt.decode(token, MOCK_JWT_SECRET, algorithms=["HS256"])
             return payload
         except jwt.PyJWTError:
+            import structlog
+            structlog.get_logger().error("auth_failure", reason="invalid_mock")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate mock credentials",
@@ -118,6 +120,8 @@ async def verify_token(token: str) -> dict[str, Any]:
             )
             return payload
 
+        import structlog
+        structlog.get_logger().error("auth_failure", reason="key_not_found")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unable to find appropriate key",

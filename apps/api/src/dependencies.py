@@ -130,6 +130,11 @@ def require_role(role: Role) -> Callable[[User], User]:
 
     def role_checker(user: User = Depends(get_current_user)) -> User:
         if role not in user.roles and Role.ADMIN not in user.roles:
+            # Log authorization failure
+            # For simplicity in synchronous dependency, we can't easily await db without it,
+            # but we can log the exception.
+            import structlog
+            structlog.get_logger().error("rbac_violation", user_id=str(user.id), required_role=role.value)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation requires {role.value} role",

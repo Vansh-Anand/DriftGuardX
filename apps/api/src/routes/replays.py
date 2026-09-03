@@ -13,7 +13,8 @@ from sqlalchemy import select
 import uuid
 
 from apps.api.src.database import get_db
-from apps.api.src.dependencies import get_current_tenant
+from apps.api.src.dependencies import get_current_tenant, require_role
+from packages.contracts.src.auth import Role, User
 from apps.api.src.models import ReplayEpisodeORM
 from apps.api.src.schemas import ReplayResponse
 

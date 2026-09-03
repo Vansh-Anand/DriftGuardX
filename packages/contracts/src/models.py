@@ -460,6 +460,7 @@ class ReplayEpisode(DGXBaseModel):
     completed_at: datetime | None = None
     is_synthetic: bool = False
     evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    cryptographic_signature: dict[str, Any] = Field(default_factory=dict)
 
     # Manifest
     manifest_id: UUID | None = None
@@ -628,6 +629,7 @@ class RecoveryCertificate(DGXBaseModel):
     payload_summary: str = ""
     is_valid: bool = True
     evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    cryptographic_signature: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
     def compute_hash(

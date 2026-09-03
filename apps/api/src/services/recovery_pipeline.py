@@ -4,6 +4,8 @@ PRIVATE — All Rights Reserved.
 """
 
 import uuid
+from datetime import datetime, UTC
+from typing import Any
 from collections.abc import Sequence
 
 from packages.bcrb.src.candidate_planner import CandidatePlanner
@@ -31,7 +33,7 @@ class EndToEndRecoveryPipeline:
 
     async def execute_recovery_loop(
         self, run_id: str, invocations: Sequence[AgentInvocation], failure_symptom: str, db=None
-    ) -> RecoveryCertificate | None:
+    ) -> Any:
         """
         Executes the full recovery pipeline.
         Returns a RecoveryCertificate if successful.
@@ -40,6 +42,8 @@ class EndToEndRecoveryPipeline:
         from packages.contracts.src.bcrb_models import BCRBSession
         from packages.bcrb.src.orchestrator import BCRBOrchestrator
         import uuid
+        from datetime import datetime, UTC
+        from typing import Any
 
         # 1. Create a BCRBSession
         session = BCRBSession(
@@ -56,11 +60,13 @@ class EndToEndRecoveryPipeline:
         evaluated_steps = session.steps
 
         if not candidates:
+            print("No candidates returned by BCRBOrchestrator")
             return None
 
         # 3. Diagnosis Aggregation
         diagnosis = self.engine.generate_diagnosis(run_id, evaluated_steps, candidates)
         if not diagnosis.root_cause_component:
+            print("No root_cause_component in diagnosis")
             return None
 
         # 4. Quarantine / Isolation
@@ -70,6 +76,7 @@ class EndToEndRecoveryPipeline:
         )
         try:
             if not self.canary_framework.validate_quarantine(rule, run_id):
+                print("validate_quarantine failed")
                 return None
         except NotImplementedError:
             # We cannot fake quarantine validation if not supported
@@ -102,33 +109,32 @@ class EndToEndRecoveryPipeline:
             evidence_kind=evidence_kind,
         )
 
-        # Phase 3: Sign the certificate using the HSM
-        from packages.security.src.signer import kms_provider
-
-        payload_to_sign = {
-            "run_id": run_id,
-            "replay_episode_id": str(best_step.replay_episode_id),
-            "intervention_id": str(intervention_id),
-            "evidence_kind": evidence_kind.value,
-            "hash": cert_hash,
-        }
-
-        signature = kms_provider.sign_payload(payload_to_sign)
-
-        certificate = RecoveryCertificate(
-            id=uuid.uuid4(),
-            run_id=uuid.UUID(run_id),
-            replay_episode_id=best_step.replay_episode_id,
-            intervention_id=intervention_id,
-            repair_decision_id=repair_decision_id,
+        # 5. Repair Decision (Human Approval Required)
+        from apps.api.src.models import ApprovalRequestORM
+        from datetime import timedelta
+        
+        # We need an ApprovalRequest
+        approval_req = ApprovalRequestORM(
             tenant_id=uuid.UUID(self.tenant_id),
-            certificate_hash=cert_hash,
-            issued_by="bcrb_automated_pipeline",
-            payload_summary=diagnosis.root_cause_description,
-            is_valid=True,
-            evidence_kind=evidence_kind,
-            approval_state="PROPOSED",
-            cryptographic_signature=signature.model_dump(),
+            action="RECOVERY_EXECUTION",
+            resource=str(intervention_id),
+            requester_id="system_bcrb",
+            node_id=str(best_step.replay_episode_id),
+            risk_tier="HIGH",
+            required_approvers=1,
+            two_person_control=False,
+            status="pending",
+            expires_at=datetime.now(UTC) + timedelta(hours=24),
+            context_json={
+                "run_id": run_id,
+                "replay_episode_id": str(best_step.replay_episode_id),
+                "intervention_id": str(intervention_id),
+                "evidence_kind": evidence_kind.value,
+                "cert_hash": cert_hash
+            }
         )
-
-        return certificate
+        if db:
+            db.add(approval_req)
+            await db.flush()
+            
+        return approval_req
