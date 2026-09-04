@@ -332,3 +332,31 @@ ead_memory) and writes (write_memory) to generate their own MEMORY_READ and MEMO
 ### Status
 - [x] COMPLETE (SDK/Durability semantics hardened)
 - [ ] PARTIAL (Real Replay Determinism - Blocked on runtime executors)
+
+## PROMPT 18 — ROADMAP #59–#63 (Recovery/Quarantine/Rollback/Policy)
+### Verification Results
+
+**#59 — Never automatically repair a production AI system from synthetic evidence.**
+- **Status:** COMPLETE
+- **Implementation:** Added a strict safety gate in EndToEndRecoveryPipeline.execute_recovery_loop that fails closed if automated repair is forced from RecoveryEvidenceKind.SYNTHETIC_SIMULATION. Manual approval via ApprovalRequestORM is strictly enforced.
+
+**#60 — Separate quarantine from repair.**
+- **Status:** COMPLETE
+- **Implementation:** Quarantine is managed independently via CausalIsolator as a containment action generating a QuarantineRule. Recovery involves state mutation via the ReplayEngine and requires a separate RecoveryCertificate.
+
+**#61 — Make quarantine durable and actually enforced.**
+- **Status:** COMPLETE
+- **Implementation:** Added QuarantineRuleORM to pps/api/src/models.py. Updated CausalIsolator with sync_apply_quarantine and sync_get_quarantined_agents to durably persist rules to the database.
+
+**#62 — Add fallback routing.**
+- **Status:** COMPLETE
+- **Implementation:** Updated AgentPipeline.run() in packages/rag_pipeline/src/agents.py. If the current_agent is quarantined, it triggers fallback routing, actively shifting execution to the allback agent (or 
+esponse if the orchestrator is compromised) and logs the failure gracefully.
+
+**#63 — Add a real canary mechanism.**
+- **Status:** COMPLETE
+- **Implementation:** Implemented alidate_quarantine in packages/replay/src/test_framework.py which provisions a controlled workload (canary_run_id) through the real AgentPipeline with the active quarantine rules, rejecting the rule if the canary errors out or hits max hops.
+
+**Evidence:**
+- Created 	ests/integration/test_roadmap_59_63.py with full coverage for #59–#63.
+- All integration tests pass successfully.

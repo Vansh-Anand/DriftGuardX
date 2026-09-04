@@ -13,7 +13,7 @@ from packages.isolation.src.invariance_checker import ContaminationError, Invari
 class QuarantineRule:
     def __init__(
         self,
-        target_component: ComponentType,
+        target_component: ComponentType | str,
         description: str,
         enforce_network_isolation: bool = True,
     ):
@@ -33,11 +33,11 @@ class CausalIsolator:
         self.tenant_id = tenant_id
         self._active_rules: list[QuarantineRule] = []
 
-    def apply_quarantine(
-        self, root_cause_component: ComponentType, description: str
+    async def async_apply_quarantine(
+        self, root_cause_component: ComponentType | str, description: str, db=None
     ) -> QuarantineRule:
         """
-        Creates and registers a quarantine rule for a failing component.
+        Creates and registers a quarantine rule for a failing component. Durably stores it if db provided.
         """
         rule = QuarantineRule(
             target_component=root_cause_component,
@@ -45,7 +45,57 @@ class CausalIsolator:
             enforce_network_isolation=True,
         )
         self._active_rules.append(rule)
+
+        if db:
+            from apps.api.src.models import QuarantineRuleORM
+            comp_str = root_cause_component.value if hasattr(root_cause_component, "value") else str(root_cause_component)
+            orm_rule = QuarantineRuleORM(
+                id=uuid.UUID(rule.rule_id),
+                tenant_id=uuid.UUID(self.tenant_id),
+                target_component=comp_str,
+                description=description,
+                enforce_network_isolation=True,
+                active=True,
+            )
+            db.add(orm_rule)
+            await db.flush()
+
         return rule
+
+    def apply_quarantine(
+        self, root_cause_component: ComponentType | str, description: str
+    ) -> QuarantineRule:
+        """Sync wrapper for tests or legacy code without DB access."""
+        rule = QuarantineRule(
+            target_component=root_cause_component,
+            description=description,
+            enforce_network_isolation=True,
+        )
+        self._active_rules.append(rule)
+        return rule
+
+    async def async_get_quarantined_agents(self, db=None) -> set[str]:
+        """
+        Returns a set of quarantined agent names for routing (combining in-memory and durable rules).
+        """
+        quarantined = set()
+        for rule in self._active_rules:
+            if rule.active:
+                comp_str = rule.target_component.value if hasattr(rule.target_component, "value") else str(rule.target_component)
+                quarantined.add(comp_str)
+
+        if db:
+            from sqlalchemy import select
+            from apps.api.src.models import QuarantineRuleORM
+            stmt = select(QuarantineRuleORM).where(
+                QuarantineRuleORM.tenant_id == uuid.UUID(self.tenant_id),
+                QuarantineRuleORM.active == True
+            )
+            result = await db.execute(stmt)
+            for rule_orm in result.scalars().all():
+                quarantined.add(rule_orm.target_component)
+
+        return quarantined
 
     def enforce_invariance_and_quarantine(
         self,
@@ -77,8 +127,10 @@ class CausalIsolator:
         """
         Checks if a component is quarantined. Returns True if allowed to run.
         """
+        comp_str = component.value if hasattr(component, "value") else str(component)
         for rule in self._active_rules:
-            if rule.active and rule.target_component == component:
+            r_comp_str = rule.target_component.value if hasattr(rule.target_component, "value") else str(rule.target_component)
+            if rule.active and r_comp_str == comp_str:
                 return False  # Quarantined
         return True
 

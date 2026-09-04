@@ -280,15 +280,28 @@ class AgentPipeline:
         }
 
     def run(
-        self, query: str, run_id: str, tenant_id: str, trace_ctx: TraceContext | None = None, max_hops: int = 15
+        self, query: str, run_id: str, tenant_id: str, trace_ctx: TraceContext | None = None, max_hops: int = 15, quarantined_agents: set[str] = None
     ) -> ReferenceState:
         state = ReferenceState(query, run_id, tenant_id, trace_ctx=trace_ctx)
         hops = 0
+        quarantined_agents = quarantined_agents or set()
 
         last_agent = None
 
         while not state.is_finished and hops < max_hops:
             current_agent_name = state.current_agent
+
+            if current_agent_name in quarantined_agents:
+                # Agent is quarantined, route to fallback
+                state.write_memory("error", f"Agent {current_agent_name} is quarantined.")
+                # We do a hard fallback to orchestrator which handles routing, or directly to fallback
+                if current_agent_name == "orchestrator":
+                    current_agent_name = "response" # the last safe resort
+                    state.current_agent = "response"
+                else:
+                    current_agent_name = "fallback"
+                    state.current_agent = "fallback"
+
             agent = self.agents.get(current_agent_name)
             if not agent:
                 raise ValueError(f"Unknown agent: {current_agent_name}")

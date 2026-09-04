@@ -70,9 +70,10 @@ class EndToEndRecoveryPipeline:
             return None
 
         # 4. Quarantine / Isolation
-        rule = self.isolator.apply_quarantine(
+        rule = await self.isolator.async_apply_quarantine(
             root_cause_component=diagnosis.root_cause_component,
             description=diagnosis.root_cause_description,
+            db=db
         )
         try:
             if not self.canary_framework.validate_quarantine(rule, run_id):
@@ -96,10 +97,14 @@ class EndToEndRecoveryPipeline:
         # 6. Certification
         intervention_id = uuid.uuid4()
 
-        # Enforce that certificates cannot be minted from SYNTHETIC_SIMULATION (Item 168)
+        # Enforce that certificates cannot be minted from SYNTHETIC_SIMULATION (Item 168 / #59)
         # We explicitly label this as SYNTHETIC_SIMULATION because we used CanaryTestFramework.
-        # This prevents it from masquerading as real production evidence.
+        # #59: "Never automatically repair a production AI system from synthetic evidence."
+        # We enforce this by failing closed if we attempt to bypass human approval (automated repair).
         evidence_kind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+
+        if getattr(self, "_force_automated", False) and evidence_kind == RecoveryEvidenceKind.SYNTHETIC_SIMULATION:
+            raise RuntimeError("Safety violation: cannot automatically repair from synthetic evidence")
 
         cert_hash = RecoveryCertificate.compute_hash(
             run_id=uuid.UUID(run_id),

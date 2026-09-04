@@ -578,6 +578,25 @@ class ApprovalDecisionORM(Base):
     )
 
 
+class QuarantineRuleORM(Base):
+    __tablename__ = "quarantine_rules"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
+    target_component: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    enforce_network_isolation: Mapped[bool] = mapped_column(Boolean, default=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    __table_args__ = (
+        Index("ix_quarantine_rules_tenant_id", "tenant_id"),
+        Index("ix_quarantine_rules_active", "active"),
+    )
+
+
 class RecoveryStateORM(Base):
     __tablename__ = "recovery_states"
 

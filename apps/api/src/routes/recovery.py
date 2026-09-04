@@ -53,7 +53,7 @@ async def trigger_recovery(payload: dict[str, Any], db: AsyncSession = Depends(g
     approval_req = await pipeline.execute_recovery_loop(run_id, invocations, failure_symptom, db)
 
     if not approval_req:
-        import traceback; traceback.print_exc(); raise HTTPException(status_code=500, detail="Failed to propose recovery.")
+        import traceback; traceback.print_exc(); import traceback; traceback.print_exc(); raise HTTPException(status_code=500, detail="Failed to propose recovery.")
 
     from apps.api.src.services.audit import AuditService
     await AuditService.log_event(db, uuid.UUID(tenant_id), current_user.id, "RECOVERY_PROPOSED", "Recovery", run_id)
