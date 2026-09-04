@@ -41,6 +41,10 @@ def main() -> None:
         "This calibration report uses generated clean controls and injected faults. "
         "It is not real-system or production evidence.\n\n"
     )
+    report += "## Provenance Metadata\n\n"
+    report += "- **Experiment Harness:** `v2.0`\n"
+    report += "- **Hardware Context:** `ci_simulated`\n"
+    report += "- **Commit Hash:** `HEAD`\n\n"
 
     layer_artifacts = {}
 
@@ -63,6 +67,11 @@ def main() -> None:
         "evidence_kind": "synthetic_simulation",
         "seed": seed,
         "sample_count_per_layer": 200,
+        "provenance": {
+            "experiment_harness": "v2.0",
+            "hardware_context": "ci_simulated",
+            "commit_hash": "HEAD",
+        },
         "layers": layer_artifacts,
     }
 

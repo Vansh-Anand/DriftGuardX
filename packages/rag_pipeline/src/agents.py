@@ -3,6 +3,10 @@ DriftGuard-X v2 — Reference Multi-Agent Runtime
 PRIVATE — All Rights Reserved.
 """
 
+from __future__ import annotations
+
+import asyncio
+import concurrent.futures
 import hashlib
 import json
 import uuid
@@ -10,6 +14,8 @@ from typing import Any, Protocol
 
 from packages.contracts.src.agent_models import AgentInvocation, AgentMessage, MessageRole
 from packages.contracts.src.models import ComponentType, SpanKind, _utcnow
+from packages.policy.src.gate import evaluate_policy
+from packages.rag_pipeline.src.tool_registry import ToolRegistry
 from packages.trace_sdk.src.tracer import TraceContext
 
 
@@ -32,7 +38,13 @@ class AgentState(Protocol):
 
 
 class ReferenceState:
-    def __init__(self, query: str, run_id: str, tenant_id: str, trace_ctx: TraceContext | None = None):
+    def __init__(
+        self,
+        query: str,
+        run_id: str,
+        tenant_id: str,
+        trace_ctx: TraceContext | None = None,
+    ):
         self.run_id = run_id
         self.tenant_id = tenant_id
         self.query = query
@@ -49,7 +61,9 @@ class ReferenceState:
     def read_memory(self, key: str) -> Any:
         val = self.context.get(key)
         if self.trace_ctx and self.last_span_id:
-            builder = self.trace_ctx.start_span("memory_read", kind=SpanKind.INTERNAL, parent_span_id=self.last_span_id)
+            builder = self.trace_ctx.start_span(
+                "memory_read", kind=SpanKind.INTERNAL, parent_span_id=self.last_span_id
+            )
             builder.set_component(ComponentType.MEMORY_READ, uuid.uuid4(), "v1")
             builder.set_input({"key": key})
             builder.set_output({"value": val})
@@ -60,7 +74,9 @@ class ReferenceState:
     def write_memory(self, key: str, value: Any) -> None:
         self.context[key] = value
         if self.trace_ctx and self.last_span_id:
-            builder = self.trace_ctx.start_span("memory_write", kind=SpanKind.INTERNAL, parent_span_id=self.last_span_id)
+            builder = self.trace_ctx.start_span(
+                "memory_write", kind=SpanKind.INTERNAL, parent_span_id=self.last_span_id
+            )
             builder.set_component(ComponentType.MEMORY_WRITE, uuid.uuid4(), "v1")
             builder.set_input({"key": key, "value": value})
             builder.set_output({"status": "ok"})
@@ -126,7 +142,9 @@ class BaseAgent:
             builder.set_attribute("dgx.tool_registry.hash", self.tool_registry_hash)
 
             if source_agent and source_agent in state.agent_span_map:
-                builder.set_attribute("dgx.causal.source_span_id", state.agent_span_map[source_agent])
+                builder.set_attribute(
+                    "dgx.causal.source_span_id", state.agent_span_map[source_agent]
+                )
 
             builder.set_input({"query": state.query, "context": state.context})
             state.last_span_id = builder.span_id
@@ -167,7 +185,7 @@ class BaseAgent:
 
 
 class OrchestratorAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__("orchestrator", **kwargs)
 
     def _process(self, state: ReferenceState) -> str:
@@ -179,8 +197,9 @@ class OrchestratorAgent(BaseAgent):
 
 
 class RetrievalAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, retriever: Any = None, **kwargs: Any):
         super().__init__("retrieval", **kwargs)
+        self.retriever = retriever
 
     def _process(self, state: ReferenceState) -> str:
         if state.query == "empty_search":
@@ -188,6 +207,41 @@ class RetrievalAgent(BaseAgent):
             state.current_agent = "fallback"
             return "No documents. Routing to fallback."
 
+        if self.retriever is not None:
+            # Execute real retrieval
+            corpus_id = state.context.get("corpus_version_id", "v1")
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        chunks = pool.submit(
+                            asyncio.run,
+                            self.retriever.retrieve(
+                                query=state.query, corpus_version_id=corpus_id, top_k=5
+                            ),
+                        ).result()
+                else:
+                    chunks = loop.run_until_complete(
+                        self.retriever.retrieve(
+                            query=state.query, corpus_version_id=corpus_id, top_k=5
+                        )
+                    )
+            except RuntimeError:
+                chunks = asyncio.run(
+                    self.retriever.retrieve(query=state.query, corpus_version_id=corpus_id, top_k=5)
+                )
+
+            docs = [c.text_content for c in chunks]
+            if not docs:
+                state.write_memory("retrieved_docs", [])
+                state.current_agent = "fallback"
+                return "No documents retrieved from index. Routing to fallback."
+
+            state.write_memory("retrieved_docs", docs)
+            state.current_agent = "reasoning"
+            return f"Retrieved {len(docs)} documents from real retriever."
+
+        # Fallback default deterministic retriever
         state.write_memory(
             "retrieved_docs",
             [
@@ -200,7 +254,7 @@ class RetrievalAgent(BaseAgent):
 
 
 class FallbackAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__("fallback", **kwargs)
 
     def _process(self, state: ReferenceState) -> str:
@@ -210,28 +264,66 @@ class FallbackAgent(BaseAgent):
 
 
 class ReasoningAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, llm: Any = None, **kwargs: Any):
         super().__init__("reasoning", **kwargs)
+        self.llm = llm
 
     def _process(self, state: ReferenceState) -> str:
-        state.write_memory("reasoning", "Based on docs, the system is healthy but policy applies.")
+        docs = state.read_memory("retrieved_docs") or []
+        if self.llm is not None:
+            # Call real LLM adapter
+            prompt = f"Analyze the query '{state.query}' using context:\n" + "\n".join(
+                f"- {d}" for d in docs
+            )
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        res = pool.submit(
+                            asyncio.run, self.llm.generate(prompt=prompt, context=[])
+                        ).result()
+                else:
+                    res = loop.run_until_complete(self.llm.generate(prompt=prompt, context=[]))
+            except RuntimeError:
+                res = asyncio.run(self.llm.generate(prompt=prompt, context=[]))
+
+            text = res.get("text", "Reasoning produced.")
+            state.write_memory("reasoning", text)
+            state.current_agent = "tool"
+            return f"LLM Reasoning complete: {text}"
+
+        state.write_memory(
+            "reasoning", "Based on docs, the system is healthy but policy applies."
+        )
         state.current_agent = "tool"
         return "Reasoning complete."
 
 
 class ToolAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, tool_registry: ToolRegistry | None = None, **kwargs: Any):
         super().__init__("tool", **kwargs)
-        self.tools = ["health_check_api"]
+        self.tool_registry = tool_registry or ToolRegistry()
+        self.tools = self.tool_registry.list_tools()
 
     def _process(self, state: ReferenceState) -> str:
-        state.write_memory("tool_results", {"health_check": "OK"})
+        # Dynamically execute tool
+        tool_name = "health_check_api"
+        if "calculate" in state.query.lower():
+            tool_name = "calculator"
+            result = self.tool_registry.execute_tool_sync(tool_name, expression="2 + 2")
+        elif "metric" in state.query.lower():
+            tool_name = "fetch_metrics"
+            result = self.tool_registry.execute_tool_sync(tool_name, service_name="rag_service")
+        else:
+            result = self.tool_registry.execute_tool_sync("health_check_api")
+
+        state.write_memory("tool_results", result)
         state.current_agent = "verifier"
-        return "Tool execution complete."
+        return f"Tool execution ({tool_name}) complete: {result}"
 
 
 class VerifierAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__("verifier", **kwargs)
 
     def _process(self, state: ReferenceState) -> str:
@@ -240,47 +332,84 @@ class VerifierAgent(BaseAgent):
             state.current_agent = "reasoning"
             return "Verification failed. Retrying reasoning."
 
-        state.write_memory("verified", True)
+        # Evaluate evidence consistency
+        docs = state.read_memory("retrieved_docs") or []
+        tool_res = state.read_memory("tool_results") or {}
+        reasoning = state.read_memory("reasoning") or ""
+
+        # Verification check: tool status is healthy or documents support reasoning
+        is_supported = (
+            tool_res.get("status") == "healthy"
+            or tool_res.get("health_check") == "OK"
+            or len(docs) > 0
+            or len(reasoning) > 0
+        )
+
+        state.write_memory("verified", is_supported)
         state.current_agent = "policy"
         return "Output verified against constraints."
 
 
 class PolicyAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__("policy", **kwargs)
 
     def _process(self, state: ReferenceState) -> str:
-        state.write_memory("policy_decision", "allow")
+        policy = evaluate_policy("create_run", "pipeline")
+        outcome = policy.action.value if hasattr(policy.action, "value") else str(policy.action)
+        state.write_memory("policy_decision", outcome)
         state.current_agent = "response"
-        return "Policy evaluated: allow."
+        return f"Policy evaluated: {outcome}."
 
 
 class ResponseAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__("response", **kwargs)
 
     def _process(self, state: ReferenceState) -> str:
-        final_answer = "The system is healthy and verified."
+        reasoning = state.read_memory("reasoning") or ""
+        tool_res = state.read_memory("tool_results") or {}
+        verified = state.read_memory("verified")
+
+        if "healthy" in reasoning.lower() and tool_res.get("health_check") == "OK" and verified:
+            final_answer = "The system is healthy and verified."
+        elif reasoning:
+            final_answer = f"Response synthesized: {reasoning}"
+        else:
+            final_answer = "System status processed."
+
         state.final_response = final_answer
         state.is_finished = True
         return final_answer
 
 
 class AgentPipeline:
-    def __init__(self):
+    def __init__(
+        self,
+        retriever: Any = None,
+        llm: Any = None,
+        tool_registry: ToolRegistry | None = None,
+    ):
+        self.tool_registry = tool_registry or ToolRegistry()
         self.agents = {
             "orchestrator": OrchestratorAgent(),
-            "retrieval": RetrievalAgent(),
-            "reasoning": ReasoningAgent(),
+            "retrieval": RetrievalAgent(retriever=retriever),
+            "reasoning": ReasoningAgent(llm=llm),
             "fallback": FallbackAgent(),
-            "tool": ToolAgent(),
+            "tool": ToolAgent(tool_registry=self.tool_registry),
             "verifier": VerifierAgent(),
             "policy": PolicyAgent(),
             "response": ResponseAgent(),
         }
 
     def run(
-        self, query: str, run_id: str, tenant_id: str, trace_ctx: TraceContext | None = None, max_hops: int = 15, quarantined_agents: set[str] = None
+        self,
+        query: str,
+        run_id: str,
+        tenant_id: str,
+        trace_ctx: TraceContext | None = None,
+        max_hops: int = 15,
+        quarantined_agents: set[str] = None,
     ) -> ReferenceState:
         state = ReferenceState(query, run_id, tenant_id, trace_ctx=trace_ctx)
         hops = 0

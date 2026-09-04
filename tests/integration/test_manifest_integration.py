@@ -18,7 +18,15 @@ async def test_replay_manifest_generation(client: AsyncClient):
     run_id = run_resp.json()["id"]
 
     # 2. Trigger a replay
-    replay_payload = {"swap_retriever_to_stable": True, "seed": 42}
+    replay_payload = {
+        "intervention": {
+            "target_component": "retriever",
+            "intervention_type": "rollback",
+            "current_version": "v2-exp",
+            "candidate_version": "v1"
+        },
+        "seed": 42
+    }
     replay_resp = await client.post(f"/v1/runs/{run_id}/replays", json=replay_payload)
     assert replay_resp.status_code == 201
     replay_data = replay_resp.json()

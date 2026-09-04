@@ -160,6 +160,19 @@ class RootCauseBeliefModel:
 
         return max(0.0, h_prior - expected_h_post), expected_h_post
 
+    def get_most_likely_cause(self, threshold: float = 0.6) -> tuple[str | None, float]:
+        """
+        Returns the most likely root cause and its belief probability.
+        If the maximum belief is below the threshold, abstains (returns None).
+        This handles uncertainty by saying 'insufficient evidence' instead of guessing.
+        """
+        if not self.beliefs:
+            return None, 0.0
+        best_candidate = max(self.beliefs.items(), key=lambda x: x[1])
+        if best_candidate[1] >= threshold:
+            return best_candidate
+        return None, best_candidate[1]
+
 
 def calculate_graph_impact(
     graph_nodes: list[str], graph_edges: list[dict[str, str]], intervention_node: str

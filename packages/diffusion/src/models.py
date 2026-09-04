@@ -19,6 +19,39 @@ class LocalDetectorBaseline(nn.Module):
         return root_prob, root_prob
 
 
+class LogisticRegressionBaseline(nn.Module):
+    """
+    Baseline: Logistic Regression using local features (symptom score, duration/age).
+    """
+
+    def __init__(self, in_channels=2):
+        super().__init__()
+        self.linear = nn.Linear(in_channels, 1)
+
+    def forward(self, x, edge_index, edge_attr=None):
+        out = torch.sigmoid(self.linear(x))
+        return out, out
+
+
+class MLPBaseline(nn.Module):
+    """
+    Baseline: Multi-Layer Perceptron using local features, but no structural propagation.
+    """
+
+    def __init__(self, in_channels=2, hidden_channels=16):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels, hidden_channels),
+            nn.ReLU(),
+            nn.Linear(hidden_channels, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, edge_index, edge_attr=None):
+        out = self.mlp(x)
+        return out, out
+
+
 class FixedPageRankDiffusion(nn.Module):
     """
     Fixed non-learned propagation based on PageRank.

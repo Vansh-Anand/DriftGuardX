@@ -10,17 +10,19 @@ import os
 from typing import Any
 
 
+from packages.provider_registry.src.providers import BaseProvider, MockProvider, OpenAIProvider, AnthropicProvider
+
 class ProviderStatus:
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     OFFLINE = "offline"
 
-
 class ModelConfig:
-    def __init__(self, provider: str, model_id: str, cost_per_1k_tokens: float):
+    def __init__(self, provider: str, model_id: str, cost_per_1k_tokens: float, provider_class: type[BaseProvider]):
         self.provider = provider
         self.model_id = model_id
         self.cost_per_1k_tokens = cost_per_1k_tokens
+        self.provider_class = provider_class
         self.status = ProviderStatus.HEALTHY
 
 
@@ -28,9 +30,9 @@ class ModelConfig:
 
 # In a full deployment, these could be loaded from an external KMS or secure vault.
 _REGISTRY = {
-    "gpt-4o": ModelConfig("openai", "gpt-4o", 0.005),
-    "claude-3-opus": ModelConfig("anthropic", "claude-3-opus-20240229", 0.015),
-    "mock-local": ModelConfig("local", "mock-model-v1", 0.0),
+    "gpt-4o": ModelConfig("openai", "gpt-4o", 0.005, OpenAIProvider),
+    "claude-3-opus": ModelConfig("anthropic", "claude-3-opus-20240229", 0.015, AnthropicProvider),
+    "mock-local": ModelConfig("local", "mock-model-v1", 0.0, MockProvider),
 }
 
 
@@ -40,6 +42,17 @@ class ProviderRegistry:
     def get_model_config(model_name: str) -> ModelConfig | None:
         """Look up configuration and pricing for a model."""
         return _REGISTRY.get(model_name)
+
+    @staticmethod
+    def get_provider(model_name: str) -> BaseProvider | None:
+        """Instantiate and return the configured provider."""
+        config = ProviderRegistry.get_model_config(model_name)
+        if not config:
+            return None
+        api_key = ProviderRegistry.get_api_key(config.provider)
+        if config.provider == "local":
+            return config.provider_class(config.model_id, config.cost_per_1k_tokens)
+        return config.provider_class(config.model_id, config.cost_per_1k_tokens, api_key=api_key)
 
     @staticmethod
     def get_api_key(provider: str) -> str | None:

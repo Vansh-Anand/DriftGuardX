@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import enum
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from pydantic import Field
 
 from packages.contracts.src.models import ComponentType, DGXBaseModel, _new_uuid, _utcnow
 
-if TYPE_CHECKING:
-    from datetime import datetime
-    from uuid import UUID
+from datetime import datetime
 
 
 class RationaleStyle(str, enum.Enum):

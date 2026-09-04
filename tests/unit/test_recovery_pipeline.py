@@ -29,8 +29,8 @@ async def test_end_to_end_recovery_pipeline():
     with patch("apps.api.src.services.recovery_pipeline.CanaryTestFramework.execute_canary") as mock_exec, \
          patch("apps.api.src.services.recovery_pipeline.CanaryTestFramework.validate_quarantine", return_value=True):
         
-        from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus
-        def mock_execute_canary(candidate, run_id):
+        from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, ReplayCost, RecoveryEffect
+        def mock_execute_canary(candidate, run_id, session_id, db):
             return BCRBStep(
                 step_id=uuid.uuid4(),
                 session_id=uuid.uuid4(),
@@ -38,7 +38,8 @@ async def test_end_to_end_recovery_pipeline():
                 status=BCRBStepStatus.COMPLETED,
                 replay_episode_id=uuid.uuid4(),
                 utility_observed=0.95,
-                cost_incurred=0.02
+                cost_incurred=ReplayCost(total_cost=0.02),
+                recovery_effect=RecoveryEffect(reliability_delta=0.95)
             )
         mock_exec.side_effect = mock_execute_canary
 
@@ -48,9 +49,7 @@ async def test_end_to_end_recovery_pipeline():
 
     # Validate
     assert certificate is not None
-    assert certificate.run_id == uuid.UUID(run_id)
+    assert certificate.context_json["run_id"] == run_id
     assert certificate.tenant_id == uuid.UUID(tenant_id)
-    assert certificate.is_valid is True
-    from packages.contracts.src.evidence import RecoveryEvidenceKind
-    assert certificate.evidence_kind == RecoveryEvidenceKind.SYNTHETIC_SIMULATION
-    assert "retriever" in certificate.payload_summary
+    assert certificate.status == "pending"
+    assert certificate.action == "RECOVERY_EXECUTION"

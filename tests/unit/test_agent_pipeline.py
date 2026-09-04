@@ -62,3 +62,42 @@ def test_agent_pipeline_execution():
     policy_span = next(s for s in agent_spans if s.name == "policy")
     assert policy_span.attributes.get("dgx.decision.outcome") == "allow"
     assert policy_span.attributes.get("dgx.evidence.classification") == "synthetic_simulation"
+
+
+def test_agent_pipeline_with_real_components():
+    from unittest.mock import AsyncMock
+    from packages.rag_pipeline.src.adapters.postgres_retriever import PgRetrievedChunk
+    from packages.rag_pipeline.src.tool_registry import ToolRegistry
+
+    mock_retriever = AsyncMock()
+    mock_retriever.retrieve.return_value = [
+        PgRetrievedChunk("chunk-101", "Real database chunk on cluster status.", 0.98, "doc-101")
+    ]
+
+    mock_llm = AsyncMock()
+    mock_llm.generate.return_value = {
+        "text": "Cluster status is fully operational and healthy.",
+        "tokens_input": 20,
+        "tokens_output": 10,
+        "latency_ms": 50.0,
+        "cost_usd": 0.0001,
+        "model_metadata": {"model": "gpt-4o", "provider": "openai"},
+    }
+
+    tools = ToolRegistry()
+    pipeline = AgentPipeline(retriever=mock_retriever, llm=mock_llm, tool_registry=tools)
+
+    run_id = str(uuid.uuid4())
+    tenant_id = str(uuid.uuid4())
+    trace_ctx = TraceContext(
+        tenant_id=uuid.UUID(tenant_id),
+        pipeline_id=uuid.uuid4(),
+        run_id=uuid.UUID(run_id),
+    )
+
+    state = pipeline.run("Check cluster health and calculate metrics", run_id, tenant_id, trace_ctx=trace_ctx)
+
+    assert state.is_finished is True
+    assert state.read_memory("verified") is True
+    assert "healthy" in state.final_response.lower()
+    assert len(state.invocations) == 7

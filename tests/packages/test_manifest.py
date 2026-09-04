@@ -7,6 +7,7 @@ def get_base_manifest():
     return ReplayStateManifest(
         run_id=uuid.uuid4(),
         tenant_id=uuid.uuid4(),
+        original_query="mock_query",
         original_query_hash="hash_a",
         corpus_version_id="v1",
         model_provider="simulated",

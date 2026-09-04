@@ -402,6 +402,7 @@ class ReplayEpisodeORM(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
+    replay_mode: Mapped[str] = mapped_column(String(32), default="exact")
 
     original_run: Mapped[RequestRunORM] = relationship(
         "RequestRunORM",
@@ -655,34 +656,52 @@ class RecoveryCertificateORM(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
     )
-
-    # Core cryptographic binding
-    original_trace_root_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    intervention_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-
-    # Metadata and decisions
-    measured_resource_budget_and_usage: Mapped[dict] = mapped_column(_JSON_TYPE, nullable=False)
-    replay_outcome: Mapped[str] = mapped_column(String(32), nullable=False)
-    reliability_delta: Mapped[float] = mapped_column(Float, nullable=False)
-
-    policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
-    policy_decision: Mapped[str] = mapped_column(String(32), nullable=False)
-    approval_decision_set: Mapped[list] = mapped_column(_JSON_TYPE, default=list)
-
-    canary_result_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    recovery_capsule_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    executor_image_digest: Mapped[str] = mapped_column(String(128), nullable=False)
-
-    # Attestation
-    signer_identity: Mapped[str] = mapped_column(String(128), nullable=False)
-    signature_b64: Mapped[str] = mapped_column(Text, nullable=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    run_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    replay_episode_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    intervention_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    repair_decision_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    
+    certificate_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    issued_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    payload_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    is_valid: Mapped[bool] = mapped_column(Boolean, default=True)
+    evidence_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    approval_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    cryptographic_signature: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     __table_args__ = (
         Index("ix_recovery_certificates_tenant_id", "tenant_id"),
-        Index("ix_recovery_certificates_trace", "original_trace_root_hash"),
-        Index("ix_recovery_certificates_capsule", "recovery_capsule_hash"),
+        Index("ix_recovery_certificates_run", "run_id"),
+    )
+
+
+# ─── Background Job ORM (Roadmap Item #4) ────────────────────────────────────
+
+
+class BackgroundJobORM(Base):
+    __tablename__ = "background_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    job_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")
+    payload_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    result_json: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_background_jobs_tenant_id", "tenant_id"),
+        Index("ix_background_jobs_status", "status"),
+        Index("ix_background_jobs_idempotency", "tenant_id", "idempotency_key", unique=False),
+        Index("ix_background_jobs_created_at", "created_at"),
     )
 
 

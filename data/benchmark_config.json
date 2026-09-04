@@ -1,0 +1,81 @@
+{
+  "fault_classes": {
+    "stale_index": {
+      "type": "retrieval",
+      "description": "Retriever uses an outdated index timestamp."
+    },
+    "provider_timeout": {
+      "type": "provider",
+      "description": "LLM provider times out during generation."
+    },
+    "poisoned_memory": {
+      "type": "memory",
+      "description": "Agent context memory is corrupted with adversarial content."
+    },
+    "hallucinated_citation": {
+      "type": "llm",
+      "description": "LLM returns a plausible but fake citation."
+    },
+    "context_truncation": {
+      "type": "retrieval",
+      "description": "Retriever truncates chunks early."
+    },
+    "tool_api_failure": {
+      "type": "tool",
+      "description": "External API returns a 500 error."
+    },
+    "embedding_drift": {
+      "type": "retrieval",
+      "description": "Embedding model weights shift slightly."
+    },
+    "retrieval_failure": {
+      "type": "retrieval",
+      "description": "Retriever returns zero results."
+    },
+    "llm_degradation": {
+      "type": "llm",
+      "description": "LLM drops in reasoning quality."
+    },
+    "prompt_regression": {
+      "type": "llm",
+      "description": "System prompt version accidentally downgraded."
+    },
+    "malformed_tool_output": {
+      "type": "tool",
+      "description": "Tool returns invalid JSON."
+    },
+    "stale_memory": {
+      "type": "memory",
+      "description": "Agent reads previous run's memory."
+    },
+    "policy_failure": {
+      "type": "policy",
+      "description": "Policy engine blocks a benign query."
+    },
+    "routing_failure": {
+      "type": "orchestrator",
+      "description": "Orchestrator routes to wrong agent."
+    },
+    "multi_agent_cascading_failure": {
+      "type": "orchestrator",
+      "description": "Error in one agent cascades to all others."
+    }
+  },
+  "compound_faults": {
+    "retrieval_drift_and_provider_latency": {
+      "components": ["embedding_drift", "provider_timeout"]
+    },
+    "poisoned_memory_and_routing_error": {
+      "components": ["poisoned_memory", "routing_failure"]
+    },
+    "prompt_regression_and_tool_failure": {
+      "components": ["prompt_regression", "tool_api_failure"]
+    },
+    "model_degradation_and_stale_index": {
+      "components": ["llm_degradation", "stale_index"]
+    },
+    "stale_index_and_policy_failure": {
+      "components": ["stale_index", "policy_failure"]
+    }
+  }
+}

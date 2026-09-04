@@ -31,7 +31,12 @@ class RunCreateRequest(APIBase):
     pipeline_id: uuid.UUID | None = None  # if None, uses experimental pipeline (golden demo)
     use_experimental_retriever: bool = False  # True = use v2-exp retriever (triggers failure)
     seed: int = Field(default=42, ge=0, description="Random seed for determinism")
-    is_synthetic: bool = Field(default=True, description="Mark as synthetic/demo run")
+    execution_mode: Literal["real", "controlled", "synthetic"] = Field(
+        default="real",
+        description="Execution mode: real (production RAG), controlled (fault injection), or synthetic (mock)",
+    )
+    is_synthetic: bool = Field(default=False, description="Mark as synthetic/demo run (legacy flag)")
+    corpus_version_id: str = Field(default="v1", description="Corpus version identifier")
     request_id: str | None = Field(default=None, max_length=255, description="Idempotency key")
 
 

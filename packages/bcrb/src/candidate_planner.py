@@ -5,6 +5,7 @@ PRIVATE — All Rights Reserved.
 
 import uuid
 
+from packages.bcrb.src.calibration import BCRBCalibrator
 from packages.bcrb.src.utility_function import calculate_candidate_utility
 from packages.contracts.src.agent_models import AgentInvocation
 from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBSession, StoppingCondition, UnifiedCandidatePrior
@@ -21,10 +22,11 @@ class CandidatePlanner:
     budget-constrained mathematical utility.
     """
 
-    def __init__(self, tenant_id: str):
+    def __init__(self, tenant_id: str, calibrator: BCRBCalibrator | None = None):
         self.tenant_id = tenant_id
         self.diffusion_engine = MultiAgentDiffusionEngine()
         self.gat_detector = GATTraceDetector()
+        self.calibrator = calibrator or BCRBCalibrator()
 
     def generate_candidates(
         self, invocations: list[AgentInvocation], run_id: str, failure_symptom: str
@@ -123,10 +125,12 @@ class CandidatePlanner:
             node_state = next((n for n in nodes if n.node_id == node_id), None)
             symptom_score = node_state.local_symptom_score if node_state else 0.0
 
-            # Heuristic Unified Prior calculation
-            # NOT calibrated probability. This is a heuristic prior combining causal signals.
-            combined_prior = (gat_score * 0.4) + (diff_score * 0.4) + (symptom_score * 0.2)
-            combined_prior = min(1.0, max(0.0, combined_prior))
+            # Data-driven prior calculation via BCRBCalibrator
+            combined_prior, prior_prov = self.calibrator.estimate_prior(
+                gat_score=gat_score,
+                diff_score=diff_score,
+                symptom_score=symptom_score,
+            )
 
             if combined_prior > 0.05:  # Plausible candidate threshold
                 comp_type = ComponentType.GENERATOR
@@ -138,6 +142,14 @@ class CandidatePlanner:
                     comp_type = ComponentType.POLICY_CHECK
                     int_type = InterventionType.CONFIG_PATCH
 
+                evidence_breakdown = {
+                    "gat_is_fault_trace": gat_result.get("is_fault", False),
+                    "diffusion_explanation": output.explanation.model_dump(),
+                    "is_synthetic_gat": not self.gat_detector.is_loaded,
+                    "edge_evidence": "EXECUTION_ORDER",
+                    "calibration": prior_prov,
+                }
+
                 unified_prior = UnifiedCandidatePrior(
                     candidate_component=comp_type.value,
                     derived_gat_signal=gat_score,
@@ -145,23 +157,21 @@ class CandidatePlanner:
                     diffusion_score=diff_score,
                     symptom_evidence=symptom_score,
                     combined_prior=combined_prior,
-                    evidence_breakdown={
-                        "gat_is_fault_trace": gat_result.get("is_fault", False),
-                        "diffusion_explanation": output.explanation.model_dump(),
-                        "is_synthetic_gat": not self.gat_detector.is_loaded,
-                        "edge_evidence": "EXECUTION_ORDER"
-                    }
+                    evidence_breakdown=evidence_breakdown,
                 )
 
-                # In a full implementation, these parameters would be fetched from historical telemetry or user configuration.
-                # Here, we use explicitly documented default priors for the candidate planner instead of silently hardcoding variables deep in equations.
-                est_cost = 0.05
-                est_risk = 0.1
-                est_blast_radius = 0.1
+                # Data-driven candidate parameter estimation
+                edge_pairs = [(getattr(e, "source_id", getattr(e, "source_node_id", "")), getattr(e, "target_id", getattr(e, "target_node_id", ""))) for e in edges]
+                all_ids = [n.node_id for n in nodes]
+                est_cost = self.calibrator.estimate_candidate_cost(comp_type.value)
+                est_blast_radius = self.calibrator.estimate_candidate_blast_radius(
+                    comp_type.value, causal_graph_edges=edge_pairs, all_nodes=all_ids
+                )
+                est_risk = self.calibrator.estimate_candidate_risk(comp_type.value, int_type.value)
                 est_reliability_delta = 0.8
                 est_info_gain = 0.6
                 
-                # Calculate true BCRB Utility based on unified prior
+                # Calculate true BCRB Utility based on calibrated unified prior
                 utility = calculate_candidate_utility(
                     probability=combined_prior,
                     expected_reliability_delta=est_reliability_delta,

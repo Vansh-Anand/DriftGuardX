@@ -89,8 +89,26 @@ class RAGEvaluationOracle(EvaluationOracle):
             return "I am poisoned" not in resp
         elif scenario.fault_type == FaultType.TOOL_FAILURE:
             return "TOOL_ERROR" not in resp
-        elif scenario.fault_type == FaultType.API_FAILURE:
-            return "API_TIMEOUT" not in resp
+        elif scenario.fault_type == FaultType.CONTEXT_TRUNCATION:
+            return "CONTEXT_TRUNCATION_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.EMBEDDING_DRIFT:
+            return "EMBEDDING_DRIFT_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.RETRIEVAL_FAILURE:
+            return not (new_output.get("retrieved_chunks") == [])
+        elif scenario.fault_type == FaultType.LLM_DEGRADATION:
+            return "LLM_DEGRADATION_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.MALFORMED_TOOL_OUTPUT:
+            return "MALFORMED_TOOL_OUTPUT_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.STALE_MEMORY:
+            return "STALE_MEMORY_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.POLICY_FAILURE:
+            return "POLICY_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.ROUTING_FAILURE:
+            return "ROUTING_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.MULTI_AGENT_CASCADING_FAILURE:
+            return "CASCADING_FAILURE" not in resp
+        elif scenario.fault_type == FaultType.HALLUCINATED_CITATION:
+            return "HALLUCINATED_CITATION_FAILURE" not in resp
         else:
             return False
 
@@ -386,8 +404,8 @@ def _run_real_trial(
     )
 
 
-async def run_benchmark(dataset: str, split: str, max_trials: int, global_seed: int = 42) -> None:
-    print("DriftGuard-X v2 - Controlled Synthetic Causal Recovery Benchmark")
+async def run_benchmark(dataset: str, split: str, max_trials: int, global_seed: int = 42, provider: str = "local", topology: str = "standard") -> None:
+    print(f"DriftGuard-X v2 - Benchmark ({provider} | {topology})")
     queries_dict, qrels_dict, valid_qids = load_beir_data(dataset, split)
 
     fault_configs: list[tuple[FaultType, str, dict[str, Any]]] = [
@@ -402,6 +420,16 @@ async def run_benchmark(dataset: str, split: str, max_trials: int, global_seed: 
         (FaultType.MEMORY_POISONING, "MEMORY_POISONING", {"poison": "I am poisoned"}),
         (FaultType.TOOL_FAILURE, "TOOL_FAILURE", {}),
         (FaultType.API_FAILURE, "API_FAILURE", {}),
+        (FaultType.CONTEXT_TRUNCATION, "CONTEXT_TRUNCATION", {}),
+        (FaultType.EMBEDDING_DRIFT, "EMBEDDING_DRIFT", {}),
+        (FaultType.RETRIEVAL_FAILURE, "RETRIEVAL_FAILURE", {}),
+        (FaultType.LLM_DEGRADATION, "LLM_DEGRADATION", {}),
+        (FaultType.MALFORMED_TOOL_OUTPUT, "MALFORMED_TOOL_OUTPUT", {}),
+        (FaultType.STALE_MEMORY, "STALE_MEMORY", {}),
+        (FaultType.POLICY_FAILURE, "POLICY_FAILURE", {}),
+        (FaultType.ROUTING_FAILURE, "ROUTING_FAILURE", {}),
+        (FaultType.MULTI_AGENT_CASCADING_FAILURE, "MULTI_AGENT_CASCADING_FAILURE", {}),
+        (FaultType.HALLUCINATED_CITATION, "HALLUCINATED_CITATION", {}),
     ]
 
     distractors = [f"DISTRACTOR_{i}" for i in range(12)]
@@ -432,6 +460,10 @@ async def run_benchmark(dataset: str, split: str, max_trials: int, global_seed: 
                     dataset, split, qid, fault_type.value, i, global_seed
                 )
 
+                healthy_env_copy = dict(healthy_env)
+                healthy_env_copy["provider"] = provider
+                healthy_env_copy["topology"] = topology
+
                 scenario = FaultScenario(
                     scenario_id=str(uuid.uuid4()),
                     dataset=dataset,
@@ -449,6 +481,7 @@ async def run_benchmark(dataset: str, split: str, max_trials: int, global_seed: 
 
                 try:
                     trial = _run_real_trial(queries_dict[qid], scenario, candidates, strategy)
+                    trial.observations.append({"provider": provider, "topology": topology})
                     trial_results.append(trial)
                 except Exception as e:
                     print(f"ERROR: {e}")
@@ -521,5 +554,7 @@ if __name__ == "__main__":
     parser.add_argument("--split", required=True)
     parser.add_argument("--max-trials", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--provider", type=str, default="local-deterministic")
+    parser.add_argument("--topology", type=str, default="standard")
     args = parser.parse_args()
-    asyncio.run(run_benchmark(args.dataset, args.split, args.max_trials, args.seed))
+    asyncio.run(run_benchmark(args.dataset, args.split, args.max_trials, args.seed, args.provider, args.topology))

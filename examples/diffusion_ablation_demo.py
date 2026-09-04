@@ -10,6 +10,8 @@ from packages.diffusion.src.models import (
     FixedPageRankDiffusion,
     LearnedGATDiffusion,
     LocalDetectorBaseline,
+    LogisticRegressionBaseline,
+    MLPBaseline
 )
 from packages.diffusion.src.trainer import train_diffusion_model
 
@@ -21,6 +23,8 @@ def evaluate_model(model, dataset):
     mrr_sum = 0.0
     total_episodes = len(dataset)
 
+    import time
+    start_t = time.perf_counter()
     with torch.no_grad():
         for data in dataset:
             root_pred, _ = model(data.x, data.edge_index, data.edge_attr)
@@ -43,10 +47,13 @@ def evaluate_model(model, dataset):
             rank = sorted_indices.index(true_root_idx) + 1
             mrr_sum += 1.0 / rank
 
+    latency_ms = (time.perf_counter() - start_t) * 1000.0 / total_episodes
+
     return {
         "P@1": correct_at_1 / total_episodes,
         "P@3": correct_at_3 / total_episodes,
-        "MRR": mrr_sum / total_episodes
+        "MRR": mrr_sum / total_episodes,
+        "Lat_ms": latency_ms
     }
 
 def main():
@@ -58,25 +65,37 @@ def main():
     train_data = dataset[:80]
     test_data = dataset[80:]
 
-    print("\n1. Evaluating Local Detector Baseline (No Propagation)...")
+    print("1. Evaluating Local Detector Baseline (No Propagation)...")
     baseline_model = LocalDetectorBaseline()
     baseline_metrics = evaluate_model(baseline_model, test_data)
 
-    print("2. Evaluating Fixed PageRank Diffusion...")
+    print("2. Training Logistic Regression Baseline...")
+    lr_model = LogisticRegressionBaseline(in_channels=2)
+    lr_model = train_diffusion_model(lr_model, train_data, epochs=30, lr=0.05)
+    lr_metrics = evaluate_model(lr_model, test_data)
+
+    print("3. Training MLP Baseline...")
+    mlp_model = MLPBaseline(in_channels=2, hidden_channels=16)
+    mlp_model = train_diffusion_model(mlp_model, train_data, epochs=30, lr=0.05)
+    mlp_metrics = evaluate_model(mlp_model, test_data)
+
+    print("4. Evaluating Fixed PageRank Diffusion...")
     fixed_model = FixedPageRankDiffusion(alpha=0.85, steps=3)
     fixed_metrics = evaluate_model(fixed_model, test_data)
 
-    print("3. Training Learned GAT Diffusion Model (2 layers)...")
+    print("5. Training Learned GAT Diffusion Model (2 layers)...")
     gat_model = LearnedGATDiffusion(in_channels=2, hidden_channels=16, out_channels=1, heads=2, num_layers=2)
     gat_model = train_diffusion_model(gat_model, train_data, epochs=30, lr=0.05)
     gat_metrics = evaluate_model(gat_model, test_data)
 
     print("\n=== ABLATION TABLE ===")
-    print(f"{'Model Variant':<30} | {'Precision@1':<12} | {'Precision@3':<12} | {'MRR':<12}")
-    print("-" * 75)
-    print(f"{'Local Detector Baseline':<30} | {baseline_metrics['P@1']:<12.3f} | {baseline_metrics['P@3']:<12.3f} | {baseline_metrics['MRR']:<12.3f}")
-    print(f"{'Fixed PageRank Propagation':<30} | {fixed_metrics['P@1']:<12.3f} | {fixed_metrics['P@3']:<12.3f} | {fixed_metrics['MRR']:<12.3f}")
-    print(f"{'Learned GAT Diffusion':<30} | {gat_metrics['P@1']:<12.3f} | {gat_metrics['P@3']:<12.3f} | {gat_metrics['MRR']:<12.3f}")
+    print(f"{'Model Variant':<30} | {'Precision@1':<12} | {'Precision@3':<12} | {'MRR':<12} | {'Lat (ms)':<10}")
+    print("-" * 85)
+    print(f"{'Local Detector Baseline':<30} | {baseline_metrics['P@1']:<12.3f} | {baseline_metrics['P@3']:<12.3f} | {baseline_metrics['MRR']:<12.3f} | {baseline_metrics['Lat_ms']:<10.2f}")
+    print(f"{'Logistic Regression':<30} | {lr_metrics['P@1']:<12.3f} | {lr_metrics['P@3']:<12.3f} | {lr_metrics['MRR']:<12.3f} | {lr_metrics['Lat_ms']:<10.2f}")
+    print(f"{'MLP Baseline':<30} | {mlp_metrics['P@1']:<12.3f} | {mlp_metrics['P@3']:<12.3f} | {mlp_metrics['MRR']:<12.3f} | {mlp_metrics['Lat_ms']:<10.2f}")
+    print(f"{'Fixed PageRank Propagation':<30} | {fixed_metrics['P@1']:<12.3f} | {fixed_metrics['P@3']:<12.3f} | {fixed_metrics['MRR']:<12.3f} | {fixed_metrics['Lat_ms']:<10.2f}")
+    print(f"{'Learned GAT Diffusion':<30} | {gat_metrics['P@1']:<12.3f} | {gat_metrics['P@3']:<12.3f} | {gat_metrics['MRR']:<12.3f} | {gat_metrics['Lat_ms']:<10.2f}")
 
     print("\n=== NODE LEVEL EXPLANATION EXAMPLE ===")
     sample = test_data[0]

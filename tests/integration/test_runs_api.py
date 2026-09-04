@@ -159,3 +159,47 @@ async def test_finalize_durability_failure(client: AsyncClient, db_session: Asyn
     assert res.status_code == 500
     assert "commit failed" in res.json()["detail"].lower()
 
+
+async def test_create_run_synthetic_and_real(client: AsyncClient, db_session: AsyncSession):
+    # 1. Synthetic execution mode
+    res_synth = await client.post(
+        "/v1/runs",
+        json={
+            "query": "Is system running?",
+            "execution_mode": "synthetic",
+            "is_synthetic": True,
+        }
+    )
+    assert res_synth.status_code == 201
+    data_synth = res_synth.json()
+    assert data_synth["is_synthetic"] is True
+    assert data_synth["status"].lower() == "completed"
+
+    # 2. Real execution mode
+    res_real = await client.post(
+        "/v1/runs",
+        json={
+            "query": "What are the latest compliance protocols?",
+            "execution_mode": "real",
+            "is_synthetic": False,
+        }
+    )
+    assert res_real.status_code == 201
+    data_real = res_real.json()
+    assert data_real["is_synthetic"] is False
+    assert data_real["status"].lower() == "completed"
+    assert data_real["total_latency_ms"] > 0
+
+    # 3. Controlled execution mode
+    res_ctrl = await client.post(
+        "/v1/runs",
+        json={
+            "query": "Controlled fault test query",
+            "execution_mode": "controlled",
+        }
+    )
+    assert res_ctrl.status_code == 201
+    data_ctrl = res_ctrl.json()
+    assert data_ctrl["is_synthetic"] is False
+    assert data_ctrl["reliability_score"] <= 0.6
+

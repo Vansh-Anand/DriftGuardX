@@ -37,6 +37,15 @@ class UnifiedCandidatePrior(DGXBaseModel):
     combined_prior: float
     evidence_breakdown: dict[str, Any]
 
+    @property
+    def gat_score(self) -> float:
+        return self.derived_gat_signal
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        d = super().model_dump(*args, **kwargs)
+        d["gat_score"] = self.derived_gat_signal
+        return d
+
 
 class ReplayCost(DGXBaseModel):
     input_tokens: int | None = None

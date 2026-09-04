@@ -9,11 +9,11 @@ import uuid
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
-    Intervention,
     InterventionType,
     RequestRun,
     TraceArtifact,
 )
+from packages.contracts.src.recovery_models import InterventionSpec
 from packages.replay.src.engine import ComponentExecutor, ReplayEngine, VersionRegistry
 
 
@@ -69,16 +69,11 @@ def test_replay_engine_timeout_enforcement():
         spans=[],
         root_span_id="root",
     )
-    intervention = Intervention(
-        run_id=dummy_run.id,
-        tenant_id=tenant_uuid,
+    intervention = InterventionSpec(
+        target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
-        from_version_id=uuid.uuid4(),
-        to_version_id=uuid.uuid4(),
-        from_version_tag="v_old",
-        to_version_tag="v_hang",
-        rationale="test",
+        current_version="v_old",
+        candidate_version="v_hang",
     )
 
     # We patch concurrent.futures to simulate a timeout without actually waiting 30s
@@ -105,6 +100,7 @@ def test_replay_engine_timeout_enforcement():
         manifest = ReplayStateManifest(
             run_id=dummy_run.id,
             tenant_id=dummy_run.tenant_id,
+            original_query="mock",
             original_query_hash="mock-query",
             corpus_version_id="mock-corpus",
             model_provider="openai",
@@ -130,7 +126,6 @@ def test_replay_engine_timeout_enforcement():
             intervention=intervention,
             replay_version=registry.list_by_type(ComponentType.RETRIEVER)[0],
             original_reliability_vector={},
-            request_inputs={},
             seed=42,
             manifest=manifest,
         )
@@ -181,16 +176,11 @@ def test_replay_engine_memory_bound():
         spans=[],
         root_span_id="root",
     )
-    intervention = Intervention(
-        run_id=dummy_run.id,
-        tenant_id=tenant_uuid,
+    intervention = InterventionSpec(
+        target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        target_component_type=ComponentType.RETRIEVER,
-        from_version_id=uuid.uuid4(),
-        to_version_id=uuid.uuid4(),
-        from_version_tag="v_old",
-        to_version_tag="v_mem",
-        rationale="test",
+        current_version="v_old",
+        candidate_version="v_mem",
     )
 
     try:
@@ -199,6 +189,7 @@ def test_replay_engine_memory_bound():
         manifest = ReplayStateManifest(
             run_id=dummy_run.id,
             tenant_id=dummy_run.tenant_id,
+            original_query="mock",
             original_query_hash="mock-query",
             corpus_version_id="mock-corpus",
             model_provider="openai",
@@ -224,7 +215,6 @@ def test_replay_engine_memory_bound():
             intervention=intervention,
             replay_version=registry.list_by_type(ComponentType.RETRIEVER)[0],
             original_reliability_vector={},
-            request_inputs={},
             seed=42,
             manifest=manifest,
         )

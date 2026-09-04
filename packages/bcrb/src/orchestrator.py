@@ -3,6 +3,7 @@ DriftGuard-X v2 — BCRB Orchestrator
 PRIVATE — All Rights Reserved.
 """
 
+from packages.bcrb.src.calibration import BCRBCalibrator
 from packages.bcrb.src.candidate_planner import CandidatePlanner
 from packages.bcrb.src.bayesian_updater import update_posterior
 from packages.bcrb.src.utility_function import calculate_candidate_utility
@@ -19,9 +20,10 @@ class BCRBOrchestrator:
     Iteratively plans, selects, executes, updates beliefs, and evaluates stopping conditions.
     """
 
-    def __init__(self, tenant_id: str):
+    def __init__(self, tenant_id: str, calibrator: BCRBCalibrator | None = None):
         self.tenant_id = tenant_id
-        self.planner = CandidatePlanner(tenant_id)
+        self.calibrator = calibrator or BCRBCalibrator()
+        self.planner = CandidatePlanner(tenant_id, calibrator=self.calibrator)
         self.test_framework = CanaryTestFramework(tenant_id)
 
     async def execute_session(
@@ -54,8 +56,13 @@ class BCRBOrchestrator:
             
             best_candidate = None
             for cand in untested_candidates:
-                # Check budget
-                expected_cost = cand.cost_estimate.total_cost if cand.cost_estimate else 0.05
+                # Check budget using data-driven estimated cost
+                comp_name = cand.component_type.value if hasattr(cand.component_type, "value") else str(cand.component_type)
+                expected_cost = (
+                    cand.cost_estimate.total_cost
+                    if cand.cost_estimate
+                    else self.calibrator.estimate_candidate_cost(comp_name)
+                )
                 if expected_cost + session.total_spent_usd > session.budget_usd:
                     # Mark as budget blocked, but try next candidate which might be cheaper
                     continue
@@ -83,13 +90,12 @@ class BCRBOrchestrator:
             is_clean = "contaminated" not in (step.decision_reason or "").lower() and "confounded" not in (step.decision_reason or "").lower()
             
             if step.recovery_effect and is_clean:
-                # Heuristic likelihoods based on reliability improvement.
-                # Explicitly documenting that these are heuristic, NOT statistically calibrated.
                 reliability_improvement = step.recovery_effect.reliability_delta
                 
-                # Heuristic bounds:
-                likelihood_given_cause = 0.8 if reliability_improvement > 0.5 else 0.2
-                likelihood_given_not_cause = 0.2 if reliability_improvement > 0.5 else 0.8
+                # Data-driven calibrated likelihoods
+                likelihood_given_cause, likelihood_given_not_cause = self.calibrator.calculate_calibrated_likelihoods(
+                    reliability_improvement
+                )
                 
                 # Update beliefs for ALL candidates based on evidence. 
                 # (A real implementation might update dependent probabilities. Here we just update the tested one.)
@@ -103,8 +109,10 @@ class BCRBOrchestrator:
                         candidate.causal_evidence.posterior = new_posterior
                         candidate.causal_evidence.intervention_evidence = {
                             "reliability_improvement": reliability_improvement,
-                            "likelihood_given_cause_used": likelihood_given_cause,
-                            "calibration": "HEURISTIC_UNVERIFIED"
+                            "likelihood_given_cause": likelihood_given_cause,
+                            "likelihood_given_not_cause": likelihood_given_not_cause,
+                            "likelihood_model": "calibrated_logistic",
+                            "calibration": "DATA_DRIVEN_CALIBRATED",
                         }
                     else:
                         # In a fully connected causal graph, evidence for one candidate might decrease posterior for others.

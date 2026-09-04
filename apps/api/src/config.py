@@ -86,8 +86,6 @@ class Settings(BaseSettings):
             for name in ("DGX_CAPABILITY_SECRET", "DGX_TRANSPORT_KEY"):
                 if len(os.getenv(name, "")) < 32:
                     raise ValueError(f"{name} must be configured with at least 32 characters")
-            if self.use_real_rag_pipeline:
-                raise ValueError("The real RAG pipeline is not yet wired to a production API route")
             if self.enable_canary and not self.kms_key_arn:
                 raise ValueError(
                     "KMS_KEY_ARN is required when production canary recovery is enabled"
