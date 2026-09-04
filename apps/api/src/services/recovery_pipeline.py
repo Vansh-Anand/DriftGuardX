@@ -76,8 +76,11 @@ class EndToEndRecoveryPipeline:
             db=db
         )
         try:
-            if not self.canary_framework.validate_quarantine(rule, run_id):
-                print("validate_quarantine failed")
+            from packages.contracts.src.recovery_models import CanaryInvariants
+            invariants = CanaryInvariants()
+            success = await self.canary_framework.async_validate_quarantine(rule, run_id, db, isolator=self.isolator, invariants=invariants)
+            if not success:
+                print("validate_quarantine failed - invariants violated and rollback applied.")
                 return None
         except NotImplementedError:
             # We cannot fake quarantine validation if not supported

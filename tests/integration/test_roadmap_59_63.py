@@ -43,7 +43,8 @@ def test_62_fallback_routing():
     # The output from standard flow if retrieval is skipped and fallback is hit
     assert state.read_memory("reasoning") == "Fallback triggered. Using general knowledge."
 
-def test_63_canary_validation():
+@pytest.mark.asyncio
+async def test_63_canary_validation():
     # Test #63: Canary mechanism
     from packages.replay.src.test_framework import CanaryTestFramework
     from packages.isolation.src.isolator import QuarantineRule
@@ -52,7 +53,7 @@ def test_63_canary_validation():
     rule = QuarantineRule(target_component=ComponentType.RETRIEVER, description="Test")
     
     # Since it falls back safely, canary should pass
-    assert framework.validate_quarantine(rule, str(uuid.uuid4()))
+    assert await framework.async_validate_quarantine(rule, str(uuid.uuid4()), db=None)
 
 @pytest.mark.asyncio
 async def test_59_safety_gate():
@@ -66,7 +67,8 @@ async def test_59_safety_gate():
     pipeline.engine.generate_diagnosis.return_value.root_cause_description = "Test drift"
     
     pipeline.canary_framework = MagicMock()
-    pipeline.canary_framework.validate_quarantine.return_value = True
+    from unittest.mock import AsyncMock
+    pipeline.canary_framework.async_validate_quarantine = AsyncMock(return_value=True)
     
     class MockCandidate:
         pass

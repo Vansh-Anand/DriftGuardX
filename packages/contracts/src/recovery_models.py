@@ -302,6 +302,14 @@ class ApprovalRequest(DGXBaseModel):
     decided_by: str | None = None
 
 
+class CanaryInvariants(DGXBaseModel):
+    min_reliability: float = 0.95
+    max_latency_ms: float = 2000.0
+    max_cost_usd: float = 0.05
+    max_failure_rate: float = 0.01
+    require_safety_policy: bool = True
+
+
 class CanaryEpisode(DGXBaseModel):
     episode_id: str = Field(default_factory=lambda: str(_new_uuid()))
     recovery_id: str
@@ -311,6 +319,7 @@ class CanaryEpisode(DGXBaseModel):
     start_time: datetime | None = None
     end_time: datetime | None = None
     metrics_snapshot: dict[str, Any] = Field(default_factory=dict)
+    invariants: CanaryInvariants | None = None
 
 
 class RecoveryExecution(DGXBaseModel):

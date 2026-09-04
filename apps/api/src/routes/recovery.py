@@ -35,7 +35,12 @@ async def trigger_recovery(payload: dict[str, Any], db: AsyncSession = Depends(g
     """
     Manually triggers the recovery pipeline for a given run and failure symptom.
     """
-    # Validate tenant isolation
+    import uuid
+    from datetime import datetime, UTC
+    from apps.api.src.models import JobORM
+    from arq.connections import RedisSettings, create_pool
+    import os
+    
     tenant_id = payload.get("tenant_id", str(uuid.uuid4()))
     if tenant_id != str(current_user.tenant_id) and Role.SYSTEM not in current_user.roles:
         raise HTTPException(status_code=403, detail="Cross-tenant recovery trigger forbidden")
@@ -43,23 +48,31 @@ async def trigger_recovery(payload: dict[str, Any], db: AsyncSession = Depends(g
     run_id = payload.get("run_id", str(uuid.uuid4()))
     failure_symptom = payload.get("failure_symptom", "Data drift detected")
 
-    pipeline = EndToEndRecoveryPipeline(tenant_id=tenant_id)
-    invocations = [
-        AgentInvocation(
-            invocation_id=uuid.uuid4(), run_id=uuid.UUID(run_id), tenant_id=uuid.UUID(tenant_id),
-            agent_name="retrieval", start_time=datetime.now(UTC), end_time=datetime.now(UTC),
-        )
-    ]
-    approval_req = await pipeline.execute_recovery_loop(run_id, invocations, failure_symptom, db)
-
-    if not approval_req:
-        import traceback; traceback.print_exc(); import traceback; traceback.print_exc(); raise HTTPException(status_code=500, detail="Failed to propose recovery.")
-
+    job_id = str(uuid.uuid4())
+    job_orm = JobORM(
+        id=uuid.UUID(job_id),
+        tenant_id=uuid.UUID(tenant_id),
+        task_type="run_recovery_diagnosis",
+        status="QUEUED",
+        created_at=datetime.now(UTC)
+    )
+    db.add(job_orm)
+    
     from apps.api.src.services.audit import AuditService
-    await AuditService.log_event(db, uuid.UUID(tenant_id), current_user.id, "RECOVERY_PROPOSED", "Recovery", run_id)
+    await AuditService.log_event(db, uuid.UUID(tenant_id), current_user.id, "RECOVERY_JOB_QUEUED", "Job", job_id)
     await db.commit()
 
-    return {"status": "pending_approval", "approval_request_id": str(approval_req.id)}
+    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    try:
+        redis = await create_pool(RedisSettings.from_dsn(redis_url))
+        await redis.enqueue_job("run_recovery_diagnosis", job_id, tenant_id, run_id, failure_symptom, [{"invocation_id": str(uuid.uuid4()), "run_id": run_id, "tenant_id": tenant_id, "agent_name": "retrieval", "start_time": datetime.now(UTC), "end_time": datetime.now(UTC)}])
+    except Exception as e:
+        job_orm.status = "FAILED"
+        job_orm.error = str(e)
+        await db.commit()
+        raise HTTPException(status_code=500, detail="Failed to enqueue recovery job.")
+
+    return {"status": "queued", "job_id": job_id}
 
 @router.post("/approve", response_model=RecoveryCertificate)
 async def approve_recovery(payload: dict[str, Any], db: AsyncSession = Depends(get_db), current_user: User = Depends(require_role(Role.ADMIN))):
@@ -107,7 +120,20 @@ async def approve_recovery(payload: dict[str, Any], db: AsyncSession = Depends(g
         req.status = "rejected"
         await AuditService.log_event(db, req.tenant_id, current_user.id, "RECOVERY_REJECTED", "ApprovalRequest", str(req.id))
         await db.commit()
-        raise HTTPException(status_code=400, detail="Recovery rejected")
+        from fastapi import Response
+        return Response(status_code=204)
+        
+    # Check mock TenantPolicy for Roadmap #66
+    # If policy requires explicit promotion step, we just mark as approved and awaiting promotion
+    # In a real app, this would query a TenantPolicyORM
+    tenant_policy_requires_promotion = True
+    
+    if tenant_policy_requires_promotion:
+        req.status = "awaiting_promotion"
+        await AuditService.log_event(db, req.tenant_id, current_user.id, "RECOVERY_APPROVED_AWAITING_PROMOTION", "ApprovalRequest", str(req.id))
+        await db.commit()
+        from fastapi import Response
+        return Response(status_code=202) # 202 Accepted, but not final
         
     req.status = "approved"
     

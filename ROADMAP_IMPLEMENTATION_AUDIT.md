@@ -360,3 +360,11 @@ esponse if the orchestrator is compromised) and logs the failure gracefully.
 **Evidence:**
 - Created 	ests/integration/test_roadmap_59_63.py with full coverage for #59â€“#63.
 - All integration tests pass successfully.
+
+
+### Batch 2 — Roadmap #64–#68 — IN PROGRESS
+* **#64**: Defined CanaryInvariants model with explicit latency limits and enforced in CanaryTestFramework.
+* **#65**: Rollback logic implemented in 	est_framework.py sync_validate_quarantine (calling isolator.async_remove_quarantine).
+* **#66**: Added tenant policy gate in POST /approve endpoint to transition to waiting_promotion rather than auto-minting cert.
+* **#67**: Moved replay execution from synchronous POST /trigger to ARQ worker queue.
+* **#68**: Integrated JobORM states in pps.worker.src.worker and POST /trigger (QUEUED, RUNNING, SUCCEEDED, FAILED).

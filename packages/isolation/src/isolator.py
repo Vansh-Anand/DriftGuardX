@@ -62,6 +62,24 @@ class CausalIsolator:
 
         return rule
 
+    async def async_remove_quarantine(self, rule_id: str, db=None) -> None:
+        """
+        Removes/deactivates a quarantine rule, rolling back its effect. Durably updates db if provided.
+        """
+        for rule in self._active_rules:
+            if rule.rule_id == rule_id:
+                rule.active = False
+                
+        if db:
+            from sqlalchemy import select
+            from apps.api.src.models import QuarantineRuleORM
+            stmt = select(QuarantineRuleORM).where(QuarantineRuleORM.id == uuid.UUID(rule_id))
+            result = await db.execute(stmt)
+            rule_orm = result.scalar_one_or_none()
+            if rule_orm:
+                rule_orm.active = False
+                await db.flush()
+
     def apply_quarantine(
         self, root_cause_component: ComponentType | str, description: str
     ) -> QuarantineRule:
