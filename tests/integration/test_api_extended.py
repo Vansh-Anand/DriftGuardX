@@ -167,5 +167,20 @@ async def test_non_synthetic_run_replay_blocked(client: AsyncClient) -> None:
             "is_synthetic": False,
         },
     )
-    assert run_resp.status_code == 400
-    assert "non-synthetic" in run_resp.json()["detail"].lower()
+    assert run_resp.status_code == 201
+    run_id = run_resp.json()["id"]
+
+    replay_resp = await client.post(
+        f"/v1/runs/{run_id}/replays",
+        json={
+            "intervention": {
+                "target_component": "retriever",
+                "intervention_type": "rollback",
+                "current_version": "v2-exp",
+                "candidate_version": "v1"
+            },
+            "seed": 42
+        },
+    )
+    assert replay_resp.status_code == 400
+    assert "non-synthetic" in replay_resp.json()["detail"].lower()

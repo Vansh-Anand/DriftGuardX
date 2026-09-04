@@ -70,6 +70,7 @@ benchmark = [
 packages = [
     "apps/api/src",
     "apps/worker/src",
+    "packages/bcrb/src",
     "packages/contracts/src",
     "packages/detectors/src",
     "packages/diffusion/src",

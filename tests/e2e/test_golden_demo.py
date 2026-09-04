@@ -80,7 +80,15 @@ async def test_golden_demo_replay_with_pinned_versions(client: AsyncClient) -> N
     # Create replay
     replay_resp = await client.post(
         f"/v1/runs/{run_id}/replays",
-        json={"swap_retriever_to_stable": True, "seed": 42},
+        json={
+            "intervention": {
+                "target_component": "retriever",
+                "intervention_type": "rollback",
+                "current_version": "v2-exp",
+                "candidate_version": "v1"
+            },
+            "seed": 42
+        },
     )
     assert replay_resp.status_code == 201, replay_resp.text
     replay = replay_resp.json()
@@ -123,9 +131,17 @@ async def test_golden_demo_intervention_not_auto_applied(client: AsyncClient) ->
 
     replay_resp = await client.post(
         f"/v1/runs/{run_id}/replays",
-        json={"swap_retriever_to_stable": True, "seed": 42},
+        json={
+            "intervention": {
+                "target_component": "retriever",
+                "intervention_type": "rollback",
+                "current_version": "v2-exp",
+                "candidate_version": "v1"
+            },
+            "seed": 42
+        },
     )
-    assert replay_resp.status_code == 201
+    assert replay_resp.status_code == 201, replay_resp.text
 
     # Create another run — experimental pipeline must still be experimental
     # (intervention was not auto-applied)

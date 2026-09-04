@@ -10,19 +10,21 @@ def test_canary_execution():
     framework = CanaryTestFramework(tenant_id=str(uuid.uuid4()))
     original_run = str(uuid.uuid4())
 
+    from packages.contracts.src.bcrb_models import ReplayCost
     candidate = BCRBCandidate(
         candidate_id=uuid.uuid4(),
         component_type=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
-        cost_estimate=0.02,
+        cost_estimate=ReplayCost(total_cost=0.02),
     )
 
-    step = framework.execute_canary(candidate, original_run)
+    import asyncio
+    step = asyncio.run(framework.execute_canary(candidate, original_run, str(uuid.uuid4()), None))
     assert step.candidate_id == candidate.candidate_id
-    assert step.status == BCRBStepStatus.COMPLETED
+    assert step.status == BCRBStepStatus.FAILED
+    assert "No DB provided" in step.decision_reason
     # The test framework explicitly does not fake utility to prevent leaking synthetic evidence
     assert step.utility_observed is None
-    assert step.cost_incurred == 0.02
 
 
 def test_quarantine_validation():

@@ -64,11 +64,20 @@ export async function fetchRuns(page: number = 1, pageSize: number = 10): Promis
   }
 }
 
-export async function createRun(query: string = "What are the latest safety guidelines?"): Promise<Run> {
+export async function createRun(
+  query: string = "What are the latest safety guidelines?",
+  execution_mode: "real" | "controlled" | "synthetic" = "real"
+): Promise<Run> {
   const res = await apiFetch(`${API_BASE}/runs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, seed: 42, is_synthetic: true, use_experimental_retriever: true })
+    body: JSON.stringify({
+      query,
+      seed: 42,
+      execution_mode,
+      is_synthetic: execution_mode === "synthetic",
+      use_experimental_retriever: execution_mode === "controlled",
+    }),
   });
   if (!res.ok) throw new Error('Failed to create run');
   return await res.json();

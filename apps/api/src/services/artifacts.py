@@ -75,6 +75,12 @@ class LocalFilesystemArtifactStore(ArtifactStore):
         except (ValueError, RuntimeError, KeyError, TypeError, OSError):
             return data.decode(errors="replace")
 
+    async def save_trace(self, run_id: str, trace_data: dict[str, Any]) -> None:
+        file_path = os.path.join(self.base_dir, f"trace_{run_id}.json")
+        serialized = self._serialize(trace_data)
+        with open(file_path, "wb") as f:
+            f.write(serialized)
+
 
 # Singleton instance for dependency injection
 artifact_store = LocalFilesystemArtifactStore()

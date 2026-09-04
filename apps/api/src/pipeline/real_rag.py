@@ -62,7 +62,7 @@ class RealRAGPipeline:
         Executes the real RAG pipeline with full tracing.
         Returns a structured answer and the resulting ReplayStateManifest.
         """
-        overall_start = time.time()
+        overall_start = time.perf_counter()
 
         ctx = TraceContext(tenant_id=tenant_id, pipeline_id=self.pipeline_id, run_id=run_id)
 
@@ -107,7 +107,7 @@ class RealRAGPipeline:
         )
         ctx.record_span(llm_span.build())
 
-        overall_latency_ms = (time.time() - overall_start) * 1000
+        overall_latency_ms = max((time.perf_counter() - overall_start) * 1000.0, 1.0)
         root_span.set_output({"final_text": llm_response["text"]})
         root_span._latency_ms = overall_latency_ms
         root_span._status_code = "OK"
@@ -174,4 +174,5 @@ class RealRAGPipeline:
             "prompt_hash": self.prompt_hash,
             "corpus_version_id": corpus_version_id,
             "manifest": manifest,
+            "trace_context": ctx,
         }

@@ -16,9 +16,9 @@ from apps.api.src.database import get_db
 from apps.api.src.dependencies import get_current_tenant
 from apps.api.src.models import SpanRecordORM
 
-if TYPE_CHECKING:
-    from uuid import UUID
+from uuid import UUID
 
+if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 try:

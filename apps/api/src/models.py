@@ -667,6 +667,34 @@ class RecoveryCertificateORM(Base):
     )
 
 
+# ─── Background Job ORM (Roadmap Item #4) ────────────────────────────────────
+
+
+class BackgroundJobORM(Base):
+    __tablename__ = "background_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    job_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")
+    payload_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
+    result_json: Mapped[dict | None] = mapped_column(_JSON_TYPE, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_background_jobs_tenant_id", "tenant_id"),
+        Index("ix_background_jobs_status", "status"),
+        Index("ix_background_jobs_idempotency", "tenant_id", "idempotency_key", unique=False),
+        Index("ix_background_jobs_created_at", "created_at"),
+    )
+
+
 from sqlalchemy import event
 @event.listens_for(ReplayStateManifestORM, 'before_update')
 def receive_before_update(mapper, connection, target):
