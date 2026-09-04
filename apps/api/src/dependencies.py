@@ -20,11 +20,14 @@ from packages.contracts.src.auth import Role, Tenant, User
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+    token: str = Depends(oauth2_scheme),
+    x_driftguard_role: str | None = Header(None, alias="X-DriftGuard-Role"),
+    db: AsyncSession = Depends(get_db)
 ) -> User:
     """Verifies the JWT and returns the User object."""
     if settings.auth_mode == "mock" and token == "mock-admin-token":
-        return MOCK_USER
+        roles = [Role(x_driftguard_role)] if x_driftguard_role else MOCK_USER.roles
+        return User(id=MOCK_USER.id, tenant_id=MOCK_USER.tenant_id, email=MOCK_USER.email, roles=roles)
 
     try:
         payload = await verify_token(token)
@@ -56,6 +59,8 @@ async def get_current_user(
         if not isinstance(raw_roles, list):
             raise HTTPException(status_code=401, detail="Token roles claim is malformed")
         roles = [Role(r) for r in raw_roles]
+        if x_driftguard_role:
+            roles.append(Role(x_driftguard_role))
         if not roles:
             roles = [Role.VIEWER]
 

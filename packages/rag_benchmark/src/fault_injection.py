@@ -82,6 +82,54 @@ class BenchmarkFaultInjector(FaultInjector):
 
             pipeline.llm.generate = api_failing_generate
 
+        elif scenario.fault_type == FaultType.CONTEXT_TRUNCATION:
+            pipeline.retriever = DummyRetriever(["CONTEXT_TRUNCATION_FAILURE: content truncated"])
+
+        elif scenario.fault_type == FaultType.EMBEDDING_DRIFT:
+            pipeline.retriever = DummyRetriever(["EMBEDDING_DRIFT_FAILURE: bad matches"])
+
+        elif scenario.fault_type == FaultType.RETRIEVAL_FAILURE:
+            pipeline.retriever = DummyRetriever([])
+
+        elif scenario.fault_type == FaultType.LLM_DEGRADATION:
+            pipeline.llm = DummyLLM(model_name="mock-gpt-2-degraded")
+            original_generate = pipeline.llm.generate
+            def degraded_generate(prompt, temperature=0.7, trace_ctx=None):
+                return "LLM_DEGRADATION_FAILURE: low quality response"
+            pipeline.llm.generate = degraded_generate
+
+        elif scenario.fault_type == FaultType.MALFORMED_TOOL_OUTPUT:
+            original_generate = pipeline.llm.generate
+            def malformed_tool_generate(prompt, temperature=0.7, trace_ctx=None):
+                return "MALFORMED_TOOL_OUTPUT_FAILURE: {invalid_json: 123"
+            pipeline.llm.generate = malformed_tool_generate
+
+        elif scenario.fault_type == FaultType.STALE_MEMORY:
+            pipeline.retriever = DummyRetriever(["STALE_MEMORY_FAILURE: old memory"])
+
+        elif scenario.fault_type == FaultType.POLICY_FAILURE:
+            original_generate = pipeline.llm.generate
+            def policy_failing_generate(prompt, temperature=0.7, trace_ctx=None):
+                return "POLICY_FAILURE: request blocked"
+            pipeline.llm.generate = policy_failing_generate
+
+        elif scenario.fault_type == FaultType.ROUTING_FAILURE:
+            original_generate = pipeline.llm.generate
+            def routing_failing_generate(prompt, temperature=0.7, trace_ctx=None):
+                return "ROUTING_FAILURE: wrong agent"
+            pipeline.llm.generate = routing_failing_generate
+
+        elif scenario.fault_type == FaultType.MULTI_AGENT_CASCADING_FAILURE:
+            original_generate = pipeline.llm.generate
+            def cascading_failing_generate(prompt, temperature=0.7, trace_ctx=None):
+                return "CASCADING_FAILURE: all agents crashed"
+            pipeline.llm.generate = cascading_failing_generate
+
+        elif scenario.fault_type == FaultType.HALLUCINATED_CITATION:
+            original_generate = pipeline.llm.generate
+            def hallucinated_generate(prompt, temperature=0.7, trace_ctx=None):
+                return "HALLUCINATED_CITATION_FAILURE: [fake_doc.pdf]"
+            pipeline.llm.generate = hallucinated_generate
 
 class BenchmarkInterventionAdapter(InterventionAdapter):
     def __init__(self, healthy_scenario_config: dict[str, Any]):
@@ -132,7 +180,18 @@ class BenchmarkInterventionAdapter(InterventionAdapter):
             )
             pipeline.retriever = DummyRetriever(healthy_corpus)
 
-        elif target_component_id == "TOOL_FAILURE" or target_component_id == "API_FAILURE":
+        elif target_component_id in ("TOOL_FAILURE", "API_FAILURE", "LLM_DEGRADATION", "MALFORMED_TOOL_OUTPUT", "POLICY_FAILURE", "ROUTING_FAILURE", "MULTI_AGENT_CASCADING_FAILURE", "HALLUCINATED_CITATION"):
             pipeline.llm = DummyLLM(model_name="mock-gpt-4o")
+
+        elif target_component_id in ("CONTEXT_TRUNCATION", "EMBEDDING_DRIFT", "RETRIEVAL_FAILURE", "STALE_MEMORY"):
+            healthy_corpus = self.healthy_config.get(
+                "healthy_corpus",
+                [
+                    "A simulated document about driftguard",
+                    "Another document about testing",
+                    "Data about faults and recovery",
+                ],
+            )
+            pipeline.retriever = DummyRetriever(healthy_corpus)
 
         pipeline.active_fault_component = None

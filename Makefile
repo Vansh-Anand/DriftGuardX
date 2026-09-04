@@ -133,3 +133,6 @@ train-diffusion: ## Train and evaluate the diffusion models
 demo-diffusion: train-diffusion ## Alias for running the diffusion demo
 
 ci: lint format-check typecheck security-scan test ## Full CI pipeline
+
+# ─── Experiment Harness (Prompt 07) ───────────────────────────────────────────
+run-benchmarks: ## Run all causal recovery benchmarks

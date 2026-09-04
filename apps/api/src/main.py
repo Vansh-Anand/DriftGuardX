@@ -16,12 +16,15 @@ from datetime import UTC, datetime
 
 import structlog
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from apps.api.src.config import settings
 from apps.api.src.database import create_all_tables
 from apps.api.src.middleware import RequestBodyLimitMiddleware
+from apps.api.src.observability import setup_observability
 from apps.api.src.routers import manifest
 from apps.api.src.routes import graph, ingest, runs, telemetry
 from apps.api.src.routes.detectors import router as detectors_router
@@ -53,7 +56,6 @@ log = structlog.get_logger()
 APP_ENV = os.environ.get("APP_ENV", settings.environment)
 
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -64,6 +66,9 @@ if TYPE_CHECKING:
 @asynccontextmanager
 async def _lifespan(app_: FastAPI) -> AsyncIterator[None]:
     """App lifespan: startup + shutdown."""
+    # Setup OpenTelemetry
+    setup_observability(app_)
+
     db_url = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./driftguardx_dev.db")
     if "sqlite" in db_url:
         await create_all_tables()
@@ -75,18 +80,34 @@ async def _lifespan(app_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="DriftGuard-X v2 API",
-    description=(
-        "Agentic RAG Reliability Platform — Versioned tracing, causal reliability graph, "
-        "deterministic replay, and policy-gated recovery.\n\n"
-        "⚠️ DEMO/SYNTHETIC: All runs in development mode use deterministic mock data."
-    ),
-    version=APP_VERSION,
-    docs_url=None if settings.production_like else "/docs",
-    redoc_url=None if settings.production_like else "/redoc",
-    openapi_url=None if settings.production_like else "/openapi.json",
+    title=settings.api_title,
+    version=settings.api_version,
+    description="DriftGuard-X Agentic RAG Reliability Platform API",
+    openapi_tags=[
+        {"name": "runs", "description": "Execute and manage RAG runs"},
+        {"name": "telemetry", "description": "Ingest trace and span data"},
+        {"name": "recovery", "description": "Trigger and approve recovery actions"},
+        {"name": "manifest", "description": "View cryptographic manifests and replay evidence"}
+    ],
+    servers=[
+        {"url": "http://localhost:8000", "description": "Local environment"}
+    ],
     lifespan=_lifespan,
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body, "error_code": "validation_error"},
+    )
+
+@app.exception_handler(ValidationError)
+async def pydantic_validation_exception_handler(request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "error_code": "pydantic_validation_error"},
+    )
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 

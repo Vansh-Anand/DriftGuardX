@@ -20,7 +20,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 
 from apps.api.src.database import get_db
-from apps.api.src.dependencies import PaginationParams, get_current_tenant, get_idempotency_key
+from apps.api.src.dependencies import (
+    PaginationParams,
+    get_current_tenant,
+    get_idempotency_key,
+    require_role,
+)
+from packages.contracts.src.auth import Role
 from apps.api.src.models import (
     IdempotencyKeyORM,
     InterventionORM,
@@ -264,6 +270,7 @@ async def create_run(
     db: AsyncSession = Depends(get_db),
     tenant: Tenant = Depends(get_current_tenant),
     idempotency_key: str | None = Depends(get_idempotency_key),
+    _: Any = Depends(require_role(Role.OPERATOR)),
 ) -> RunResponse:
     """Execute a RAG pipeline run (real production, controlled fault, or deterministic synthetic) and persist trace evidence."""
 
@@ -671,6 +678,7 @@ async def register_run(
     request: RunRegisterRequest,
     db: AsyncSession = Depends(get_db),
     tenant: Tenant = Depends(get_current_tenant),
+    _: Any = Depends(require_role(Role.OPERATOR)),
 ) -> RunRegisterResponse:
     """Register an external or custom run in preparation for span ingestion."""
     run_id = request.run_id or uuid.uuid4()
@@ -729,6 +737,7 @@ async def list_runs(
     status_filter: str | None = Query(default=None, alias="status"),
     db: AsyncSession = Depends(get_db),
     tenant: Tenant = Depends(get_current_tenant),
+    _: Any = Depends(require_role(Role.VIEWER)),
 ) -> RunListResponse:
     """List all runs with pagination, filtered by tenant."""
     query = (
@@ -767,6 +776,7 @@ async def get_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     tenant: Tenant = Depends(get_current_tenant),
+    _: Any = Depends(require_role(Role.VIEWER)),
 ) -> RunResponse:
     """Get a run by ID."""
     result = await db.execute(

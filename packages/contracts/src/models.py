@@ -90,6 +90,11 @@ class ReplayStatus(str, enum.Enum):
     INVALID = "invalid"
     NEGATIVE_OUTCOME = "negative_outcome"
 
+class ReplayMode(str, enum.Enum):
+    EXACT = "exact"       # Strictly return historical values
+    SEMANTIC = "semantic" # Run fresh, compare semantically
+    FRESH = "fresh"       # Purely new run, ignore history
+
 
 class InterventionType(str, enum.Enum):
     ROLLBACK = "rollback"

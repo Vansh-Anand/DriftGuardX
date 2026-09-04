@@ -15,19 +15,42 @@ from apps.api.src.models import ApprovalRequestORM, ApprovalDecisionORM
 
 router = APIRouter(prefix="/v1/recovery", tags=["recovery"])
 
-# In-memory store for demo purposes
-# In a real deployment, this would be a database integration
-CERTIFICATE_STORE: list[RecoveryCertificate] = []
+# Remove CERTIFICATE_STORE list
 
 
 @router.get("", response_model=list[RecoveryCertificate])
-def list_certificates(
+async def list_certificates(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(Role.VIEWER))
 ):
     """
     List all generated recovery certificates.
     """
-    return CERTIFICATE_STORE
+    from sqlalchemy import select
+    from apps.api.src.models import RecoveryCertificateORM
+    
+    result = await db.execute(select(RecoveryCertificateORM).where(RecoveryCertificateORM.tenant_id == current_user.tenant_id))
+    orms = result.scalars().all()
+    
+    # We must construct the Pydantic models from ORMs
+    certs = []
+    for orm in orms:
+        certs.append(RecoveryCertificate(
+            id=orm.id,
+            run_id=orm.run_id,
+            replay_episode_id=orm.replay_episode_id,
+            intervention_id=orm.intervention_id,
+            repair_decision_id=orm.repair_decision_id,
+            tenant_id=orm.tenant_id,
+            certificate_hash=orm.certificate_hash,
+            issued_by=orm.issued_by,
+            payload_summary=orm.payload_summary,
+            is_valid=orm.is_valid,
+            evidence_kind=orm.evidence_kind,
+            approval_state=orm.approval_state,
+            cryptographic_signature=orm.cryptographic_signature,
+        ))
+    return certs
 
 
 @router.post("/trigger")
@@ -66,9 +89,17 @@ async def approve_recovery(payload: dict[str, Any], db: AsyncSession = Depends(g
     """Approve a pending recovery and mint the certificate."""
     approval_id = payload.get("approval_id")
     decision = payload.get("decision", "APPROVED")
+    blast_radius = payload.get("blast_radius", 0.0)
+    is_dry_run = payload.get("is_dry_run", False)
     
     if not approval_id:
         raise HTTPException(status_code=400, detail="approval_id required")
+        
+    if blast_radius > 0.8 and not is_dry_run:
+        raise HTTPException(
+            status_code=403, 
+            detail="High blast radius (> 0.8) requires dry-run mode. BCRB cannot perform unrestricted destructive actions."
+        )
         
     from sqlalchemy import select
     from apps.api.src.models import ApprovalRequestORM, ApprovalDecisionORM
@@ -151,12 +182,55 @@ async def approve_recovery(payload: dict[str, Any], db: AsyncSession = Depends(g
         }
     )
     
-    CERTIFICATE_STORE.append(certificate)
+    from apps.api.src.models import RecoveryCertificateORM
+    cert_orm = RecoveryCertificateORM(
+        id=certificate.id,
+        run_id=certificate.run_id,
+        replay_episode_id=certificate.replay_episode_id,
+        intervention_id=certificate.intervention_id,
+        repair_decision_id=certificate.repair_decision_id,
+        tenant_id=certificate.tenant_id,
+        certificate_hash=certificate.certificate_hash,
+        issued_by=certificate.issued_by,
+        payload_summary=certificate.payload_summary,
+        is_valid=certificate.is_valid,
+        evidence_kind=certificate.evidence_kind,
+        approval_state=certificate.approval_state,
+        cryptographic_signature=certificate.cryptographic_signature
+    )
+    db.add(cert_orm)
     
     await AuditService.log_event(db, req.tenant_id, current_user.id, "RECOVERY_APPROVED", "RecoveryCertificate", str(certificate.id))
     await db.commit()
     
     return certificate
+
+@router.post("/{intervention_id}/rollback")
+async def rollback_intervention(intervention_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_role(Role.ADMIN))):
+    """
+    Rollback an applied intervention.
+    """
+    from sqlalchemy import select
+    from apps.api.src.models import InterventionORM
+    from apps.api.src.services.audit import AuditService
+
+    result = await db.execute(select(InterventionORM).where(InterventionORM.id == uuid.UUID(intervention_id)))
+    intervention = result.scalar_one_or_none()
+
+    if not intervention:
+        raise HTTPException(status_code=404, detail="Intervention not found")
+
+    if intervention.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Cross-tenant access forbidden")
+
+    # Mark as rolled back (in a real system we would actually invoke the Sandbox to reverse changes)
+    intervention.intervention_type = "rollback"
+    intervention.rationale = f"Rolled back by {current_user.id}"
+    
+    await AuditService.log_event(db, current_user.tenant_id, current_user.id, "INTERVENTION_ROLLED_BACK", "Intervention", str(intervention.id))
+    await db.commit()
+
+    return {"status": "rolled_back", "intervention_id": str(intervention.id)}
 
 @router.post("/verify")
 async def verify_recovery_certificate(payload: dict[str, Any], current_user: User = Depends(require_role(Role.VIEWER))):

@@ -16,6 +16,10 @@ from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime
 from typing import Any
 
+from arq import create_pool
+from arq.connections import RedisSettings
+
+from apps.api.src.config import settings
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -56,6 +60,12 @@ class JobOrchestrator:
     def __init__(self) -> None:
         self.jobs: dict[str, _JobHandle] = {}
         self._active_tasks: dict[str, asyncio.Task[Any]] = {}
+        self._arq_pool = None
+
+    async def get_pool(self):
+        if not self._arq_pool:
+            self._arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url.get_secret_value()))
+        return self._arq_pool
 
     def submit_job(
         self,
@@ -155,7 +165,13 @@ class JobOrchestrator:
             finally:
                 self._active_tasks.pop(job_id, None)
 
-        task = asyncio.create_task(run_pipeline())
+        # In production, we enqueue this onto ARQ instead of running locally.
+        # This gives us durable, distributed execution with retries.
+        async def enqueue_to_arq():
+            pool = await self.get_pool()
+            await pool.enqueue_job("generic_job_runner", task_type, *args, tenant_id=tenant_id, _job_id=job_id, **kwargs)
+
+        task = asyncio.create_task(enqueue_to_arq())
         job_handle._task = task
         self._active_tasks[job_id] = task
         return job_id
