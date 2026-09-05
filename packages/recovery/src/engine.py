@@ -234,6 +234,22 @@ class RecoveryEngine:
 
         if comp_result.success:
             machine.transition(RecoveryStatus.COMPENSATED, reason="Compensation succeeded.")
+            # Persist rollback evidence to the transparency ledger
+            from packages.ledger.src.store import SQLiteTransparencyStore
+            
+            try:
+                ledger_store = SQLiteTransparencyStore()
+                ledger_store.append({
+                    "type": "ROLLBACK_COMPENSATED",
+                    "proposal_id": record.proposal.proposal_id,
+                    "capsule_id": capsule.capsule_id,
+                    "side_effects": comp_result.side_effects,
+                    "timestamp": datetime.now(UTC).isoformat()
+                })
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to persist rollback evidence: {e}")
+                
         else:
             machine.transition(
                 RecoveryStatus.FAILED, reason=f"Compensation failed: {comp_result.error}"

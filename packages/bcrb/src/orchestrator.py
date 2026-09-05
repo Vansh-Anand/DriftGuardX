@@ -7,10 +7,11 @@ from packages.bcrb.src.calibration import BCRBCalibrator
 from packages.bcrb.src.candidate_planner import CandidatePlanner
 from packages.bcrb.src.bayesian_updater import update_posterior
 from packages.bcrb.src.utility_function import calculate_candidate_utility
-from packages.contracts.src.bcrb_models import BCRBSession, BCRBStepStatus, StoppingCondition
+from packages.contracts.src.bcrb_models import BCRBSession, BCRBStepStatus, StoppingCondition, AblationConfig
 from packages.replay.src.test_framework import CanaryTestFramework
 from packages.contracts.src.agent_models import AgentInvocation
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +28,14 @@ class BCRBOrchestrator:
         self.test_framework = CanaryTestFramework(tenant_id)
 
     async def execute_session(
-        self, session: BCRBSession, invocations: list[AgentInvocation], failure_symptom: str, db=None
+        self, session: BCRBSession, invocations: list[AgentInvocation], failure_symptom: str, db=None,
+        ablation_config: AblationConfig | None = None
     ) -> BCRBSession:
         """
         Executes the BCRB sequential decision process.
         """
         # Step 1: Generate initial candidates
-        session.candidates = self.planner.generate_candidates(invocations, str(session.run_id), failure_symptom)
+        session.candidates = self.planner.generate_candidates(invocations, str(session.run_id), failure_symptom, ablation_config)
 
         tested_candidate_ids = set()
 
@@ -52,7 +54,12 @@ class BCRBOrchestrator:
                 break
                 
             # Sort by utility
-            untested_candidates.sort(key=lambda c: c.estimated_utility, reverse=True)
+            if ablation_config and ablation_config.random_recovery:
+                random.shuffle(untested_candidates)
+            elif ablation_config and ablation_config.fixed_order_recovery:
+                untested_candidates.sort(key=lambda c: c.candidate_id) # deterministic fallback
+            else:
+                untested_candidates.sort(key=lambda c: c.estimated_utility, reverse=True)
             
             best_candidate = None
             for cand in untested_candidates:
@@ -77,7 +84,17 @@ class BCRBOrchestrator:
             tested_candidate_ids.add(best_candidate.candidate_id)
             
             # Step 2: Execute Replay / Canary
-            step = await self.test_framework.execute_canary(best_candidate, str(session.run_id), str(session.session_id), db)
+            if ablation_config and ablation_config.without_replay:
+                from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, RecoveryEffect
+                step = BCRBStep(
+                    session_id=session.session_id,
+                    candidate_id=best_candidate.candidate_id,
+                    status=BCRBStepStatus.COMPLETED,
+                    recovery_effect=RecoveryEffect(reliability_delta=best_candidate.expected_reliability_delta)
+                )
+            else:
+                step = await self.test_framework.execute_canary(best_candidate, str(session.run_id), str(session.session_id), db)
+            
             session.steps.append(step)
             
             # Step 3: Record Costs
@@ -88,6 +105,9 @@ class BCRBOrchestrator:
             # Step 4: Bayesian Update (Posterior Calculation)
             # If contaminated, we don't treat it as valid causal evidence
             is_clean = "contaminated" not in (step.decision_reason or "").lower() and "confounded" not in (step.decision_reason or "").lower()
+            
+            if ablation_config and ablation_config.without_provenance:
+                is_clean = True
             
             if step.recovery_effect and is_clean:
                 reliability_improvement = step.recovery_effect.reliability_delta
@@ -101,11 +121,14 @@ class BCRBOrchestrator:
                 # (A real implementation might update dependent probabilities. Here we just update the tested one.)
                 for candidate in session.candidates:
                     if candidate.candidate_id == best_candidate.candidate_id:
-                        new_posterior = update_posterior(
-                            candidate.causal_evidence.prior,
-                            likelihood_given_cause,
-                            likelihood_given_not_cause
-                        )
+                        if ablation_config and ablation_config.without_bayesian:
+                            new_posterior = candidate.causal_evidence.prior
+                        else:
+                            new_posterior = update_posterior(
+                                candidate.causal_evidence.prior,
+                                likelihood_given_cause,
+                                likelihood_given_not_cause
+                            )
                         candidate.causal_evidence.posterior = new_posterior
                         candidate.causal_evidence.intervention_evidence = {
                             "reliability_improvement": reliability_improvement,
@@ -122,14 +145,17 @@ class BCRBOrchestrator:
                     # Recompute utilities for all untested candidates
                     if candidate.candidate_id not in tested_candidate_ids:
                         current_prob = candidate.causal_evidence.posterior if candidate.causal_evidence.posterior is not None else candidate.causal_evidence.prior
-                        candidate.estimated_utility = calculate_candidate_utility(
-                            probability=current_prob,
-                            expected_reliability_delta=candidate.expected_reliability_delta,
-                            information_gain=candidate.expected_information_gain,
-                            cost=candidate.cost_estimate.total_cost if candidate.cost_estimate else 0.05,
-                            risk=candidate.risk_estimate,
-                            blast_radius=candidate.blast_radius_estimate,
-                        )
+                        if ablation_config and ablation_config.without_bcrb_utility:
+                            candidate.estimated_utility = 1.0
+                        else:
+                            candidate.estimated_utility = calculate_candidate_utility(
+                                probability=current_prob,
+                                expected_reliability_delta=candidate.expected_reliability_delta,
+                                information_gain=candidate.expected_information_gain,
+                                cost=candidate.cost_estimate.total_cost if candidate.cost_estimate else 0.05,
+                                risk=candidate.risk_estimate,
+                                blast_radius=candidate.blast_radius_estimate,
+                            )
                 
                 # Set observed utility for step history
                 step.utility_observed = best_candidate.estimated_utility

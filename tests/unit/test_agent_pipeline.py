@@ -16,7 +16,7 @@ def test_agent_pipeline_execution():
         run_id=uuid.UUID(run_id)
     )
 
-    state = pipeline.run("Is the system healthy?", run_id, tenant_id, trace_ctx=trace_ctx)
+    state = pipeline.run("health_check", run_id, tenant_id, trace_ctx=trace_ctx)
 
     assert state.is_finished is True
     assert state.final_response == "The system is healthy and verified."

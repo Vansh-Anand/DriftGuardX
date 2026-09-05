@@ -26,8 +26,7 @@ async def test_end_to_end_recovery_pipeline():
     ]
 
     # Execute with mocked successful canary
-    with patch("apps.api.src.services.recovery_pipeline.CanaryTestFramework.execute_canary") as mock_exec, \
-         patch("apps.api.src.services.recovery_pipeline.CanaryTestFramework.validate_quarantine", return_value=True):
+    with patch("apps.api.src.services.recovery_pipeline.CanaryTestFramework.execute_canary") as mock_exec:
         
         from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, ReplayCost, RecoveryEffect
         def mock_execute_canary(candidate, run_id, session_id, db):

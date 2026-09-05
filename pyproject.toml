@@ -68,27 +68,8 @@ benchmark = [
 
 [tool.hatch.build.targets.wheel]
 packages = [
-    "apps/api/src",
-    "apps/worker/src",
-    "packages/bcrb/src",
-    "packages/contracts/src",
-    "packages/detectors/src",
-    "packages/diffusion/src",
-    "packages/evaluation/src",
-    "packages/graph/src",
-    "packages/ingestion/src",
-    "packages/ledger/src",
-    "packages/memory/src",
-    "packages/policy/src",
-    "packages/provider_registry/src",
-    "packages/rag_benchmark/src",
-    "packages/rag_pipeline/src",
-    "packages/rationale/src",
-    "packages/recovery/src",
-    "packages/replay/src",
-    "packages/sdk/src",
-    "packages/trace_sdk/src",
-    "packages/utils/src",
+    "apps",
+    "packages"
 ]
 
 # ─── Ruff ─────────────────────────────────────────────────────────────────────

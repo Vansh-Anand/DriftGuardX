@@ -1,12 +1,14 @@
 """
 DriftGuard-X v2 — Graph Attention Network (GAT) Inference Engine
-Trained on TrainTicket Distributed Microservice Trace Dataset.
+Trained on synthetic distributed traces.
 """
 
 from __future__ import annotations
 
 import os
 from typing import Any
+from packages.contracts.src.models import GATFeatureSchema
+
 
 import numpy as np
 
@@ -54,13 +56,18 @@ class DriftGuardX_GAT(torch.nn.Module):
         self.norm3 = LayerNorm(hidden_dim)
 
         # Classifier Head (Mean + Max pooling concat -> hidden_dim * 2)
-        self.classifier = Sequential(
+        self.graph_classifier = Sequential(
             Linear(hidden_dim * 2, 64), ReLU(), Dropout(0.3), Linear(64, num_classes)
+        )
+        
+        # Node Classifier Head
+        self.node_classifier = Sequential(
+            Linear(hidden_dim, 32), ReLU(), Dropout(0.3), Linear(32, num_classes)
         )
 
     def forward(
         self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor | None = None
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         if batch is None:
             batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
 
@@ -70,14 +77,17 @@ class DriftGuardX_GAT(torch.nn.Module):
         x = F.elu(self.conv2(x, edge_index))
         x = self.norm2(x)
 
-        x = F.elu(self.conv3(x, edge_index))
-        x = self.norm3(x)
+        x_node = F.elu(self.conv3(x, edge_index))
+        x_node = self.norm3(x_node)
 
-        x_mean = global_mean_pool(x, batch)
-        x_max = global_max_pool(x, batch)
+        x_mean = global_mean_pool(x_node, batch)
+        x_max = global_max_pool(x_node, batch)
         x_pool = torch.cat([x_mean, x_max], dim=1)
 
-        return self.classifier(x_pool)
+        graph_logits = self.graph_classifier(x_pool)
+        node_logits = self.node_classifier(x_node)
+        
+        return graph_logits, node_logits
 
 
 class GATTraceDetector:
@@ -156,7 +166,7 @@ class GATTraceDetector:
             edge_sources = list(range(len(spans)))
             edge_targets = list(range(len(spans)))
 
-        # Extract features [log(dur+1), rel_dur, self_time, is_err, fanout, op_hash]
+        # Extract features using GATFeatureSchema
         node_features = []
         for i, s in enumerate(spans):
             dur = float(s.get("duration_ms", 0.0))
@@ -166,8 +176,16 @@ class GATTraceDetector:
             is_err = 1.0 if s.get("is_error", False) else 0.0
             fanout = float(len(children[i]))
             op_code = float(hash(s.get("operation_name", "")) % 50)
-
-            node_features.append([np.log1p(dur), rel_dur, self_time, is_err, fanout, op_code])
+            
+            schema = GATFeatureSchema(
+                log_duration=float(np.log1p(dur)),
+                relative_duration=rel_dur,
+                self_time_ratio=self_time,
+                is_error=is_err,
+                fanout=fanout,
+                operation_encoding=op_code
+            )
+            node_features.append(schema.to_list())
 
         x = torch.tensor(node_features, dtype=torch.float, device=self.device)
         edge_index = torch.tensor(
@@ -175,12 +193,14 @@ class GATTraceDetector:
         )
 
         with torch.no_grad():
-            logits = self.model(x, edge_index)
-            probs = F.softmax(logits, dim=1).cpu().numpy()[0]
+            graph_logits, node_logits = self.model(x, edge_index)
+            probs = F.softmax(graph_logits, dim=1).cpu().numpy()[0]
             pred_class = int(np.argmax(probs))
             fault_prob = float(probs[1]) if len(probs) > 1 else float(probs[0])
+            node_probs = F.softmax(node_logits, dim=1)[:, 1].cpu().numpy()
 
-        # Identify suspicious spans (highest self-time or error)
+        # Identify suspicious spans using node-level GAT predictions
+        # (Fallback to self_time/is_error heuristics if node probs are uninformative, e.g. untrained)
         suspicious_spans = sorted(
             [
                 {
@@ -189,10 +209,11 @@ class GATTraceDetector:
                     "duration_ms": s.get("duration_ms", 0.0),
                     "is_error": s.get("is_error", False),
                     "self_time_ratio": node_features[i][2],
+                    "node_fault_prob": float(node_probs[i])
                 }
                 for i, s in enumerate(spans)
             ],
-            key=lambda item: (item["is_error"], item["self_time_ratio"], item["duration_ms"]),
+            key=lambda item: (item["node_fault_prob"], item["is_error"], item["self_time_ratio"], item["duration_ms"]),
             reverse=True,
         )
 

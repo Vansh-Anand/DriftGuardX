@@ -56,6 +56,7 @@ log = structlog.get_logger()
 APP_ENV = os.environ.get("APP_ENV", settings.environment)
 
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

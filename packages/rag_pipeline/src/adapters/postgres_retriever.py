@@ -48,6 +48,10 @@ class PostgresHybridRetriever(RetrieverAdapter):
     ) -> list[RetrievedChunk]:
         # 1. Embed query
         query_embedding = await self.embedding_adapter.embed(query)
+        
+        expected_dim = getattr(self.embedding_adapter, "dimension", None)
+        if expected_dim is not None and len(query_embedding) != expected_dim:
+            raise ValueError(f"Embedding dimension mismatch: expected {expected_dim}, got {len(query_embedding)}")
 
         # Detect dialect to determine if native pgvector/FTS is available
         dialect_name = "postgresql"

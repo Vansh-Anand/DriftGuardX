@@ -5,9 +5,9 @@ DriftGuard-X v2 — Causal Benchmark Fault Injectors and Adapters
 from typing import Any
 
 from packages.rag_benchmark.src.fault_models import (
-    FaultInjector,
     FaultScenario,
     FaultType,
+    SyntheticFaultInjector,
     InterventionAdapter,
 )
 from packages.rag_benchmark.src.rag_pipeline import (
@@ -17,7 +17,7 @@ from packages.rag_benchmark.src.rag_pipeline import (
 )
 
 
-class BenchmarkFaultInjector(FaultInjector):
+class BenchmarkFaultInjector(SyntheticFaultInjector):
     def inject(self, pipeline: RAGPipeline, scenario: FaultScenario) -> None:
         pipeline.active_fault_component = scenario.fault_component_id
         if scenario.fault_type == FaultType.STALE_CORPUS:

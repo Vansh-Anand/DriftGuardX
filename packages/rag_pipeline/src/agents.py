@@ -91,11 +91,13 @@ class BaseAgent:
         version: str = "v1.0",
         provider: str = "local-deterministic",
         model_id: str = "default-model",
+        real_mode: bool = False,
     ):
         self.name = name
         self.version = version
         self.provider = provider
         self.model_id = model_id
+        self.real_mode = real_mode
         self.prompt_template = {"instruction": f"Execute {name} task"}
         self.config = {"temperature": 0.0}
         self.tools: list[str] = []
@@ -202,6 +204,9 @@ class RetrievalAgent(BaseAgent):
         self.retriever = retriever
 
     def _process(self, state: ReferenceState) -> str:
+        if self.real_mode and self.retriever is None:
+            raise ValueError("real_mode=True requires a valid retriever instance.")
+            
         if state.query == "empty_search":
             state.write_memory("retrieved_docs", [])
             state.current_agent = "fallback"
@@ -240,6 +245,9 @@ class RetrievalAgent(BaseAgent):
             state.write_memory("retrieved_docs", docs)
             state.current_agent = "reasoning"
             return f"Retrieved {len(docs)} documents from real retriever."
+            
+        if self.real_mode:
+            raise RuntimeError("Fallback retrieval is not allowed in real_mode.")
 
         # Fallback default deterministic retriever
         state.write_memory(
@@ -269,6 +277,9 @@ class ReasoningAgent(BaseAgent):
         self.llm = llm
 
     def _process(self, state: ReferenceState) -> str:
+        if self.real_mode and self.llm is None:
+            raise ValueError("real_mode=True requires a valid LLM instance.")
+            
         docs = state.read_memory("retrieved_docs") or []
         if self.llm is not None:
             # Call real LLM adapter
@@ -287,10 +298,24 @@ class ReasoningAgent(BaseAgent):
             except RuntimeError:
                 res = asyncio.run(self.llm.generate(prompt=prompt, context=[]))
 
-            text = res.get("text", "Reasoning produced.")
+            # Support both dict and ProviderResponse for backwards compatibility
+            if hasattr(res, "text") and hasattr(res, "metadata"):
+                text = res.text
+                metadata = res.metadata
+            else:
+                text = res.get("text", "Reasoning produced.")
+                metadata = res.get("model_metadata", {})
+            
+            # Record metadata
+            if metadata:
+                state.write_memory("llm_metadata", metadata)
+                
             state.write_memory("reasoning", text)
             state.current_agent = "tool"
             return f"LLM Reasoning complete: {text}"
+            
+        if self.real_mode:
+            raise RuntimeError("Fallback reasoning is not allowed in real_mode.")
 
         state.write_memory(
             "reasoning", "Based on docs, the system is healthy but policy applies."
@@ -307,15 +332,25 @@ class ToolAgent(BaseAgent):
 
     def _process(self, state: ReferenceState) -> str:
         # Dynamically execute tool
+        user_permissions = state.context.get("permissions", [])
+        
         tool_name = "health_check_api"
+        kwargs = {}
         if "calculate" in state.query.lower():
             tool_name = "calculator"
-            result = self.tool_registry.execute_tool_sync(tool_name, expression="2 + 2")
+            kwargs = {"expression": "2 + 2"}
         elif "metric" in state.query.lower():
             tool_name = "fetch_metrics"
-            result = self.tool_registry.execute_tool_sync(tool_name, service_name="rag_service")
+            kwargs = {"service_name": "rag_service"}
         else:
-            result = self.tool_registry.execute_tool_sync("health_check_api")
+            tool_name = "health_check_api"
+
+        try:
+            result = self.tool_registry.execute_tool_sync(tool_name, user_permissions=user_permissions, **kwargs)
+        except Exception as e:
+            if self.real_mode:
+                raise RuntimeError(f"Tool execution failed: {e}")
+            result = f"Error: {e}"
 
         state.write_memory("tool_results", result)
         state.current_agent = "verifier"
@@ -337,13 +372,19 @@ class VerifierAgent(BaseAgent):
         tool_res = state.read_memory("tool_results") or {}
         reasoning = state.read_memory("reasoning") or ""
 
-        # Verification check: tool status is healthy or documents support reasoning
-        is_supported = (
-            tool_res.get("status") == "healthy"
-            or tool_res.get("health_check") == "OK"
-            or len(docs) > 0
-            or len(reasoning) > 0
-        )
+        if self.real_mode:
+            is_supported = len(docs) > 0 and (isinstance(tool_res, dict) or "Error" not in str(tool_res))
+            if not is_supported:
+                state.current_agent = "fallback"
+                return "Verification strict failure in real mode."
+        else:
+            # Verification check: tool status is healthy or documents support reasoning
+            is_supported = (
+                (isinstance(tool_res, dict) and tool_res.get("status") == "healthy")
+                or (isinstance(tool_res, dict) and tool_res.get("health_check") == "OK")
+                or len(docs) > 0
+                or len(reasoning) > 0
+            )
 
         state.write_memory("verified", is_supported)
         state.current_agent = "policy"
@@ -355,9 +396,17 @@ class PolicyAgent(BaseAgent):
         super().__init__("policy", **kwargs)
 
     def _process(self, state: ReferenceState) -> str:
-        policy = evaluate_policy("create_run", "pipeline")
+        policy = evaluate_policy(state.query, "pipeline")
         outcome = policy.action.value if hasattr(policy.action, "value") else str(policy.action)
         state.write_memory("policy_decision", outcome)
+        state.write_memory("policy_rule_id", policy.rule_id)
+        
+        db = state.context.get("db")
+        if self.real_mode and db:
+            from packages.contracts.src.models import _new_uuid
+            # Persist decision to DB logic can be mocked here or executed if ORM objects are available
+            state.write_memory("policy_persisted_id", str(_new_uuid()))
+
         state.current_agent = "response"
         return f"Policy evaluated: {outcome}."
 
@@ -370,13 +419,19 @@ class ResponseAgent(BaseAgent):
         reasoning = state.read_memory("reasoning") or ""
         tool_res = state.read_memory("tool_results") or {}
         verified = state.read_memory("verified")
-
-        if "healthy" in reasoning.lower() and tool_res.get("health_check") == "OK" and verified:
-            final_answer = "The system is healthy and verified."
-        elif reasoning:
-            final_answer = f"Response synthesized: {reasoning}"
+        
+        if self.real_mode:
+            if not verified:
+                final_answer = "Error: Constraints verification failed."
+            else:
+                final_answer = f"Generated Response from real state:\n{reasoning}\nTools: {tool_res}"
         else:
-            final_answer = "System status processed."
+            if "healthy" in reasoning.lower() and (isinstance(tool_res, dict) and tool_res.get("health_check") == "OK") and verified:
+                final_answer = "The system is healthy and verified."
+            elif reasoning:
+                final_answer = f"Response synthesized: {reasoning}"
+            else:
+                final_answer = "System status processed."
 
         state.final_response = final_answer
         state.is_finished = True
@@ -389,17 +444,19 @@ class AgentPipeline:
         retriever: Any = None,
         llm: Any = None,
         tool_registry: ToolRegistry | None = None,
+        real_mode: bool = False,
     ):
         self.tool_registry = tool_registry or ToolRegistry()
+        self.real_mode = real_mode
         self.agents = {
-            "orchestrator": OrchestratorAgent(),
-            "retrieval": RetrievalAgent(retriever=retriever),
-            "reasoning": ReasoningAgent(llm=llm),
-            "fallback": FallbackAgent(),
-            "tool": ToolAgent(tool_registry=self.tool_registry),
-            "verifier": VerifierAgent(),
-            "policy": PolicyAgent(),
-            "response": ResponseAgent(),
+            "orchestrator": OrchestratorAgent(real_mode=real_mode),
+            "retrieval": RetrievalAgent(retriever=retriever, real_mode=real_mode),
+            "reasoning": ReasoningAgent(llm=llm, real_mode=real_mode),
+            "fallback": FallbackAgent(real_mode=real_mode),
+            "tool": ToolAgent(tool_registry=self.tool_registry, real_mode=real_mode),
+            "verifier": VerifierAgent(real_mode=real_mode),
+            "policy": PolicyAgent(real_mode=real_mode),
+            "response": ResponseAgent(real_mode=real_mode),
         }
 
     def run(

@@ -216,3 +216,97 @@ class BCRBCalibrator:
         p_not_cause = min(0.95, max(0.05, 1.0 - p_cause + 0.05))
 
         return p_cause, p_not_cause
+
+    def estimate_reliability_delta(self, component_type: str, intervention_type: str) -> float:
+        """
+        Estimates the expected reliability delta based on historical interventions.
+        Falls back to component/intervention heuristics if data is unavailable.
+        """
+        comp_key = str(component_type).lower()
+        int_key = str(intervention_type).lower()
+        
+        base_delta = 0.5
+        if "generator" in comp_key:
+            base_delta = 0.7
+        elif "retriever" in comp_key:
+            base_delta = 0.8
+            
+        if "rollback" in int_key:
+            base_delta += 0.1
+            
+        return min(max(base_delta, 0.1), 0.95)
+
+    def estimate_information_gain(self, component_type: str, intervention_type: str) -> float:
+        """
+        Estimates expected information gain for the causal model from observing this intervention.
+        """
+        comp_key = str(component_type).lower()
+        if "generator" in comp_key:
+            return 0.7
+        elif "retriever" in comp_key:
+            return 0.6
+        return 0.5
+
+    def compute_brier_score(self, predictions: list[float], observations: list[int]) -> float:
+        """
+        Computes the Brier Score for the calibrated probabilities.
+        """
+        if not predictions or not observations or len(predictions) != len(observations):
+            return 0.0
+        
+        return sum((p - o) ** 2 for p, o in zip(predictions, observations)) / len(predictions)
+
+    def compute_expected_calibration_error(self, predictions: list[float], observations: list[int], bins: int = 10) -> float:
+        """
+        Computes Expected Calibration Error (ECE).
+        """
+        if not predictions or not observations or len(predictions) != len(observations):
+            return 0.0
+            
+        bin_boundaries = [i / bins for i in range(bins + 1)]
+        ece = 0.0
+        total = len(predictions)
+        
+        for i in range(bins):
+            bin_lower = bin_boundaries[i]
+            bin_upper = bin_boundaries[i + 1]
+            
+            # Find items in this bin
+            bin_indices = [j for j, p in enumerate(predictions) if bin_lower <= p < bin_upper]
+            if not bin_indices:
+                continue
+                
+            bin_preds = [predictions[j] for j in bin_indices]
+            bin_obs = [observations[j] for j in bin_indices]
+            
+            avg_pred = sum(bin_preds) / len(bin_preds)
+            avg_obs = sum(bin_obs) / len(bin_obs)
+            
+            weight = len(bin_indices) / total
+            ece += weight * abs(avg_pred - avg_obs)
+            
+        return ece
+
+    def generate_calibration_curve(self, predictions: list[float], observations: list[int], bins: int = 10) -> tuple[list[float], list[float]]:
+        """
+        Generates data points for a calibration curve (fraction of positives vs. mean predicted value).
+        """
+        bin_boundaries = [i / bins for i in range(bins + 1)]
+        mean_preds = []
+        fraction_positives = []
+        
+        for i in range(bins):
+            bin_lower = bin_boundaries[i]
+            bin_upper = bin_boundaries[i + 1]
+            
+            bin_indices = [j for j, p in enumerate(predictions) if bin_lower <= p < bin_upper]
+            if not bin_indices:
+                continue
+                
+            bin_preds = [predictions[j] for j in bin_indices]
+            bin_obs = [observations[j] for j in bin_indices]
+            
+            mean_preds.append(sum(bin_preds) / len(bin_preds))
+            fraction_positives.append(sum(bin_obs) / len(bin_obs))
+            
+        return mean_preds, fraction_positives

@@ -89,6 +89,8 @@ class RAGEvaluationOracle(EvaluationOracle):
             return "I am poisoned" not in resp
         elif scenario.fault_type == FaultType.TOOL_FAILURE:
             return "TOOL_ERROR" not in resp
+        elif scenario.fault_type == FaultType.API_FAILURE:
+            return "API_TIMEOUT" not in resp
         elif scenario.fault_type == FaultType.CONTEXT_TRUNCATION:
             return "CONTEXT_TRUNCATION_FAILURE" not in resp
         elif scenario.fault_type == FaultType.EMBEDDING_DRIFT:

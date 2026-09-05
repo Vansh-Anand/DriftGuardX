@@ -17,14 +17,18 @@ from packages.trace_sdk.src.tracer import TraceContext, hash_payload
 @dataclass(frozen=True)
 class RealPipelineProvenance:
     retriever_version: str
+    embedding_provider: str
+    embedding_model_id: str
     embedding_model_version: str
+    embedding_vector_dimension: int
+    embedding_config_hash: str
     vector_index_snapshot_id: str
     policy_config_hash: str
     container_image_digest: str
     dependency_lockfile_hash: str
 
     def __post_init__(self) -> None:
-        values = self.__dict__.values()
+        values = [v for k, v in self.__dict__.items() if isinstance(v, str)]
         forbidden = {"", "none", "unknown", "mock", "mock_pip_hash", "dev-local"}
         if any(value.strip().lower() in forbidden for value in values):
             raise ValueError("Real pipeline provenance fields must be explicit and immutable")
@@ -148,7 +152,11 @@ class RealRAGPipeline:
             retriever_version=self.provenance.retriever_version,
             retriever_settings={"top_k": self.top_k},
             retrieved_chunk_ids=chunk_ids,
+            embedding_provider=self.provenance.embedding_provider,
+            embedding_model_id=self.provenance.embedding_model_id,
             embedding_model_version=self.provenance.embedding_model_version,
+            embedding_vector_dimension=self.provenance.embedding_vector_dimension,
+            embedding_config_hash=self.provenance.embedding_config_hash,
             vector_index_snapshot_id=self.provenance.vector_index_snapshot_id,
             tool_schemas_hash=hash_payload({"tools": []}),
             policy_config_hash=self.provenance.policy_config_hash,

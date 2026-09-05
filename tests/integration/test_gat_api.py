@@ -72,3 +72,28 @@ async def test_gat_evaluate_run_404_for_unknown_run(client: AsyncClient) -> None
     random_id = str(uuid.uuid4())
     resp = await client.post(f"/v1/detectors/gat/evaluate-run/{random_id}")
     assert resp.status_code == 404
+
+
+def test_gat_checkpoint_compatibility():
+    """Verify that the generated training_meta.json has version 1.0.0 and matches the expected schema."""
+    import json
+    import os
+    from pathlib import Path
+    
+    meta_path = Path("packages/detectors/weights/training_meta.json")
+    if meta_path.exists():
+        with open(meta_path, "r") as f:
+            meta = json.load(f)
+        
+        assert meta.get("feature_schema_version") == "1.0.0", "Feature schema version mismatch"
+        assert "dataset_hash" in meta, "Missing dataset_hash"
+        assert "checkpoint_hash" in meta, "Missing checkpoint_hash"
+        
+        model_path = Path("packages/detectors/weights/driftguardx_gat_model.pth")
+        if model_path.exists():
+            import hashlib
+            with open(model_path, "rb") as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
+            assert meta["checkpoint_hash"] == file_hash, "Checkpoint hash mismatch"
+    else:
+        pytest.skip("training_meta.json not found. Run train_gat.py first.")

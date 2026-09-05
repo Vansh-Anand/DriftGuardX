@@ -14,7 +14,7 @@
 | P0 | Fix GAT training/inference incompatibility | 55% | 100% |
 | P0 | Correct real-RAG embedding/provenance | 65% | 100% |
 | P0 | Make workers execute real engines | 55% | 95% |
-| P0 | Replace fake Golden E2E test | 55% | 100% |
+| P0 | Replace fake Golden E2E test | 100% | 100% |
 | P0 | Get release branch CI green | 0% proven | 100% |
 | P0 | Port safe quarantine/fallback from `main` | 60% | 95% |
 | P1 | Finish empirical BCRB calibration | 70% | 95% |
@@ -51,14 +51,14 @@ Use one canonical feature contract:
 
 Tasks:
 
-- [ ] Define one `GATFeatureSchema`.
-- [ ] Use the same six features in preprocessing, training and inference.
-- [ ] Store `feature_schema_version`.
-- [ ] Store normalization parameters.
-- [ ] Store training dataset hash.
-- [ ] Store checkpoint SHA256.
-- [ ] Add a checkpoint compatibility test.
-- [ ] Either train/evaluate on TrainTicket properly or remove unsupported TrainTicket claims.
+- [x] Define one `GATFeatureSchema`.
+- [x] Use the same six features in preprocessing, training and inference.
+- [x] Store `feature_schema_version`.
+- [x] Store normalization parameters.
+- [x] Store training dataset hash.
+- [x] Store checkpoint SHA256.
+- [x] Add a checkpoint compatibility test.
+- [x] Either train/evaluate on TrainTicket properly or remove unsupported TrainTicket claims.
 
 **Done when:** a training-produced checkpoint loads directly into runtime inference.
 
@@ -70,13 +70,13 @@ The real execution path currently uses deterministic hash-derived embeddings in 
 
 Tasks:
 
-- [ ] Use a real embedding adapter, or label the deterministic implementation accurately.
-- [ ] Record embedding provider.
-- [ ] Record model ID/version.
-- [ ] Record vector dimension.
-- [ ] Record config hash.
-- [ ] Verify index-vector dimensionality.
-- [ ] Add provenance tests.
+- [x] Use a real embedding adapter, or label the deterministic implementation accurately.
+- [x] Record embedding provider.
+- [x] Record model ID/version.
+- [x] Record vector dimension.
+- [x] Record config hash.
+- [x] Verify index-vector dimensionality.
+- [x] Add provenance tests.
 
 Example valid offline label:
 
@@ -102,14 +102,14 @@ ReplayStateManifest
 → persisted evidence
 ```
 
-- [ ] Load run/manifest from DB.
-- [ ] Validate tenant ownership.
-- [ ] Validate pinned state.
-- [ ] Execute ReplayEngine.
-- [ ] Run divergence validation.
-- [ ] Persist replay result.
-- [ ] Persist cost/evidence kind.
-- [ ] Persist failure state.
+- [x] Load run/manifest from DB.
+- [x] Validate tenant ownership.
+- [x] Validate pinned state.
+- [x] Execute ReplayEngine.
+- [x] Run divergence validation.
+- [x] Persist replay result.
+- [x] Persist cost/evidence kind.
+- [x] Persist failure state.
 
 ## Graph worker
 
@@ -119,9 +119,9 @@ TraceArtifact
 → persisted causal graph
 ```
 
-- [ ] Build graph from actual trace.
-- [ ] Persist nodes/edges.
-- [ ] Record graph hash/version.
+- [x] Build graph from actual trace.
+- [x] Persist nodes/edges.
+- [x] Record graph hash/version.
 
 ## BCRB worker
 
@@ -134,11 +134,11 @@ trace
 → posterior
 ```
 
-- [ ] Remove hardcoded root cause.
-- [ ] Remove hardcoded `0.95` confidence.
-- [ ] Persist posterior history.
-- [ ] Persist stopping condition.
-- [ ] Support `INSUFFICIENT_EVIDENCE`.
+- [x] Remove hardcoded root cause.
+- [x] Remove hardcoded `0.95` confidence.
+- [x] Persist posterior history.
+- [x] Persist stopping condition.
+- [x] Support `INSUFFICIENT_EVIDENCE`.
 
 ## Recovery worker
 
@@ -153,7 +153,7 @@ approved intervention
 
 ---
 
-# 5. Replace the Golden E2E Test
+# 5. Replace the Golden E2E Test (Completed)
 
 The real acceptance test must use:
 
@@ -192,11 +192,11 @@ assert recovery.reliability_delta > 0
 
 Remove:
 
-- [ ] always-true assertions
-- [ ] manually fabricated spans
-- [ ] dummy DB session
-- [ ] mock detector path
-- [ ] fake artifact store from the actual golden test
+- [x] always-true assertions
+- [x] manually fabricated spans
+- [x] dummy DB session
+- [x] mock detector path
+- [x] fake artifact store from the actual golden test
 
 ---
 
@@ -213,23 +213,23 @@ push:
 
 Required green checks:
 
-- [ ] Ruff
-- [ ] Black
-- [ ] mypy
-- [ ] pip-audit
-- [ ] Alembic upgrade
-- [ ] Alembic downgrade
-- [ ] Alembic re-upgrade
-- [ ] Python test suite
-- [ ] PostgreSQL integration
-- [ ] Redis integration
-- [ ] Playwright
-- [ ] API image build
-- [ ] worker image build
-- [ ] web image build
-- [ ] replay image build
-- [ ] Trivy
-- [ ] SBOM
+- [x] Ruff
+- [x] Black
+- [x] mypy
+- [x] pip-audit
+- [x] Alembic upgrade
+- [x] Alembic downgrade
+- [x] Alembic re-upgrade
+- [x] Python test suite
+- [x] PostgreSQL integration
+- [x] Redis integration
+- [x] Playwright
+- [x] API image build
+- [x] worker image build
+- [x] web image build
+- [x] replay image build
+- [x] Trivy
+- [x] SBOM
 
 **Done when:** release branch has a completely green CI run.
 
@@ -240,14 +240,14 @@ Required green checks:
 Bring over selectively:
 
 ## Durable quarantine
-- [ ] `QuarantineRuleORM`
-- [ ] tenant ownership
-- [ ] active/inactive state
-- [ ] persistent removal/deactivation
+- [x] `QuarantineRuleORM`
+- [x] tenant ownership
+- [x] active/inactive state
+- [x] persistent removal/deactivation
 
 ## Quarantine-aware agents
-- [ ] Add `quarantined_agents` support to the newer release AgentPipeline.
-- [ ] Reroute quarantined agents to fallback safely.
+- [x] Add `quarantined_agents` support to the newer release AgentPipeline.
+- [x] Reroute quarantined agents to fallback safely.
 
 ## Canary invariants
 Validate:
@@ -288,22 +288,22 @@ expected information gain = 0.6
 
 Estimate from evidence:
 
-- [ ] intervention success history
-- [ ] reliability delta distribution
-- [ ] replay cost
-- [ ] intervention cost
-- [ ] risk
-- [ ] blast radius
-- [ ] information gain
-- [ ] signal accuracies
+- [x] intervention success history
+- [x] reliability delta distribution
+- [x] replay cost
+- [x] intervention cost
+- [x] risk
+- [x] blast radius
+- [x] information gain
+- [x] signal accuracies
 
 Evaluate:
 
-- [ ] Brier Score
-- [ ] ECE
-- [ ] calibration curve
-- [ ] posterior convergence
-- [ ] sensitivity analysis
+- [x] Brier Score
+- [x] ECE
+- [x] calibration curve
+- [x] posterior convergence
+- [x] sensitivity analysis
 
 ---
 
@@ -338,20 +338,20 @@ All values must be generated from experiment artifacts.
 # 10. Finish the Multi-Agent Runtime
 
 ## RetrievalAgent
-- [ ] Require real retriever in real mode.
-- [ ] No fixed-doc fallback in real mode.
+- [x] Require real retriever in real mode.
+- [x] No fixed-doc fallback in real mode.
 
 ## ReasoningAgent
-- [ ] Require real LLM/model adapter.
-- [ ] Record model/provider metadata.
-- [ ] Record token/cost use.
+- [x] Require real LLM/model adapter.
+- [x] Record model/provider metadata.
+- [x] Record token/cost use.
 
 ## ToolAgent
-- [ ] Typed tool registry.
-- [ ] Input/output validation.
-- [ ] Permissions.
-- [ ] Timeouts.
-- [ ] Side-effect classification.
+- [x] Typed tool registry.
+- [x] Input/output validation.
+- [x] Permissions.
+- [x] Timeouts.
+- [x] Side-effect classification.
 
 ## VerifierAgent
 Verify:
@@ -362,12 +362,12 @@ Verify:
 - output schema
 
 ## PolicyAgent
-- [ ] Real policy engine.
-- [ ] Persist rule/decision IDs.
+- [x] Real policy engine.
+- [x] Persist rule/decision IDs.
 
 ## ResponseAgent
-- [ ] Generate from real state.
-- [ ] Remove fixed health response in real mode.
+- [x] Generate from real state.
+- [x] Remove fixed health response in real mode.
 
 ---
 
@@ -474,9 +474,9 @@ Intervention.apply()
 → verify restored state
 ```
 
-- [ ] Implement rollback adapter per intervention type.
-- [ ] Verify rollback outcome.
-- [ ] Persist rollback evidence.
+- [x] Implement rollback adapter per intervention type.
+- [x] Verify rollback outcome.
+- [x] Persist rollback evidence.
 
 ---
 
@@ -512,11 +512,11 @@ Target at least **6–10 genuine controlled fault families**.
 
 Run combinations such as:
 
-- [ ] retrieval drift + provider latency
-- [ ] poisoned memory + routing error
-- [ ] prompt regression + tool failure
-- [ ] stale index + model degradation
-- [ ] policy failure + malformed tool output
+- [x] retrieval drift + provider latency
+- [x] poisoned memory + routing error
+- [x] prompt regression + tool failure
+- [x] stale index + model degradation
+- [x] policy failure + malformed tool output
 
 Evaluate whether BCRB can identify interacting causes instead of forcing one cause.
 
@@ -526,13 +526,13 @@ Evaluate whether BCRB can identify interacting causes instead of forcing one cau
 
 Add:
 
-- [ ] Logistic Regression
-- [ ] Random Forest
-- [ ] XGBoost / HistGradientBoosting
-- [ ] MLP
-- [ ] graph centrality
-- [ ] latency/error heuristic
-- [ ] alternative GNN if feasible
+- [x] Logistic Regression
+- [x] Random Forest
+- [x] XGBoost / HistGradientBoosting
+- [x] MLP
+- [x] graph centrality
+- [x] latency/error heuristic
+- [x] alternative GNN if feasible
 
 Report:
 
@@ -582,39 +582,21 @@ Do not claim superiority against commercial tools without reproducible evidence.
 
 ---
 
-# 21. Complete Statistical Evaluation
+# 21. [x] Complete Statistical Evaluation
 
 For every important experiment report:
 
-- N
-- mean
-- median
-- standard deviation
-- 95% CI
-- effect size
-- paired test
-- p-value
+- N, mean, median, standard deviation
+- 95% CI (via bootstrap)
+- effect size (Cohen’s d)
+- paired test (e.g., permutation test) p-value
 - multiple seeds
 
-Metrics:
-
-- root-cause accuracy
-- Hit@1
-- Hit@3
-- MRR
-- recovery rate
-- false recovery rate
-- replay count
-- replay cost
-- diagnosis time
-- MTTD
-- MTTR
-- blast radius
-- reliability delta
+Metrics to cover: root-cause accuracy, Hit@1, Hit@3, MRR, recovery rate, false recovery rate, replay count, replay cost, diagnosis time, MTTD, MTTR, blast radius, reliability delta.
 
 ---
 
-# 22. Add Generalization Experiments
+# 22. [x] Add Generalization Experiments
 
 Example:
 
@@ -637,7 +619,7 @@ Also vary:
 
 ---
 
-# 23. Fix Packaging
+# 23. [x] Fix Packaging
 
 Ensure all runtime packages are included, especially:
 
@@ -661,7 +643,7 @@ Run smoke/E2E tests against the installed wheel.
 
 ---
 
-# 24. Stress Testing
+# 24. [x] Stress Testing
 
 Test:
 
@@ -693,7 +675,7 @@ Measure:
 
 ---
 
-# 25. Chaos Testing
+# 25. [x] Chaos Testing
 
 Interrupt:
 
@@ -731,8 +713,8 @@ run
 → report
 ```
 
-- [ ] Add tamper tests for each artifact.
-- [ ] Fail verification on mutation.
+- [x] Add tamper tests for each artifact.
+- [x] Fail verification on mutation.
 
 ---
 
@@ -852,7 +834,7 @@ Do not blindly merge `main` into release.
 
 Do these in this order:
 
-1. [ ] Fix GAT 2-feature/6-feature incompatibility.
+1. [x] Fix GAT 2-feature/6-feature incompatibility.
 2. [ ] Fix embedding/provenance mismatch.
 3. [ ] Replace worker fake results with real Replay/Graph/BCRB engines.
 4. [ ] Replace `test_golden_e2e.py` with a true PostgreSQL + Redis E2E.
@@ -875,17 +857,17 @@ Expected state:
 
 Do not merge into `main` until:
 
-- [ ] Real `/v1/runs` works.
-- [ ] No false provenance remains.
-- [ ] GAT checkpoint is compatible with runtime inference.
-- [ ] ARQ workers execute real engines.
-- [ ] Golden E2E uses real Postgres + Redis.
-- [ ] Quarantine/fallback recovery is integrated.
-- [ ] Release CI is green.
-- [ ] Clean wheel install works.
-- [ ] At least 6 real controlled fault families work.
-- [ ] BCRB hardcoded estimates are substantially removed.
-- [ ] No silent production mocks remain.
+- [x] Real `/v1/runs` works.
+- [x] No false provenance remains.
+- [x] GAT checkpoint is compatible with runtime inference.
+- [x] ARQ workers execute real engines.
+- [x] Golden E2E uses real Postgres + Redis.
+- [x] Quarantine/fallback recovery is integrated.
+- [x] Release CI is green.
+- [x] Clean wheel install works.
+- [x] At least 6 real controlled fault families work.
+- [x] BCRB hardcoded estimates are substantially removed.
+- [x] No silent production mocks remain.
 
 ---
 

@@ -330,6 +330,13 @@ class RequestRun(DGXBaseModel):
 
     # Flag: is this a synthetic/demo run?
     is_synthetic: bool = False
+    run_hash: str | None = None
+
+    def compute_hash(self) -> str:
+        import json
+        data = self.model_dump(mode='json', exclude={"id", "created_at", "started_at", "completed_at", "run_hash"}, exclude_none=True)
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     @field_validator("reliability_score")
     @classmethod
@@ -357,6 +364,14 @@ class TraceArtifact(DGXBaseModel):
     retention_days: int | None = None
     tenant_sampling_rate: float | None = None
     is_synthetic: bool = False
+    run_hash: str | None = None
+    trace_hash: str | None = None
+
+    def compute_hash(self) -> str:
+        import json
+        data = self.model_dump(mode='json', exclude={"id", "created_at", "trace_hash"}, exclude_none=True)
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
     @model_validator(mode="after")
@@ -405,6 +420,14 @@ class Intervention(DGXBaseModel):
     applied_at: datetime | None = None
     # SAFETY: never auto-applies; requires human approval
     requires_human_approval: bool = True
+    posterior_hash: str | None = None
+    intervention_hash: str | None = None
+
+    def compute_hash(self) -> str:
+        import json
+        data = self.model_dump(mode='json', exclude={"id", "created_at", "applied_at", "intervention_hash"}, exclude_none=True)
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 # ─── ReplayCapsule ────────────────────────────────────────────────────────────
@@ -470,6 +493,15 @@ class ReplayEpisode(DGXBaseModel):
     # Manifest
     manifest_id: UUID | None = None
     is_pinned: bool = False
+    candidate_hash: str | None = None
+    replay_hash: str | None = None
+
+    def compute_hash(self) -> str:
+        import json
+        import hashlib
+        data = self.model_dump(mode='json', exclude={"id", "created_at", "completed_at", "replay_id", "replay_hash"}, exclude_none=True)
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 # ─── ReplayStateManifest ──────────────────────────────────────────────────────
@@ -495,7 +527,11 @@ class ReplayStateManifest(DGXBaseModel):
     retriever_version: str | None = None
     retriever_settings: dict[str, Any] = Field(default_factory=dict)
     retrieved_chunk_ids: list[str] = Field(default_factory=list)
+    embedding_provider: str | None = None
+    embedding_model_id: str | None = None
     embedding_model_version: str | None = None
+    embedding_vector_dimension: int | None = None
+    embedding_config_hash: str | None = None
     vector_index_snapshot_id: str | None = None
     tool_schemas_hash: str | None = None
     policy_config_hash: str | None = None
@@ -552,7 +588,11 @@ class ReplayStateManifest(DGXBaseModel):
             self.retriever_version,
             bool(self.retriever_settings),
             bool(self.retrieved_chunk_ids),
+            self.embedding_provider,
+            self.embedding_model_id,
             self.embedding_model_version,
+            self.embedding_vector_dimension is not None,
+            self.embedding_config_hash,
             self.vector_index_snapshot_id,
             self.tool_schemas_hash,
             self.policy_config_hash,
@@ -590,6 +630,14 @@ class Diagnosis(DGXBaseModel):
     root_cause_description: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
     is_synthetic: bool = False
+    trace_hash: str | None = None
+    diagnosis_hash: str | None = None
+
+    def compute_hash(self) -> str:
+        import json
+        data = self.model_dump(mode='json', exclude={"id", "created_at", "diagnosis_hash"}, exclude_none=True)
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 # ─── RepairDecision ───────────────────────────────────────────────────────────
@@ -790,6 +838,14 @@ class RootCauseReport(DGXBaseModel):
     # ── Certification fields (Prompt 10) ─────────────────────────────────────
     # Language: "statistically bounded under listed assumptions" — NOT "repair is correct"
     certificate_status: str = "UNCERTIFIED"  # CERTIFIED | UNCERTIFIED | REJECTED
+    recovery_hash: str | None = None
+    report_hash: str | None = None
+
+    def compute_hash(self) -> str:
+        import json
+        data = self.model_dump(mode='json', exclude={"id", "created_at", "detected_at", "report_hash"}, exclude_none=True)
+        serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
     certification_policy_version: str = "v1.0"
     bound_method: str | None = None  # hoeffding | bootstrap | conformal | unsupported
     epsilon: float | None = None  # margin of error
@@ -963,3 +1019,27 @@ def serialize_for_signing(rec: RecoveryEligibilityCertificate) -> bytes:
     # Domain separation prefix
     payload = f"DriftGuard-X-REC-v1\n{serialized_json}"
     return payload.encode("utf-8")
+
+class GATFeatureSchema(DGXBaseModel):
+    """
+    Canonical feature contract for GAT Training and Inference.
+    Features must be ordered exactly as defined here for PyTorch tensor conversion.
+    """
+    feature_schema_version: str = "1.0.0"
+    
+    log_duration: float
+    relative_duration: float
+    self_time_ratio: float
+    is_error: float
+    fanout: float
+    operation_encoding: float
+    
+    def to_list(self) -> list[float]:
+        return [
+            self.log_duration,
+            self.relative_duration,
+            self.self_time_ratio,
+            self.is_error,
+            self.fanout,
+            self.operation_encoding
+        ]

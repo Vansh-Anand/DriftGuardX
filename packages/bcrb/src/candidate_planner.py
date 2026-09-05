@@ -8,7 +8,7 @@ import uuid
 from packages.bcrb.src.calibration import BCRBCalibrator
 from packages.bcrb.src.utility_function import calculate_candidate_utility
 from packages.contracts.src.agent_models import AgentInvocation
-from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBSession, StoppingCondition, UnifiedCandidatePrior
+from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBSession, StoppingCondition, UnifiedCandidatePrior, AblationConfig
 from packages.contracts.src.graph import EdgeType, NodeType
 from packages.contracts.src.models import ComponentType, InterventionType
 from packages.detectors.src.gat_inference import GATTraceDetector
@@ -29,7 +29,8 @@ class CandidatePlanner:
         self.calibrator = calibrator or BCRBCalibrator()
 
     def generate_candidates(
-        self, invocations: list[AgentInvocation], run_id: str, failure_symptom: str
+        self, invocations: list[AgentInvocation], run_id: str, failure_symptom: str,
+        ablation_config: "AblationConfig | None" = None
     ) -> list[BCRBCandidate]:
         """
         Analyze the invocation history to propose targeted interventions based on priors.
@@ -103,18 +104,28 @@ class CandidatePlanner:
                 )
 
         # 2. Run GAT Trace Anomaly Detection
-        gat_result = self.gat_detector.detect_trace_anomaly(spans)
-        gat_candidates = gat_result.get("root_cause_candidates", [])
-        
-        # Build GAT score map for easy lookup
         gat_scores = {}
-        for gc in gat_candidates:
-            # GAT uses a combination of error and self time to rank candidates.
-            gat_scores[gc["span_id"]] = gc["self_time_ratio"] * (1.0 if not gc["is_error"] else 2.0)
+        gat_result = {}
+        if ablation_config and ablation_config.without_gat:
+            gat_candidates = []
+        else:
+            gat_result = self.gat_detector.detect_trace_anomaly(spans)
+            gat_candidates = gat_result.get("root_cause_candidates", [])
+            for gc in gat_candidates:
+                # GAT uses a combination of error and self time to rank candidates.
+                gat_scores[gc["span_id"]] = gc["self_time_ratio"] * (1.0 if not gc["is_error"] else 2.0)
 
         # 3. Run backward diffusion to propagate anomaly scores
-        diffusion_input = DiffusionInput(nodes=nodes, edges=edges)
-        diffusion_result = self.diffusion_engine.run_backward_diffusion(diffusion_input)
+        if ablation_config and ablation_config.without_diffusion:
+            class MockOutput:
+                root_probability = 0.0
+                explanation = type('Exp', (), {'model_dump': lambda *args, **kwargs: {}})()
+            class MockResult:
+                node_outputs = {n.node_id: MockOutput() for n in nodes}
+            diffusion_result = MockResult()
+        else:
+            diffusion_input = DiffusionInput(nodes=nodes, edges=edges)
+            diffusion_result = self.diffusion_engine.run_backward_diffusion(diffusion_input)
 
         # 4. Create UnifiedCandidatePrior
         for node_id, output in diffusion_result.node_outputs.items():
@@ -131,6 +142,14 @@ class CandidatePlanner:
                 diff_score=diff_score,
                 symptom_score=symptom_score,
             )
+
+            if ablation_config:
+                if ablation_config.gat_only:
+                    combined_prior = gat_score
+                elif ablation_config.diffusion_only:
+                    combined_prior = diff_score
+                elif ablation_config.symptoms_only:
+                    combined_prior = symptom_score
 
             if combined_prior > 0.05:  # Plausible candidate threshold
                 comp_type = ComponentType.GENERATOR
@@ -168,8 +187,8 @@ class CandidatePlanner:
                     comp_type.value, causal_graph_edges=edge_pairs, all_nodes=all_ids
                 )
                 est_risk = self.calibrator.estimate_candidate_risk(comp_type.value, int_type.value)
-                est_reliability_delta = 0.8
-                est_info_gain = 0.6
+                est_reliability_delta = self.calibrator.estimate_reliability_delta(comp_type.value, int_type.value)
+                est_info_gain = self.calibrator.estimate_information_gain(comp_type.value, int_type.value)
                 
                 # Calculate true BCRB Utility based on calibrated unified prior
                 utility = calculate_candidate_utility(

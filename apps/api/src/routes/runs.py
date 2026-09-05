@@ -227,7 +227,11 @@ def _build_replay_manifest(
         retriever_version=retriever_cv.version_tag,
         retriever_settings=retriever_settings,
         retrieved_chunk_ids=list(MOCK_RETRIEVER_V1_DOCUMENT_IDS),
+        embedding_provider="local-deterministic",
+        embedding_model_id="mock-embedding-v1",
         embedding_model_version=MOCK_RAG_EMBEDDING_MODEL_VERSION,
+        embedding_vector_dimension=1536,
+        embedding_config_hash=hash_payload({"model": "mock-embedding-v1"}),
         vector_index_snapshot_id=f"mock-rag-index@sha256:{hash_payload(corpus_snapshot)}",
         tool_schemas_hash=hash_payload({"tools": []}),
         policy_config_hash=hash_payload(policy_definition),
@@ -467,13 +471,25 @@ async def create_run(
             llm = LocalDeterministicLLMAdapter()
 
         class SimpleEmbeddingAdapter:
+            @property
+            def provider(self) -> str: return "local"
+            @property
+            def model_id(self) -> str: return "local-sha256-deterministic-embedding"
+            @property
+            def model_version(self) -> str: return "v1.0"
+            @property
+            def dimension(self) -> int: return 16
+            @property
+            def config_hash(self) -> str: return hashlib.sha256(b"local-sha256-v1").hexdigest()
+
             async def embed(self, text: str) -> list[float]:
                 h = hashlib.sha256(text.encode()).digest()
                 return [float(b) / 255.0 for b in h[:16]]
 
+        adapter = SimpleEmbeddingAdapter()
         retriever = PostgresHybridRetriever(
             db_session=db,
-            embedding_adapter=SimpleEmbeddingAdapter(),
+            embedding_adapter=adapter,
             tenant_id=tenant.id,
         )
 
@@ -483,7 +499,11 @@ async def create_run(
         
         provenance = RealPipelineProvenance(
             retriever_version=retriever_ver,
-            embedding_model_version="text-embedding-3-small@v1.0",
+            embedding_provider=adapter.provider,
+            embedding_model_id=adapter.model_id,
+            embedding_model_version=adapter.model_version,
+            embedding_vector_dimension=adapter.dimension,
+            embedding_config_hash=adapter.config_hash,
             vector_index_snapshot_id="snapshot-v1-stable",
             policy_config_hash=hashlib.sha256(b"production-policy-v1").hexdigest(),
             container_image_digest=hashlib.sha256(b"driftguardx:v2.0").hexdigest(),
@@ -635,7 +655,11 @@ async def create_run(
             retriever_version=manifest.retriever_version,
             retriever_settings=manifest.retriever_settings,
             retrieved_chunk_ids=manifest.retrieved_chunk_ids,
+            embedding_provider=manifest.embedding_provider,
+            embedding_model_id=manifest.embedding_model_id,
             embedding_model_version=manifest.embedding_model_version,
+            embedding_vector_dimension=manifest.embedding_vector_dimension,
+            embedding_config_hash=manifest.embedding_config_hash,
             vector_index_snapshot_id=manifest.vector_index_snapshot_id,
             tool_schemas_hash=manifest.tool_schemas_hash,
             policy_config_hash=manifest.policy_config_hash,

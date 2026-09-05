@@ -17,6 +17,21 @@ class RetrieverAdapter(Protocol):
 
 class EmbeddingAdapter(Protocol):
     async def embed(self, text: str) -> list[float]: ...
+    
+    @property
+    def provider(self) -> str: ...
+    
+    @property
+    def model_id(self) -> str: ...
+    
+    @property
+    def model_version(self) -> str: ...
+    
+    @property
+    def dimension(self) -> int: ...
+    
+    @property
+    def config_hash(self) -> str: ...
 
 
 class LLMAdapter(Protocol):

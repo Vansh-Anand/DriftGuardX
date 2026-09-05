@@ -1,0 +1,497 @@
+[
+  {
+    "config": "Full DriftGuardX",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.056427955627441406,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Without GAT",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.00027751922607421875,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Without diffusion",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002711772918701172,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Without Bayesian update",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0029609203338623047,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Without BCRB utility",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0028209686279296875,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Without replay",
+    "success": true,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0026814937591552734,
+    "stopping_condition": "confidence_reached",
+    "seed": 42
+  },
+  {
+    "config": "Without provenance",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002613544464111328,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "GAT only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.003194570541381836,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Diffusion only",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0027780532836914062,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Symptoms only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0026874542236328125,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Fixed-order recovery",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0032100677490234375,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 42
+  },
+  {
+    "config": "Full DriftGuardX",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0027441978454589844,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Without GAT",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.000385284423828125,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Without diffusion",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0029456615447998047,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Without Bayesian update",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0027043819427490234,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Without BCRB utility",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0027403831481933594,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Without replay",
+    "success": true,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002715587615966797,
+    "stopping_condition": "confidence_reached",
+    "seed": 43
+  },
+  {
+    "config": "Without provenance",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002657175064086914,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "GAT only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.003182649612426758,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Diffusion only",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.003094196319580078,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Symptoms only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002598285675048828,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Fixed-order recovery",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0031919479370117188,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 43
+  },
+  {
+    "config": "Full DriftGuardX",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0029420852661132812,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Without GAT",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0003247261047363281,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Without diffusion",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0027163028717041016,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Without Bayesian update",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0029022693634033203,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Without BCRB utility",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0031387805938720703,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Without replay",
+    "success": true,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002716541290283203,
+    "stopping_condition": "confidence_reached",
+    "seed": 44
+  },
+  {
+    "config": "Without provenance",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0028886795043945312,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "GAT only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0025467872619628906,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Diffusion only",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0033864974975585938,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Symptoms only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002641439437866211,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Fixed-order recovery",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0033304691314697266,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 44
+  },
+  {
+    "config": "Full DriftGuardX",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0028676986694335938,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Without GAT",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0004372596740722656,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Without diffusion",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.003509998321533203,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Without Bayesian update",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.003645181655883789,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Without BCRB utility",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0032885074615478516,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Without replay",
+    "success": true,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0028226375579833984,
+    "stopping_condition": "confidence_reached",
+    "seed": 45
+  },
+  {
+    "config": "Without provenance",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0037772655487060547,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "GAT only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.00428462028503418,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Diffusion only",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0036275386810302734,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Symptoms only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002755403518676758,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Fixed-order recovery",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0037376880645751953,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 45
+  },
+  {
+    "config": "Full DriftGuardX",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0028891563415527344,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Without GAT",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.00033283233642578125,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Without diffusion",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002633333206176758,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Without Bayesian update",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0031936168670654297,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Without BCRB utility",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0033371448516845703,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Without replay",
+    "success": true,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0024619102478027344,
+    "stopping_condition": "confidence_reached",
+    "seed": 46
+  },
+  {
+    "config": "Without provenance",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.00262451171875,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "GAT only",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0026268959045410156,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Diffusion only",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0026552677154541016,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Symptoms only",
+    "success": false,
+    "steps_taken": 1,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.002548694610595703,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  },
+  {
+    "config": "Fixed-order recovery",
+    "success": false,
+    "steps_taken": 2,
+    "total_spent_usd": 0.0,
+    "duration_seconds": 0.0032317638397216797,
+    "stopping_condition": "all_safe_candidates_tested",
+    "seed": 46
+  }
+]

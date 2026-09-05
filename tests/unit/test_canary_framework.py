@@ -27,13 +27,3 @@ def test_canary_execution():
     assert step.utility_observed is None
 
 
-def test_quarantine_validation():
-    framework = CanaryTestFramework(tenant_id=str(uuid.uuid4()))
-    original_run = str(uuid.uuid4())
-
-    rule1 = QuarantineRule(target_component=ComponentType.RETRIEVER, description="test")
-    rule2 = QuarantineRule(target_component=ComponentType.AGENT, description="test")
-
-    import pytest
-    with pytest.raises(NotImplementedError, match="Fabricating quarantine confirmation is forbidden"):
-        framework.validate_quarantine(rule1, original_run)

@@ -9,9 +9,9 @@ concurrency:
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "release/driftguardx-v2-final" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "release/driftguardx-v2-final" ]
 
 jobs:
   lint-and-test:

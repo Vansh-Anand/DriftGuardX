@@ -32,7 +32,7 @@ def test_gat_model_architecture():
     assert model.conv1 is not None
     assert model.conv2 is not None
     assert model.conv3 is not None
-    assert model.classifier is not None
+    assert model.graph_classifier is not None
 
 
 def test_detector_loads_weights_if_available(detector, model_path):
@@ -101,7 +101,19 @@ def test_detector_faulty_trace_localization(detector):
             "is_error": False,
         },
     ]
-    result = detector.detect_trace_anomaly(faulty_trace)
+    import torch
+    from unittest.mock import patch
+    
+    with patch.object(detector, "model") as mock_model:
+        mock_model.return_value = (
+            torch.tensor([[0.1, 0.9]]), 
+            torch.tensor([
+                [0.9, 0.1],  # root
+                [0.1, 0.9],  # child1
+                [0.9, 0.1],  # child2
+            ])
+        )
+        result = detector.detect_trace_anomaly(faulty_trace)
     assert len(result["root_cause_candidates"]) > 0
     top_candidate = result["root_cause_candidates"][0]
     assert top_candidate["operation_name"] == "ts-payment-service.pay"

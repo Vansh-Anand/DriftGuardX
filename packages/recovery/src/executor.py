@@ -534,3 +534,107 @@ class LocalDevExecutor(RecoveryExecutor):
             outcome_description=f"Rolled back {t!r} using capsule {capsule.capsule_id!r}.",
             capsule_id=capsule.capsule_id,
         )
+
+
+class ProductionExecutor(RecoveryExecutor):
+    """
+    Production executor that delegates to real adapters (Kubernetes, Feature Flags).
+    Requires DRIFTGUARDX_ENV=production.
+    """
+    
+    def __init__(self, capsule_registry: CapsuleRegistry, adapters: list[Any] = None):
+        super().__init__(capsule_registry)
+        if adapters is None:
+            # Import here to avoid circular dependencies
+            from packages.recovery.src.adapters import KubernetesRollbackAdapter, FeatureFlagAdapter
+            self.adapters = [KubernetesRollbackAdapter(), FeatureFlagAdapter()]
+        else:
+            self.adapters = adapters
+            
+    def _get_adapter(self, action_type: str) -> Any:
+        for adapter in self.adapters:
+            if adapter.supports(action_type):
+                return adapter
+        return None
+
+    def _prepare_capsule(self, proposal: RecoveryProposal) -> RollbackCapsule:
+        # In a real production system, this would query the live API for the current state.
+        # For now, we mock the retrieval of the previous state.
+        target = dict(proposal.params)
+        component_id = proposal.params.get("component_id", "unknown")
+        
+        # We assume the current state is stored in self._live_versions for simulation purposes
+        # In prod, you'd do: prev = k8s_client.get_deployment(...)
+        prev = {"component_id": component_id, "version_id": self._live_versions.get(component_id, "current_v1")}
+        
+        # Merge other relevant states for flags
+        if "tool_id" in target:
+            prev["tool_id"] = target["tool_id"]
+            prev["disabled"] = False
+        elif "stable_model_alias" in target:
+            prev["model"] = "current_model_v1"
+        elif "target_index_id" in target:
+            prev["index_id"] = "current_index_v1"
+
+        return RollbackCapsule(
+            proposal_id=proposal.proposal_id,
+            action_type=proposal.action_type.value,
+            tenant_id=proposal.tenant_id,
+            component_id=component_id,
+            previous_state=prev,
+            target_state=target,
+            artifact_hashes={}
+        )
+
+    def _apply(self, proposal: RecoveryProposal, capsule: RollbackCapsule) -> ExecutionResult:
+        adapter = self._get_adapter(proposal.action_type.value)
+        if not adapter:
+            return ExecutionResult(
+                proposal_id=proposal.proposal_id,
+                success=False,
+                outcome_description=f"No production adapter found for {proposal.action_type.value}",
+                error="missing_adapter"
+            )
+            
+        try:
+            side_effects = adapter.apply(proposal.params)
+            return ExecutionResult(
+                proposal_id=proposal.proposal_id,
+                success=True,
+                outcome_description=f"Action {proposal.action_type.value} applied successfully.",
+                side_effects=side_effects
+            )
+        except Exception as e:
+            return ExecutionResult(
+                proposal_id=proposal.proposal_id,
+                success=False,
+                outcome_description=f"Apply failed: {e}",
+                error=str(e)
+            )
+
+    def _rollback(self, capsule: RollbackCapsule) -> ExecutionResult:
+        adapter = self._get_adapter(capsule.action_type)
+        if not adapter:
+            return ExecutionResult(
+                proposal_id=capsule.proposal_id,
+                success=False,
+                outcome_description=f"No production adapter found for {capsule.action_type}",
+                error="missing_adapter"
+            )
+            
+        try:
+            side_effects = adapter.rollback(capsule.previous_state, capsule.target_state)
+            return ExecutionResult(
+                proposal_id=capsule.proposal_id,
+                success=True,
+                outcome_description=f"Rollback of {capsule.action_type} successful.",
+                capsule_id=capsule.capsule_id,
+                side_effects=side_effects
+            )
+        except Exception as e:
+            return ExecutionResult(
+                proposal_id=capsule.proposal_id,
+                success=False,
+                outcome_description=f"Rollback failed: {e}",
+                error=str(e)
+            )

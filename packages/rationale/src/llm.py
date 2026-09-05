@@ -58,35 +58,53 @@ def build_system_prompt(style: RationaleStyle) -> str:
 
 def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[str, float]:
     """
-    Invokes the LLM.
-    In development, uses a local mock that generates text to test the validator.
-    In production, this would call OpenAI/Anthropic via their respective clients.
+    Invokes the LLM using ProviderRegistry.
+    In real mode (DGX_REAL_MODE=1), strictly enforces real providers.
     """
-    start_time = time.time()
-
-    if os.getenv("DGX_USE_REAL_LLM") == "1" and os.getenv("OPENAI_API_KEY"):
-        import openai
-
-        client = openai.Client()
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": f"Evidence:\n{json_evidence}"},
-            ],
-            temperature=0.0,
-        )
-        content = response.choices[0].message.content or ""
+    import asyncio
+    from packages.rag_pipeline.src.providers import ProviderRegistry
+    
+    real_mode = os.getenv("DGX_REAL_MODE") == "1"
+    
+    registry = ProviderRegistry()
+    
+    # Check if we should use a real provider
+    use_real = real_mode or (os.getenv("DGX_USE_REAL_LLM") == "1" and os.getenv("OPENAI_API_KEY"))
+    
+    if use_real:
+        if not os.getenv("OPENAI_API_KEY"):
+            raise RuntimeError("real_mode is enabled but OPENAI_API_KEY is not set.")
+        provider = registry.get_provider("openai")
     else:
-        # Mock generator for tests
+        if real_mode:
+            raise RuntimeError("real_mode is enabled but mock fallback was attempted.")
+        provider = registry.get_provider("local-deterministic")
+        
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                res = pool.submit(
+                    asyncio.run, provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"])
+                ).result()
+        else:
+            res = loop.run_until_complete(provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"]))
+    except RuntimeError:
+        res = asyncio.run(provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"]))
+        
+    if not use_real:
         data = json.loads(json_evidence)
         content = (
             f"The LLM analyzed the issue in {data['ranked_cause_component']}. "
             f"Switching {data['original_version_tag']} to {data['replay_version_tag']} "
             f"caused metric shifts. (Mock generated text)"
         )
+        latency = res.metadata.get("latency_ms", 0.0)
+    else:
+        content = res.text
+        latency = res.metadata.get("latency_ms", 0.0)
 
-    latency = (time.time() - start_time) * 1000
     return content, latency
 
 

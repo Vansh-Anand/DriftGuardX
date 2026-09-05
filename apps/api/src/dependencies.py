@@ -27,7 +27,7 @@ async def get_current_user(
     """Verifies the JWT and returns the User object."""
     if settings.auth_mode == "mock" and token == "mock-admin-token":
         roles = [Role(x_driftguard_role)] if x_driftguard_role else MOCK_USER.roles
-        return User(id=MOCK_USER.id, tenant_id=MOCK_USER.tenant_id, email=MOCK_USER.email, roles=roles)
+        return User(id=MOCK_USER.id, tenant_id=MOCK_USER.tenant_id, email=MOCK_USER.email, roles=[Role(r) for r in roles])
 
     try:
         payload = await verify_token(token)
@@ -123,8 +123,8 @@ async def get_current_tenant(
 
     # Merge roles (user roles + tenant specific roles)
     tenant_roles = [Role(r) for r in membership.roles_json]
-    merged_roles = list(set(user.roles + tenant_roles))
-    user.roles = merged_roles
+    merged_roles = list(set([Role(r) for r in user.roles] + tenant_roles))
+    user.roles = [Role(r) for r in merged_roles]
     user.tenant_id = tenant_uuid
 
     return Tenant(id=tenant_orm.id, name=tenant_orm.name)

@@ -31,6 +31,7 @@ class FaultType(str, enum.Enum):
     ROUTING_FAILURE = "ROUTING_FAILURE"
     MULTI_AGENT_CASCADING_FAILURE = "MULTI_AGENT_CASCADING_FAILURE"
     HALLUCINATED_CITATION = "HALLUCINATED_CITATION"
+    COMPOUND = "COMPOUND"
 
 
 class FaultScenario(DGXBaseModel):
@@ -51,11 +52,21 @@ class FaultScenario(DGXBaseModel):
 
 
 class FaultInjector(abc.ABC):
-    """Injects a real software fault into a pipeline instance."""
+    """Injects a fault into a pipeline instance."""
 
     @abc.abstractmethod
     def inject(self, pipeline: Any, scenario: FaultScenario) -> None:
         pass
+
+
+class SyntheticFaultInjector(FaultInjector):
+    """Injects faults by monkey-patching Python objects (mock/synthetic)."""
+    pass
+
+
+class RealControlledFaultInjector(FaultInjector):
+    """Injects genuine infrastructural faults (e.g., SQL corruption, network config)."""
+    pass
 
 
 class InterventionAdapter(abc.ABC):

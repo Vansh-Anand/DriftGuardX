@@ -22,6 +22,7 @@ async def test_64_canary_invariants():
     with patch('packages.rag_pipeline.src.agents.AgentPipeline') as mock_pipeline:
         mock_state = MagicMock()
         mock_state.final_response = "success"
+        mock_state.read_memory.return_value = 1.0
         
         # We need a delay inside run, or we can just mock time.monotonic
         with patch('time.monotonic', side_effect=[0.0, 1.0]): # 1 second = 1000ms latency
@@ -48,6 +49,7 @@ async def test_65_automatic_rollback():
     with patch('packages.rag_pipeline.src.agents.AgentPipeline') as mock_pipeline:
         mock_state = MagicMock()
         mock_state.final_response = "error" # Enforce failure
+        mock_state.read_memory.return_value = 1.0
         mock_pipeline.return_value.run.return_value = mock_state
         
         result = await framework.async_validate_quarantine(rule, str(uuid.uuid4()), db=mock_db, isolator=mock_isolator, invariants=invariants)

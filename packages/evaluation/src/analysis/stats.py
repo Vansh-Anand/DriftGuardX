@@ -83,3 +83,56 @@ def bonferroni_correction(p_values: list[float]) -> list[float]:
     """Applies Bonferroni correction to a list of p-values."""
     m = len(p_values)
     return [min(1.0, p * m) for p in p_values]
+
+
+def compute_comprehensive_stats(
+    baseline_data: list[float], proposed_data: list[float], alpha: float = 0.05
+) -> dict:
+    """Computes a comprehensive set of statistics comparing a proposed approach to a baseline.
+    
+    Args:
+        baseline_data: Metric values for the baseline approach across N trials/seeds.
+        proposed_data: Metric values for the proposed approach across N trials/seeds.
+        alpha: Significance level.
+        
+    Returns:
+        A dictionary containing:
+        - N: Number of paired observations
+        - baseline_mean: Mean of the baseline
+        - baseline_median: Median of the baseline
+        - baseline_std: Standard deviation of the baseline
+        - proposed_mean: Mean of the proposed approach
+        - proposed_median: Median of the proposed approach
+        - proposed_std: Standard deviation of the proposed approach
+        - 95_ci_lower: Lower bound of the paired 95% CI for (Proposed - Baseline)
+        - 95_ci_upper: Upper bound of the paired 95% CI for (Proposed - Baseline)
+        - effect_size_cohens_d: Cohen's d
+        - p_value: Paired permutation test p-value
+    """
+    n = len(baseline_data)
+    assert n == len(proposed_data), "Data arrays must be of equal length for paired tests"
+    
+    if n == 0:
+        return {}
+        
+    b_arr = np.array(baseline_data)
+    p_arr = np.array(proposed_data)
+    
+    lower_ci, upper_ci = paired_bootstrap_interval(proposed_data, baseline_data, alpha=alpha)
+    p_val = permutation_test(proposed_data, baseline_data)
+    effect_size = cohens_d(proposed_data, baseline_data)
+    
+    return {
+        "N": n,
+        "baseline_mean": float(np.mean(b_arr)),
+        "baseline_median": float(np.median(b_arr)),
+        "baseline_std": float(np.std(b_arr, ddof=1) if n > 1 else 0.0),
+        "proposed_mean": float(np.mean(p_arr)),
+        "proposed_median": float(np.median(p_arr)),
+        "proposed_std": float(np.std(p_arr, ddof=1) if n > 1 else 0.0),
+        "mean_diff": float(np.mean(p_arr - b_arr)),
+        "95_ci_lower": lower_ci,
+        "95_ci_upper": upper_ci,
+        "effect_size_cohens_d": effect_size,
+        "p_value": p_val,
+    }

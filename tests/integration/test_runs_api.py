@@ -190,6 +190,21 @@ async def test_create_run_synthetic_and_real(client: AsyncClient, db_session: As
     assert data_real["status"].lower() == "completed"
     assert data_real["total_latency_ms"] > 0
 
+    # Check embedding provenance from DB
+    from apps.api.src.models import ReplayStateManifestORM
+    from sqlalchemy import select
+    import uuid
+    run_id_val = uuid.UUID(data_real["id"])
+    result = await db_session.execute(
+        select(ReplayStateManifestORM).where(ReplayStateManifestORM.run_id == run_id_val)
+    )
+    manifest_orm = result.scalar_one_or_none()
+    assert manifest_orm is not None
+    assert manifest_orm.embedding_provider == "local"
+    assert manifest_orm.embedding_model_id == "local-sha256-deterministic-embedding"
+    assert manifest_orm.embedding_model_version == "v1.0"
+    assert manifest_orm.embedding_vector_dimension == 16
+
     # 3. Controlled execution mode
     res_ctrl = await client.post(
         "/v1/runs",

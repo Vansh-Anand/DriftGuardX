@@ -22,6 +22,30 @@ class LocalEmbedder:
 
             self.model = SentenceTransformer(self.model_name)
 
+    @property
+    def provider(self) -> str:
+        return "local-sentence-transformers"
+
+    @property
+    def model_id(self) -> str:
+        return self.model_name
+
+    @property
+    def model_version(self) -> str:
+        return self.revision
+
+    @property
+    def config_hash(self) -> str:
+        import hashlib
+        import json
+        config = {"model": self.model_name, "revision": self.revision, "dimension": self.dimension}
+        return hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
+
+    async def embed(self, text: str) -> list[float]:
+        import asyncio
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: self.embed_texts([text])[0])
+
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Generates embeddings for a list of texts."""
         if not texts:

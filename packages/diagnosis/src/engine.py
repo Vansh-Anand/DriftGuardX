@@ -50,46 +50,55 @@ class DiagnosisEngine:
 
         from packages.contracts.src.bcrb_models import DiagnosisOutcome
 
-        # Find the best step by actual CAUSAL CONFIDENCE (Bayesian posterior), not just utility
+        # Find all steps/candidates with actual CAUSAL CONFIDENCE (Bayesian posterior) >= 0.9
+        high_confidence_candidates = []
+        highest_posterior = -1.0
         best_candidate = None
         best_step = None
-        highest_posterior = -1.0
 
         for step in evaluated_steps:
             cand = candidate_map.get(step.candidate_id)
             if cand and cand.causal_evidence and cand.causal_evidence.posterior is not None:
-                if cand.causal_evidence.posterior > highest_posterior:
-                    highest_posterior = cand.causal_evidence.posterior
+                posterior = cand.causal_evidence.posterior
+                if posterior > highest_posterior:
+                    highest_posterior = posterior
                     best_candidate = cand
                     best_step = step
+                
+                if posterior >= 0.9:
+                    high_confidence_candidates.append((cand, step, posterior))
 
-        # We require high causal confidence (e.g. > 0.9) to claim a root cause, separating this from recovery utility.
+        # We require high causal confidence (e.g. >= 0.9) to claim a root cause, separating this from recovery utility.
         diagnosis_outcome = DiagnosisOutcome.UNKNOWN
 
-        if best_candidate and highest_posterior >= 0.9:
+        if high_confidence_candidates:
             diagnosis_outcome = DiagnosisOutcome.ROOT_CAUSE_SUPPORTED
+            # We still return the absolute best candidate as the primary root_cause_component for legacy compatibility
             root_cause_component = ComponentType(best_candidate.component_type)
             
-            # Separate recovery effect from causal description
-            recovery_delta = best_step.recovery_effect.reliability_delta if best_step and best_step.recovery_effect else 0.0
-            
-            root_cause_description = (
-                f"Root cause isolated to {best_candidate.component_type} with Bayesian posterior {highest_posterior:.2f}. "
-                f"Intervention '{best_candidate.intervention_type}' produced a reliability delta of {recovery_delta:.2f}."
-            )
-
-            claims.append(
-                DiagnosisClaim(
-                    claim_id=str(uuid.uuid4()),
-                    description=f"{best_candidate.component_type} is responsible for the failure.",
-                    status=DiagnosisClaimStatus.MEASURED,
-                    evidence=[
-                        f"Replay ID: {best_step.replay_episode_id}",
-                        f"Bayesian Posterior: {highest_posterior:.2f}"
-                    ],
-                    confidence=highest_posterior,
+            if len(high_confidence_candidates) > 1:
+                components = [str(c[0].component_type) for c in high_confidence_candidates]
+                root_cause_description = f"Multiple interacting root causes isolated: {', '.join(components)}. "
+            else:
+                recovery_delta = best_step.recovery_effect.reliability_delta if best_step and best_step.recovery_effect else 0.0
+                root_cause_description = (
+                    f"Root cause isolated to {best_candidate.component_type} with Bayesian posterior {highest_posterior:.2f}. "
+                    f"Intervention '{best_candidate.intervention_type}' produced a reliability delta of {recovery_delta:.2f}."
                 )
-            )
+
+            for cand, step, posterior in high_confidence_candidates:
+                claims.append(
+                    DiagnosisClaim(
+                        claim_id=str(uuid.uuid4()),
+                        description=f"{cand.component_type} is responsible for the failure.",
+                        status=DiagnosisClaimStatus.MEASURED,
+                        evidence=[
+                            f"Replay ID: {step.replay_episode_id}",
+                            f"Bayesian Posterior: {posterior:.2f}"
+                        ],
+                        confidence=posterior,
+                    )
+                )
         else:
             diagnosis_outcome = DiagnosisOutcome.INSUFFICIENT_EVIDENCE
             root_cause_description = "Evidence is insufficient to confirm a root cause."
