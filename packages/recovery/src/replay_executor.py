@@ -6,7 +6,7 @@ PRIVATE — All Rights Reserved.
 from collections.abc import Callable
 from typing import Any
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.interfaces import RecoveryReplayExecutor
 from packages.contracts.src.recovery_models import (
     CausalRecoveryCut,
@@ -56,7 +56,7 @@ class SyntheticRecoveryReplayExecutor(RecoveryReplayExecutor):
 
         return RecoveryReplayResult(
             outcome=SandboxOutcome.SUCCESS,
-            evidence_kind=RecoveryEvidenceKind.SYNTHETIC_SIMULATION,
+            evidence_kind=EvidenceClassification.SYNTHETIC_SIMULATION,
             new_trace_id=envelope.trace_id,
             new_spans=result_spans,
             new_state_snapshot=None,
@@ -165,7 +165,7 @@ class LocalPipelineRecoveryReplayExecutor(RecoveryReplayExecutor):
             # DO NOT FALL BACK TO UNSAFE EXECUTION IN PRODUCTION
             return RecoveryReplayResult(
                 outcome=SandboxOutcome.SANDBOX_UNAVAILABLE,
-                evidence_kind=RecoveryEvidenceKind.CONTROLLED_REPLAY,
+                evidence_kind=EvidenceClassification.REAL_CONTROLLED_EXPERIMENT,
                 executor_metadata={
                     "error": str(e),
                     "executor": "LocalPipelineRecoveryReplayExecutor",
@@ -181,7 +181,7 @@ class LocalPipelineRecoveryReplayExecutor(RecoveryReplayExecutor):
                 outcome=outcome_mapping.get(
                     result["_error"], SandboxOutcome.REPLAY_EXECUTION_FAILURE
                 ),
-                evidence_kind=RecoveryEvidenceKind.CONTROLLED_REPLAY,
+                evidence_kind=EvidenceClassification.REAL_CONTROLLED_EXPERIMENT,
                 executor_metadata={
                     "error_details": result,
                     "executor": "LocalPipelineRecoveryReplayExecutor",
@@ -199,7 +199,7 @@ class LocalPipelineRecoveryReplayExecutor(RecoveryReplayExecutor):
 
         return RecoveryReplayResult(
             outcome=SandboxOutcome.SUCCESS,
-            evidence_kind=RecoveryEvidenceKind.CONTROLLED_REPLAY,
+            evidence_kind=EvidenceClassification.REAL_CONTROLLED_EXPERIMENT,
             new_trace_id=envelope.trace_id,
             new_spans=result.get("spans", []),
             new_state_snapshot=result.get("state_snapshot", None),

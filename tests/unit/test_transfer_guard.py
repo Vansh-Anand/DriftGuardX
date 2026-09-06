@@ -1,3 +1,4 @@
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.policy.src.transfer_guard import (
     CalibrationEvidence,
     ProvenanceEnvelope,
@@ -5,9 +6,12 @@ from packages.policy.src.transfer_guard import (
 )
 
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
-
-def make_env(components: list[str], risk: float = 0.1, kind: RecoveryEvidenceKind = RecoveryEvidenceKind.PRODUCTION_CANARY, env_hash: str = "abc") -> ProvenanceEnvelope:
+def make_env(
+    components: list[str],
+    risk: float = 0.1,
+    kind: EvidenceClassification = EvidenceClassification.TEST_FIXTURE,
+    env_hash: str = "abc",
+) -> ProvenanceEnvelope:
     return ProvenanceEnvelope(
         tenant_id="test",
         components=components,
@@ -66,14 +70,19 @@ def test_can_transfer_diagnosis():
         guard.can_transfer_diagnosis(source_prov, target_prov, max_calibration_shift=0.05) is True
     )
 
+
 def test_synthetic_simulation_rejected():
     guard = TransferGuard("secret_key")
-    source_prov = make_env(["model:gpt-4"], risk=0.1, kind=RecoveryEvidenceKind.SYNTHETIC_SIMULATION)
+    source_prov = make_env(
+        ["model:gpt-4"], risk=0.1, kind=EvidenceClassification.SYNTHETIC_SIMULATION
+    )
     source_prov.signature = source_prov.recompute_signature("secret_key")
-    
-    target_prov = make_env(["model:gpt-4"], risk=0.1, kind=RecoveryEvidenceKind.SYNTHETIC_SIMULATION)
+
+    target_prov = make_env(
+        ["model:gpt-4"], risk=0.1, kind=EvidenceClassification.SYNTHETIC_SIMULATION
+    )
     target_prov.signature = target_prov.recompute_signature("secret_key")
-    
+
     assert guard.can_transfer_diagnosis(source_prov, target_prov) is False
 
     # Calibration shifted too much

@@ -16,6 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from packages.contracts.src.evidence import EvidenceClassification
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 
@@ -26,7 +28,6 @@ from apps.api.src.dependencies import (
     get_idempotency_key,
     require_role,
 )
-from packages.contracts.src.auth import Role
 from apps.api.src.models import (
     IdempotencyKeyORM,
     InterventionORM,
@@ -39,8 +40,6 @@ from apps.api.src.models import (
 from apps.api.src.pipeline.mock_rag import (
     PIPELINE_WITH_EXPERIMENTAL_RETRIEVER,
     PIPELINE_WITH_STABLE_RETRIEVER,
-    RETRIEVER_V1,
-    RETRIEVER_V2_EXP,
     MockRAGPipeline,
 )
 from apps.api.src.schemas import (
@@ -52,11 +51,9 @@ from apps.api.src.schemas import (
     SpanResponse,
     TraceResponse,
 )
+from packages.contracts.src.auth import Role
 from packages.contracts.src.models import (
     ComponentType,
-    ComponentVersion,
-    Intervention,
-    InterventionType,
     ReplayStateManifest,
 )
 from packages.policy.src.gate import PolicyGate, evaluate_policy
@@ -131,7 +128,9 @@ def _build_replay_manifest(
         for component in PIPELINE_WITH_STABLE_RETRIEVER.component_versions
     ]
     # Get the original retriever version from the pipeline
-    retriever_cv = PIPELINE_WITH_STABLE_RETRIEVER.component_versions[0] # Usually retriever is first or we can get it from the trace
+    retriever_cv = PIPELINE_WITH_STABLE_RETRIEVER.component_versions[
+        0
+    ]  # Usually retriever is first or we can get it from the trace
     for cv in PIPELINE_WITH_STABLE_RETRIEVER.component_versions:
         if cv.component_type == ComponentType.RETRIEVER:
             retriever_cv = cv
@@ -179,25 +178,35 @@ def _build_replay_manifest(
         spans = original_trace.spans_json
         if isinstance(spans, dict):
             spans = list(spans.values())
-            
-        agent_spans = [s for s in spans if s.get("component_type") == ComponentType.AGENT.value or s.get("component_type") == "AGENT"]
-        
+
+        agent_spans = [
+            s
+            for s in spans
+            if s.get("component_type") == ComponentType.AGENT.value
+            or s.get("component_type") == "AGENT"
+        ]
+
         # Build node relationships
         nodes = {}
         for s in agent_spans:
             agent_type = s.get("attributes", {}).get("dgx.agent.type", s.get("name"))
             span_id = s.get("span_id")
             source_span_id = s.get("attributes", {}).get("dgx.causal.source_span_id")
-            nodes[span_id] = {"agent": agent_type, "span_id": span_id, "next": [], "source": source_span_id}
-            
+            nodes[span_id] = {
+                "agent": agent_type,
+                "span_id": span_id,
+                "next": [],
+                "source": source_span_id,
+            }
+
         # Link next based on source
         for span_id, data in nodes.items():
             if data["source"] and data["source"] in nodes:
                 nodes[data["source"]]["next"].append(data["agent"])
-                
+
         for node in nodes.values():
             multi_agent_topology.append({"agent": node["agent"], "next": list(set(node["next"]))})
-            
+
     if not multi_agent_topology:
         multi_agent_topology = [{"agent": "orchestrator", "next": []}]
 
@@ -262,6 +271,7 @@ def _orm_to_run_response(run: RequestRunORM) -> RunResponse:
         started_at=run.started_at,
         completed_at=run.completed_at,
         is_synthetic=run.is_synthetic,
+        evidence_class=run.evidence_class,
     )
 
 
@@ -279,6 +289,10 @@ async def create_run(
     """Execute a RAG pipeline run (real production, controlled fault, or deterministic synthetic) and persist trace evidence."""
 
     is_synthetic_run = request.is_synthetic or (request.execution_mode == "synthetic")
+
+    evidence_class = request.evidence_class
+    if evidence_class == "UNVERIFIED":
+        evidence_class = "SYNTHETIC_SIMULATION" if is_synthetic_run else "PRODUCTION"
 
     effective_idempotency_key = idempotency_key or request.request_id
     if idempotency_key and request.request_id and idempotency_key != request.request_id:
@@ -315,8 +329,8 @@ async def create_run(
         run_contract, trace_contract = mock.execute(
             run_id=run_id,
             query=request.query,
-            seed=request.seed,
-            is_synthetic=True,
+            seed=request.seed or 42,
+            evidence_class=EvidenceClassification(evidence_class),
         )
 
         # Persist run
@@ -342,7 +356,7 @@ async def create_run(
             error_message=run_contract.error_message,
             started_at=run_contract.started_at,
             completed_at=run_contract.completed_at,
-            is_synthetic=True,
+            evidence_class=evidence_class,
         )
         db.add(run_orm)
 
@@ -443,7 +457,11 @@ async def create_run(
             retriever_version=manifest_contract.retriever_version,
             retriever_settings=manifest_contract.retriever_settings,
             retrieved_chunk_ids=manifest_contract.retrieved_chunk_ids,
+            embedding_provider=manifest_contract.embedding_provider,
+            embedding_model_id=manifest_contract.embedding_model_id,
             embedding_model_version=manifest_contract.embedding_model_version,
+            embedding_vector_dimension=manifest_contract.embedding_vector_dimension,
+            embedding_config_hash=manifest_contract.embedding_config_hash,
             vector_index_snapshot_id=manifest_contract.vector_index_snapshot_id,
             tool_schemas_hash=manifest_contract.tool_schemas_hash,
             policy_config_hash=manifest_contract.policy_config_hash,
@@ -459,11 +477,14 @@ async def create_run(
 
     else:
         # Real or Controlled RAG Pipeline Execution
+        from apps.api.src.config import settings
         from apps.api.src.pipeline.real_rag import RealPipelineProvenance, RealRAGPipeline
         from apps.api.src.services.artifacts import artifact_store
+        from packages.rag_pipeline.src.adapters.llm_adapter import (
+            LocalDeterministicLLMAdapter,
+            SafeLLMAdapter,
+        )
         from packages.rag_pipeline.src.adapters.postgres_retriever import PostgresHybridRetriever
-        from packages.rag_pipeline.src.adapters.llm_adapter import SafeLLMAdapter, LocalDeterministicLLMAdapter
-        from apps.api.src.config import settings
 
         if settings.llm_api_key and settings.llm_api_key.get_secret_value():
             llm = SafeLLMAdapter()
@@ -472,15 +493,24 @@ async def create_run(
 
         class SimpleEmbeddingAdapter:
             @property
-            def provider(self) -> str: return "local"
+            def provider(self) -> str:
+                return "local"
+
             @property
-            def model_id(self) -> str: return "local-sha256-deterministic-embedding"
+            def model_id(self) -> str:
+                return "local-sha256-deterministic-embedding"
+
             @property
-            def model_version(self) -> str: return "v1.0"
+            def model_version(self) -> str:
+                return "v1.0"
+
             @property
-            def dimension(self) -> int: return 16
+            def dimension(self) -> int:
+                return 16
+
             @property
-            def config_hash(self) -> str: return hashlib.sha256(b"local-sha256-v1").hexdigest()
+            def config_hash(self) -> str:
+                return hashlib.sha256(b"local-sha256-v1").hexdigest()
 
             async def embed(self, text: str) -> list[float]:
                 h = hashlib.sha256(text.encode()).digest()
@@ -494,9 +524,11 @@ async def create_run(
         )
 
         lock_hash = _file_sha256("uv.lock")
-        is_controlled = (request.execution_mode == "controlled") or request.use_experimental_retriever
+        is_controlled = (
+            request.execution_mode == "controlled"
+        ) or request.use_experimental_retriever
         retriever_ver = "pgvector-fts-exp@v2.0" if is_controlled else "pgvector-fts-hybrid@v1.0"
-        
+
         provenance = RealPipelineProvenance(
             retriever_version=retriever_ver,
             embedding_provider=adapter.provider,
@@ -561,7 +593,7 @@ async def create_run(
             error_message=None,
             started_at=started_at,
             completed_at=completed_at,
-            is_synthetic=False,
+            evidence_class=evidence_class,
         )
         db.add(run_orm)
 
@@ -725,7 +757,7 @@ async def register_run(
         error_message=None,
         started_at=datetime.now(UTC),
         completed_at=None,
-        is_synthetic=request.is_synthetic,
+        evidence_class=request.evidence_class if request.evidence_class != "UNVERIFIED" else ("SYNTHETIC_SIMULATION" if request.is_synthetic else "PRODUCTION"),
     )
     db.add(run_orm)
 
@@ -749,6 +781,7 @@ async def register_run(
         pipeline_id=run_orm.pipeline_id,
         status=run_orm.status,
         is_synthetic=run_orm.is_synthetic,
+        evidence_class=run_orm.evidence_class,
     )
 
 
@@ -1000,25 +1033,32 @@ async def create_replay(
     intervention_type = intervention_spec.intervention_type
 
     registry = _build_version_registry()
-    
+
     # Try fetching by tag if candidate_version looks like a tag, otherwise assume it might be a UUID.
     # In Prompt 01, mock registry uses version_tags
     to_version = None
     if intervention_spec.candidate_version:
-        to_version = registry.get_by_type_and_tag(target_component, intervention_spec.candidate_version)
+        to_version = registry.get_by_type_and_tag(
+            target_component, intervention_spec.candidate_version
+        )
         if not to_version:
             try:
                 cv_id = uuid.UUID(intervention_spec.candidate_version)
                 to_version = registry.get(cv_id)
             except ValueError:
                 pass
-    
+
     if not to_version:
-        raise HTTPException(status_code=400, detail=f"Target component version not found: {intervention_spec.candidate_version}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Target component version not found: {intervention_spec.candidate_version}",
+        )
 
     from_version = None
     if intervention_spec.current_version:
-        from_version = registry.get_by_type_and_tag(target_component, intervention_spec.current_version)
+        from_version = registry.get_by_type_and_tag(
+            target_component, intervention_spec.current_version
+        )
         if not from_version:
             try:
                 cv_id = uuid.UUID(intervention_spec.current_version)
@@ -1027,15 +1067,26 @@ async def create_replay(
                 pass
 
     if not from_version:
-        raise HTTPException(status_code=400, detail=f"Source component version not found: {intervention_spec.current_version}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Source component version not found: {intervention_spec.current_version}",
+        )
 
     # Create intervention record
     intervention_orm = InterventionORM(
         id=uuid.UUID(intervention_spec.spec_id),
         run_id=run_id,
         tenant_id=original_run_orm.tenant_id,
-        intervention_type=str(intervention_type.value) if hasattr(intervention_type, "value") else str(intervention_type),
-        target_component_type=str(target_component.value) if hasattr(target_component, "value") else str(target_component),
+        intervention_type=(
+            str(intervention_type.value)
+            if hasattr(intervention_type, "value")
+            else str(intervention_type)
+        ),
+        target_component_type=(
+            str(target_component.value)
+            if hasattr(target_component, "value")
+            else str(target_component)
+        ),
         from_version_id=from_version.id,
         to_version_id=to_version.id,
         from_version_tag=from_version.version_tag,
@@ -1071,7 +1122,11 @@ async def create_replay(
         retriever_version=manifest_orm.retriever_version,
         retriever_settings=manifest_orm.retriever_settings,
         retrieved_chunk_ids=manifest_orm.retrieved_chunk_ids,
+        embedding_provider=manifest_orm.embedding_provider,
+        embedding_model_id=manifest_orm.embedding_model_id,
         embedding_model_version=manifest_orm.embedding_model_version,
+        embedding_vector_dimension=manifest_orm.embedding_vector_dimension,
+        embedding_config_hash=manifest_orm.embedding_config_hash,
         vector_index_snapshot_id=manifest_orm.vector_index_snapshot_id,
         tool_schemas_hash=manifest_orm.tool_schemas_hash,
         policy_config_hash=manifest_orm.policy_config_hash,
@@ -1127,7 +1182,7 @@ async def create_replay(
         replay_response_hash=episode.replay_response_hash,
         seed=episode.seed,
         completed_at=episode.completed_at,
-        is_synthetic=episode.is_synthetic,
+        evidence_class=episode.evidence_class,
         manifest_id=episode.manifest_id,
         is_pinned=episode.is_pinned,
     )
@@ -1185,6 +1240,7 @@ async def create_replay(
         completed_at=episode_orm.completed_at,
         is_synthetic=episode_orm.is_synthetic,
         evidence_kind=("synthetic_simulation" if episode_orm.is_synthetic else "controlled_replay"),
+        evidence_class=episode_orm.evidence_class,
         manifest_id=manifest_orm.id,
         manifest_hash=manifest_orm.manifest_hash,
         is_pinned=episode_orm.is_pinned,
@@ -1194,6 +1250,7 @@ async def create_replay(
 # ─── POST /v1/runs/{run_id}/finalize ──────────────────────────────────────────
 
 from apps.api.src.schemas import RunFinalizeRequest, RunFinalizeResponse
+
 
 @router.post(
     "/runs/{run_id}/finalize", response_model=RunFinalizeResponse, status_code=status.HTTP_200_OK
@@ -1216,10 +1273,12 @@ async def finalize_run(
 
     # Idempotent finalization check
     if run_orm.status in ("COMPLETED", "FAILED", "CANCELLED"):
-        # If terminal, just return existing status to be idempotent, 
+        # If terminal, just return existing status to be idempotent,
         # unless conflicting terminal state is passed (then we reject).
         if run_orm.status != request.status:
-            raise HTTPException(status_code=409, detail=f"Run already in terminal state {run_orm.status}")
+            raise HTTPException(
+                status_code=409, detail=f"Run already in terminal state {run_orm.status}"
+            )
         return RunFinalizeResponse(id=run_id, status=run_orm.status)
 
     run_orm.status = request.status
@@ -1252,6 +1311,8 @@ async def finalize_run(
         await db.commit()
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail="Database commit failed during finalization") from e
+        raise HTTPException(
+            status_code=500, detail="Database commit failed during finalization"
+        ) from e
 
     return RunFinalizeResponse(id=run_id, status=run_orm.status)

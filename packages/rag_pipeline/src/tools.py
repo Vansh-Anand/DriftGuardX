@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Any
+
 from pydantic import BaseModel
+
 
 class BaseTool(ABC):
     name: str
@@ -12,11 +14,12 @@ class BaseTool(ABC):
     async def execute(self, **kwargs: Any) -> Any:
         pass
 
+
 class ToolRegistry:
     def __init__(self):
         self._tools: dict[str, BaseTool] = {}
 
-    def register(self, tool: BaseTool):
+    def register(self, tool: BaseTool) -> None:
         self._tools[tool.name] = tool
 
     def get_tool(self, name: str) -> BaseTool | None:
@@ -28,14 +31,16 @@ class ToolRegistry:
                 "name": tool.name,
                 "description": tool.description,
                 "schema": tool.schema.model_json_schema(),
-                "safe_for_replay": tool.safe_for_replay
+                "safe_for_replay": tool.safe_for_replay,
             }
             for tool in self._tools.values()
         ]
 
+
 # Example Tool
 class CalculateSchema(BaseModel):
     expression: str
+
 
 class CalculateTool(BaseTool):
     name = "calculate"
@@ -51,6 +56,7 @@ class CalculateTool(BaseTool):
             return {"result": result}
         except Exception as e:
             return {"error": str(e)}
+
 
 registry = ToolRegistry()
 registry.register(CalculateTool())

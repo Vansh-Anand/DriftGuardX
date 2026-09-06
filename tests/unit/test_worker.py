@@ -24,7 +24,9 @@ def test_mock_pipeline_stable_run_completes() -> None:
     """Stable pipeline execution completes without error."""
     run_id = uuid.uuid4()
     pipeline = MockRAGPipeline(PIPELINE_WITH_STABLE_RETRIEVER)
-    run, trace = pipeline.execute(run_id=run_id, query="test query", seed=42, is_synthetic=True)
+    run, trace = pipeline.execute(
+        run_id=run_id, query="test query", seed=42, evidence_class="SYNTHETIC_SIMULATION"
+    )
 
     assert run.status == RunStatus.COMPLETED
     assert run.error_type is None
@@ -43,10 +45,10 @@ def test_mock_pipeline_experimental_run_has_lower_faithfulness() -> None:
     pipeline_stable = MockRAGPipeline(PIPELINE_WITH_STABLE_RETRIEVER)
 
     run_exp, _ = pipeline_exp.execute(
-        run_id=run_id_exp, query="AI safety?", seed=42, is_synthetic=True
+        run_id=run_id_exp, query="AI safety?", seed=42, evidence_class="SYNTHETIC_SIMULATION"
     )
     run_stable, _ = pipeline_stable.execute(
-        run_id=run_id_stable, query="AI safety?", seed=42, is_synthetic=True
+        run_id=run_id_stable, query="AI safety?", seed=42, evidence_class="SYNTHETIC_SIMULATION"
     )
 
     # Faithfulness dimension must be lower for experimental
@@ -61,8 +63,12 @@ def test_mock_pipeline_experimental_run_has_lower_faithfulness() -> None:
 def test_mock_pipeline_is_deterministic_same_seed() -> None:
     """Same seed must produce identical reliability scores."""
     pipeline = MockRAGPipeline(PIPELINE_WITH_STABLE_RETRIEVER)
-    run1, _ = pipeline.execute(run_id=uuid.uuid4(), query="What is AI?", seed=42, is_synthetic=True)
-    run2, _ = pipeline.execute(run_id=uuid.uuid4(), query="What is AI?", seed=42, is_synthetic=True)
+    run1, _ = pipeline.execute(
+        run_id=uuid.uuid4(), query="What is AI?", seed=42, evidence_class="SYNTHETIC_SIMULATION"
+    )
+    run2, _ = pipeline.execute(
+        run_id=uuid.uuid4(), query="What is AI?", seed=42, evidence_class="SYNTHETIC_SIMULATION"
+    )
 
     assert (
         run1.reliability_score == run2.reliability_score

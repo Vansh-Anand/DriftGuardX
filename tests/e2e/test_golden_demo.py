@@ -85,9 +85,9 @@ async def test_golden_demo_replay_with_pinned_versions(client: AsyncClient) -> N
                 "target_component": "retriever",
                 "intervention_type": "rollback",
                 "current_version": "v2-exp",
-                "candidate_version": "v1"
+                "candidate_version": "v1",
             },
-            "seed": 42
+            "seed": 42,
         },
     )
     assert replay_resp.status_code == 201, replay_resp.text
@@ -136,9 +136,9 @@ async def test_golden_demo_intervention_not_auto_applied(client: AsyncClient) ->
                 "target_component": "retriever",
                 "intervention_type": "rollback",
                 "current_version": "v2-exp",
-                "candidate_version": "v1"
+                "candidate_version": "v1",
             },
-            "seed": 42
+            "seed": 42,
         },
     )
     assert replay_resp.status_code == 201, replay_resp.text

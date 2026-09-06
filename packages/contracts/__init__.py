@@ -4,7 +4,7 @@ DriftGuard-X v2 — Shared Contracts Package
 All inter-module data schemas. Strict Pydantic v2 models.
 """
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.models import (
     AgentPipeline,
     ComponentType,
@@ -40,7 +40,7 @@ __all__ = [
     "Intervention",
     "InterventionType",
     "RecoveryCertificate",
-    "RecoveryEvidenceKind",
+    "EvidenceClassification",
     "RepairDecision",
     "RepairDecisionStatus",
     "ReplayEpisode",

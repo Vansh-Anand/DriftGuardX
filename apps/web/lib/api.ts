@@ -31,6 +31,7 @@ export interface Run {
   total_cost_usd: number;
   reliability_score: number;
   is_synthetic: boolean;
+  evidence_class: string;
   total_tokens?: number;
   error_type?: string;
   error_message?: string;

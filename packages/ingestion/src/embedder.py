@@ -38,11 +38,13 @@ class LocalEmbedder:
     def config_hash(self) -> str:
         import hashlib
         import json
+
         config = {"model": self.model_name, "revision": self.revision, "dimension": self.dimension}
         return hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
 
     async def embed(self, text: str) -> list[float]:
         import asyncio
+
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: self.embed_texts([text])[0])
 

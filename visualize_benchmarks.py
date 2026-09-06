@@ -14,7 +14,7 @@ def parse_results(filepath):
         data = json.load(f)
     return data
 
-def plot_benchmark_results(dataset_name, results):
+def plot_benchmark_results(dataset_name, results) -> None:
     faults = list(set([r['fault_type'] for r in results.values()]))
     strategies = list(set([r['strategy'] for r in results.values()]))
 
@@ -65,7 +65,7 @@ def plot_benchmark_results(dataset_name, results):
     plt.savefig(os.path.join(OUTPUT_DIR, f"{dataset_name}_cost.png"))
     plt.close()
 
-def main():
+def main() -> None:
     files = [f for f in os.listdir(RESULTS_DIR) if f.startswith('benchmark_') and f.endswith('.json')]
     for file in files:
         filepath = os.path.join(RESULTS_DIR, file)

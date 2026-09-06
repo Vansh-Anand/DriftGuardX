@@ -88,13 +88,12 @@ app = FastAPI(
         {"name": "runs", "description": "Execute and manage RAG runs"},
         {"name": "telemetry", "description": "Ingest trace and span data"},
         {"name": "recovery", "description": "Trigger and approve recovery actions"},
-        {"name": "manifest", "description": "View cryptographic manifests and replay evidence"}
+        {"name": "manifest", "description": "View cryptographic manifests and replay evidence"},
     ],
-    servers=[
-        {"url": "http://localhost:8000", "description": "Local environment"}
-    ],
+    servers=[{"url": "http://localhost:8000", "description": "Local environment"}],
     lifespan=_lifespan,
 )
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -103,12 +102,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors(), "body": exc.body, "error_code": "validation_error"},
     )
 
+
 @app.exception_handler(ValidationError)
 async def pydantic_validation_exception_handler(request: Request, exc: ValidationError):
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors(), "error_code": "pydantic_validation_error"},
     )
+
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 

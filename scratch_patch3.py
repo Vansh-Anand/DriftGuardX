@@ -1,12 +1,12 @@
-with open('tests/integration/test_security_audit.py', 'r') as f:
+with open('tests/integration/test_security_audit.py') as f:
     code = f.read()
 
 mock_code = """
     from apps.api.src.models import ApprovalRequestORM
-    from packages.contracts.src.bcrb_models import RecoveryEvidenceKind
+    from packages.contracts.src.bcrb_models import EvidenceClassification
     from datetime import datetime, UTC, timedelta
     import uuid
-    
+
     async def mock_execute_recovery_loop(self, run_id, invocations, failure_symptom, db):
         req = ApprovalRequestORM(
             id=uuid.uuid4(),
@@ -24,16 +24,16 @@ mock_code = """
                 "run_id": run_id,
                 "replay_episode_id": str(uuid.uuid4()),
                 "intervention_id": str(uuid.uuid4()),
-                "evidence_kind": RecoveryEvidenceKind.SYNTHETIC_SIMULATION.value,
+                "evidence_kind": EvidenceClassification.SYNTHETIC_SIMULATION.value,
                 "cert_hash": "dummy_hash"
             }
         )
         db.add(req)
         await db.flush()
         return req
-        
+
     monkeypatch.setattr("apps.api.src.services.recovery_pipeline.EndToEndRecoveryPipeline.execute_recovery_loop", mock_execute_recovery_loop)
-    
+
     response = await client.post(
 """
 

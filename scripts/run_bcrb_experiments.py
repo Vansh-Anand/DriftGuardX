@@ -71,7 +71,7 @@ def run_experiment(scheduler_cls: type[BaseScheduler], arms: list[CandidateArm],
     ci = 1.96 * (std_reward / math.sqrt(num_trials))
     return mean_reward, ci
 
-def main():
+def main() -> None:
     random.seed(42)
 
     arms = [

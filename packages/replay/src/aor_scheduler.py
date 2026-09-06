@@ -22,7 +22,11 @@ class TaskStatus:
 
 class AORTask:
     def __init__(
-        self, task_id: str, func: Callable, inputs: dict[str, Any], dependencies: list[str] | None = None
+        self,
+        task_id: str,
+        func: Callable,
+        inputs: dict[str, Any],
+        dependencies: list[str] | None = None,
     ):
         self.task_id = task_id
         self.func = func

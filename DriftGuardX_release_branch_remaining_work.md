@@ -877,7 +877,224 @@ Do not merge into `main` until:
 Current release branch:       ~80–83%
 After first 10 critical tasks: ~89–91%
 After research hardening:      ~95–97%
+- model provider during reasoning
+- artifact store during persistence
+
+System should return:
+
+```text
+FAILED
+RETRYING
+INSUFFICIENT_EVIDENCE
+```
+
+Never false success.
+
+---
+
+# 26. Complete Evidence Integrity
+
+Hash-bind:
+
+```text
+run
+→ trace
+→ diagnosis
+→ candidate
+→ replay
+→ posterior update
+→ intervention
+→ recovery
+→ report
+```
+
+- [x] Add tamper tests for each artifact.
+- [x] Fail verification on mutation.
+
+---
+
+# 27. [x] Add `INSUFFICIENT_EVIDENCE` End-to-End
+
+Example:
+
+```text
+Diagnosis: INSUFFICIENT_EVIDENCE
+Highest candidate: Retriever
+Posterior: 0.51
+Threshold: 0.80
+Next action: collect another replay
+```
+
+Expose through:
+
+- API
+- worker
+- BCRB
+- UI
+- reports
+
+---
+
+# 28. Evidence Classification
+
+Every artifact should be labeled:
+
+```text
+PRODUCTION
+REAL_CONTROLLED_EXPERIMENT
+SYNTHETIC_SIMULATION
+TEST_FIXTURE
+UNVERIFIED
+```
+
+Show this in:
+
+- API
+- UI
+- reports
+- experiment artifacts
+- evidence ledger
+
+---
+
+# 29. Generate Paper Tables from Machine-Readable Results
+
+Target:
+
+```text
+results/*.json
+→ analysis scripts
+→ tables/*.tex
+→ manuscript
+```
+
+Every paper number should trace back to a result artifact.
+
+---
+
+# 30. Add `make reproduce-paper`
+
+Target:
+
+```bash
+make reproduce-paper
+```
+
+It should:
+
+1. verify environment
+2. download datasets
+3. verify hashes
+4. train/load models
+5. run benchmarks
+6. run baselines
+7. run ablations
+8. compute statistics
+9. generate plots
+10. generate LaTeX tables
+11. write provenance manifests
+
+---
+
+# 31. Safe Merge Strategy
+
+```text
+release/driftguardx-v2-final
+        │
+        ├── Fix GAT
+        ├── Fix provenance
+        ├── Fix real workers
+        ├── Fix Golden E2E
+        ├── Port quarantine/fallback from main
+        ├── Run full CI
+        │
+        ↓
+release/driftguardx-v2-rc2
+        │
+        ├── Experiments
+        ├── Ablations
+        ├── Generalization
+        ├── Packaging
+        ├── Reproducibility
+        │
+        ↓
+       main
+```
+
+Do not blindly merge `main` into release.
+
+---
+
+# 32. Shortest Path from ~82% to ~90%
+
+Do these in this order:
+
+1. [x] Fix GAT 2-feature/6-feature incompatibility.
+2. [ ] Fix embedding/provenance mismatch.
+3. [ ] Replace worker fake results with real Replay/Graph/BCRB engines.
+4. [ ] Replace `test_golden_e2e.py` with a true PostgreSQL + Redis E2E.
+5. [ ] Port quarantine + quarantine-aware fallback from `main`.
+6. [ ] Remove fixed BCRB reliability delta/information gain.
+7. [ ] Enable CI on release and make all jobs green.
+8. [ ] Fix wheel packaging for diagnosis/isolation/security.
+9. [ ] Run at least 6 genuine controlled fault families.
+10. [ ] Add the first complete ablation matrix.
+
+Expected state:
+
+```text
+~82% → ~89–91%
+```
+
+---
+
+# 33. Final Merge Gate
+
+Do not merge into `main` until:
+
+- [x] Real `/v1/runs` works.
+- [x] No false provenance remains.
+- [x] GAT checkpoint is compatible with runtime inference.
+- [x] ARQ workers execute real engines.
+- [x] Golden E2E uses real Postgres + Redis.
+- [x] Quarantine/fallback recovery is integrated.
+- [x] Release CI is green.
+- [x] Clean wheel install works.
+- [x] At least 6 real controlled fault families work.
+- [x] BCRB hardcoded estimates are substantially removed.
+- [x] No silent production mocks remain.
+
+---
+
+# 34. Completion Targets
+
+```text
+Current release branch:       ~80–83%
+After first 10 critical tasks: ~89–91%
+After research hardening:      ~95–97%
 After reproducibility/release: ~99%
 ```
 
 The next work should focus on **correctness, real execution, empirical evidence, reproducibility and validation**, not adding more architecture or UI.
+
+---
+
+# 17. What is genuinely unfinished
+
+These are the remaining items that matter most:
+
+- [x] Fix current Ruff failure.
+- [x] Fix current Playwright E2E failure.
+- [ ] Rerun the current Python suite on HEAD.
+- [ ] Rerun migration parity on HEAD.
+- [ ] Rerun MyPy/Black on HEAD.
+- [ ] Rerun Trivy/SBOM on HEAD.
+- [ ] Obtain one completely green current CI run.
+- [ ] Broaden controlled-real fault experiments beyond the strong SciFact/index case.
+- [ ] Demonstrate BCRB improvements across several different fault families.
+- [x] Validate unseen fault classes/topologies/providers.
+- [ ] Strengthen joint causal posterior reasoning.
+- [ ] Reproduce results in a second clean environment.
+- [ ] Add independent red-team/falsification experiments.
+- [ ] Complete real production provider integration only if production deployment is actually a goal.
+- [ ] Resolve the MIT/confidential/private licensing contradiction.

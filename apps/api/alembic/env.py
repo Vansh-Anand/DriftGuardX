@@ -26,11 +26,11 @@ APPLICATION_ROOT = Path(__file__).resolve().parents[3]
 if str(APPLICATION_ROOT) not in sys.path:
     sys.path.insert(0, str(APPLICATION_ROOT))
 
-import apps.api.src.models_bandit  # noqa: E402
-import apps.api.src.models_graph  # noqa: E402
-import apps.api.src.models_ingestion  # noqa: E402
-import apps.api.src.models_manifest  # noqa: E402,F401
-from apps.api.src.models import Base  # noqa: E402
+import apps.api.src.models_bandit
+import apps.api.src.models_graph
+import apps.api.src.models_ingestion
+import apps.api.src.models_manifest
+from apps.api.src.models import Base
 
 # Alembic config object
 config = context.config

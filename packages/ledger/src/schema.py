@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 
 DOMAIN_SEPARATOR = "DriftGuardX-Recovery-Cert-V2"
 
@@ -52,7 +52,7 @@ class RecoveryCertificate:
     # Ledger specific
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     previous_cert_hash: str = "GENESIS"
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_kind: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION
 
     # Authentication (Set during signing, excluded from payload hash)
     signature: str | None = None

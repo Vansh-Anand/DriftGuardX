@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.recovery_models import (
     CausalRecoveryCut,
     RecoveryInvariant,
@@ -225,7 +225,7 @@ class RecoveryValidator:
                     residual_risk=1.0,
                     eligible_for_canary=False,
                     reason=f"Controlled replay failed: {outcome}",
-                    evidence_kind=RecoveryEvidenceKind(result.evidence_kind),
+                    evidence_kind=EvidenceClassification(result.evidence_kind),
                 )
 
             replay_spans = result.new_spans
@@ -275,10 +275,10 @@ class RecoveryValidator:
             failure_resolved
             and invariants_satisfied
             and div_report.valid
-            and result.evidence_kind != RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+            and result.evidence_kind != EvidenceClassification.SYNTHETIC_SIMULATION
         )
         if (
-            result.evidence_kind == RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+            result.evidence_kind == EvidenceClassification.SYNTHETIC_SIMULATION
             and reason == "Validation passed."
         ):
             reason = (
@@ -294,7 +294,7 @@ class RecoveryValidator:
             residual_risk=residual_risk,
             eligible_for_canary=eligible,
             reason=reason,
-            evidence_kind=RecoveryEvidenceKind(result.evidence_kind),
+            evidence_kind=EvidenceClassification(result.evidence_kind),
         )
 
     def validate(

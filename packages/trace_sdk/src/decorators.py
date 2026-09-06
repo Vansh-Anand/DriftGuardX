@@ -6,22 +6,26 @@ Provides automatic instrumentation for external agent tools, functions, and comp
 
 import functools
 import inspect
-from typing import Any, Callable, TypeVar, cast
+from collections.abc import Callable
 from contextvars import ContextVar
+from typing import Any, TypeVar, cast
 
 from packages.contracts.src.models import ComponentType, PrivacyMode, SpanKind
-from packages.trace_sdk.src.tracer import TraceContext, SpanBuilder, hash_payload
+from packages.trace_sdk.src.tracer import TraceContext
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 # Context variable to hold the active trace context if not explicitly passed
-_active_trace_context: ContextVar[TraceContext | None] = ContextVar("active_trace_context", default=None)
+_active_trace_context: ContextVar[TraceContext | None] = ContextVar(
+    "active_trace_context", default=None
+)
 # Context variable to track causal parent spans in async/sync call chains
 _active_parent_span_id: ContextVar[str | None] = ContextVar("active_parent_span_id", default=None)
 
 
 def set_active_trace_context(ctx: TraceContext | None) -> None:
     _active_trace_context.set(ctx)
+
 
 def get_active_trace_context() -> TraceContext | None:
     return _active_trace_context.get()
@@ -40,10 +44,12 @@ def trace_component(
     Decorator to automatically trace synchronous and asynchronous functions.
     Preserves causal edges, correctly extracts exceptions to ERROR spans, and respects privacy rules.
     """
+
     def decorator(func: F) -> F:
         func_name = name or func.__name__
 
         if inspect.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs) -> Any:
                 ctx = get_active_trace_context()
@@ -54,16 +60,16 @@ def trace_component(
                 builder = ctx.start_span(name=func_name, kind=kind, parent_span_id=parent_id)
                 builder.set_attribute("dgx.component.type", str(component_type))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
-                
+
                 # Explicitly set the private component type for building the contract
                 builder.set_component_type(component_type)
-                
+
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
 
                 if capture_args:
                     builder.set_input({"args": args, "kwargs": kwargs})
-                
+
                 token = _active_parent_span_id.set(builder.span_id)
                 try:
                     result = await func(*args, **kwargs)
@@ -80,6 +86,7 @@ def trace_component(
 
             return cast(F, async_wrapper)
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs) -> Any:
                 ctx = get_active_trace_context()
@@ -90,9 +97,9 @@ def trace_component(
                 builder = ctx.start_span(name=func_name, kind=kind, parent_span_id=parent_id)
                 builder.set_attribute("dgx.component.type", str(component_type))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
-                
+
                 builder.set_component_type(component_type)
-                
+
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
 

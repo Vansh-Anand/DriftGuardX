@@ -7,7 +7,12 @@ import json
 from typing import Any
 
 from packages.contracts.src.recovery_models import CryptographicSignature
-from packages.ledger.src.crypto import DevelopmentSigner, KMSProviderSigner, SignerProtocol, verify_signature
+from packages.ledger.src.crypto import (
+    DevelopmentSigner,
+    SignerProtocol,
+    verify_signature,
+)
+
 
 class LocalKMSProvider:
     """
@@ -48,8 +53,9 @@ class LocalKMSProvider:
         return verify_signature(
             public_key_b64=signature.public_key,
             payload=payload_str.encode("utf-8"),
-            signature_b64=signature.signature
+            signature_b64=signature.signature,
         )
+
 
 # Global singleton for the application
 kms_provider = LocalKMSProvider()

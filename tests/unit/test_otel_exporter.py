@@ -1,23 +1,24 @@
-import pytest
 import uuid
-import datetime
 from unittest.mock import MagicMock
+
+import pytest
 from opentelemetry.sdk.trace.export import SpanExportResult
-from packages.trace_sdk.src.otel_exporter import DriftGuardSpanExporter, datetime_from_nano
+
 from packages.contracts.src.sdk_models import BatchResult
+from packages.trace_sdk.src.otel_exporter import DriftGuardSpanExporter
+
 
 @pytest.fixture
 def mock_client():
     return MagicMock()
 
+
 @pytest.fixture
 def exporter(mock_client):
     return DriftGuardSpanExporter(
-        client=mock_client,
-        run_id=uuid.uuid4(),
-        tenant_id=uuid.uuid4(),
-        pipeline_id=uuid.uuid4()
+        client=mock_client, run_id=uuid.uuid4(), tenant_id=uuid.uuid4(), pipeline_id=uuid.uuid4()
     )
+
 
 @pytest.fixture
 def mock_span():
@@ -33,17 +34,15 @@ def mock_span():
     span.attributes = {}
     return span
 
+
 def test_export_success(exporter, mock_client, mock_span):
     mock_client.batch_spans.return_value = BatchResult(
-        status="SUCCESS",
-        ingested_count=1,
-        skipped_count=0,
-        failed_spans=[],
-        errors=[]
+        status="SUCCESS", ingested_count=1, skipped_count=0, failed_spans=[], errors=[]
     )
-    
+
     result = exporter.export([mock_span])
     assert result == SpanExportResult.SUCCESS
+
 
 def test_export_partial_failure(exporter, mock_client, mock_span):
     mock_client.batch_spans.return_value = BatchResult(
@@ -51,11 +50,12 @@ def test_export_partial_failure(exporter, mock_client, mock_span):
         ingested_count=1,
         skipped_count=0,
         failed_spans=["failed_span"],
-        errors=["Some error"]
+        errors=["Some error"],
     )
-    
+
     result = exporter.export([mock_span])
     assert result == SpanExportResult.FAILURE
+
 
 def test_export_complete_failure(exporter, mock_client, mock_span):
     mock_client.batch_spans.return_value = BatchResult(
@@ -63,28 +63,32 @@ def test_export_complete_failure(exporter, mock_client, mock_span):
         ingested_count=0,
         skipped_count=0,
         failed_spans=["span1"],
-        errors=["Network error"]
+        errors=["Network error"],
     )
-    
+
     result = exporter.export([mock_span])
     assert result == SpanExportResult.FAILURE
 
+
 def test_export_exception(exporter, mock_client, mock_span):
     mock_client.batch_spans.side_effect = Exception("Crash")
-    
+
     result = exporter.export([mock_span])
     assert result == SpanExportResult.FAILURE
+
 
 def test_force_flush(exporter):
     assert exporter.force_flush() is True
     exporter.shutdown()
     assert exporter.force_flush() is False
 
+
 def test_shutdown_idempotent(exporter):
     exporter.shutdown()
     assert exporter._is_shutdown is True
     # Should not raise
     exporter.shutdown()
+
 
 def test_export_after_shutdown(exporter, mock_client, mock_span):
     exporter.shutdown()

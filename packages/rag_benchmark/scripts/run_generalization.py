@@ -1,13 +1,13 @@
 import json
 import time
+from collections import defaultdict
+from pathlib import Path
+
+import numpy as np
 import torch
 import torch.nn.functional as F
-from pathlib import Path
-from collections import defaultdict
-import numpy as np
-
-from torch_geometric.loader import DataLoader
 from sklearn.metrics import roc_auc_score
+from torch_geometric.loader import DataLoader
 
 from packages.detectors.src.gat_inference import DriftGuardX_GAT
 from packages.diffusion.src.dataset import build_pyg_dataset
@@ -16,12 +16,12 @@ from packages.diffusion.src.dataset import build_pyg_dataset
 def compute_ranking_metrics(y_true_nodes, y_prob_nodes, batch_idx):
     """Computes Hit@1, Hit@3 and MRR per graph (batch)."""
     graphs = defaultdict(list)
-    for y_t, y_p, b in zip(y_true_nodes, y_prob_nodes, batch_idx):
+    for y_t, y_p, b in zip(y_true_nodes, y_prob_nodes, batch_idx, strict=False):
         graphs[b].append((y_t, y_p))
-    
+
     hits = {1: [], 3: []}
     mrrs = []
-    
+
     for b, nodes in graphs.items():
         nodes.sort(key=lambda x: x[1], reverse=True)
         rank = -1
@@ -29,21 +29,21 @@ def compute_ranking_metrics(y_true_nodes, y_prob_nodes, batch_idx):
             if y_t == 1:
                 rank = i + 1
                 break
-        
+
         if rank == -1:
             continue
-            
+
         hits[1].append(1 if rank <= 1 else 0)
         hits[3].append(1 if rank <= 3 else 0)
         mrrs.append(1.0 / rank)
-        
+
     if not mrrs:
         return {"hit@1": 0.0, "hit@3": 0.0, "mrr": 0.0}
-        
+
     return {
         "hit@1": float(np.mean(hits[1])),
         "hit@3": float(np.mean(hits[3])),
-        "mrr": float(np.mean(mrrs))
+        "mrr": float(np.mean(mrrs)),
     }
 
 
@@ -51,20 +51,22 @@ def evaluate_model(model, loader, device):
     model.eval()
     test_y_true, test_y_prob = [], []
     node_y_true, node_y_prob, node_batch = [], [], []
-    
+
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
             # Dummy target creation for compatibility if y is not set
             if not hasattr(data, "y") or data.y is None:
-                data.y = torch.tensor([y_root.max().item() for y_root in data.y_root], dtype=torch.long, device=device)
-                
+                data.y = torch.tensor(
+                    [y_root.max().item() for y_root in data.y_root], dtype=torch.long, device=device
+                )
+
             graph_logits, node_logits = model(data.x, data.edge_index, data.batch)
-            
+
             probs = F.softmax(graph_logits, dim=1)[:, 1].cpu().numpy()
             test_y_true.extend(data.y.cpu().numpy())
             test_y_prob.extend(probs)
-            
+
             n_probs = F.softmax(node_logits, dim=1)[:, 1].cpu().numpy()
             node_y_true.extend(data.y_root.cpu().numpy().squeeze(-1))
             node_y_prob.extend(n_probs)
@@ -79,7 +81,7 @@ def evaluate_model(model, loader, device):
     return {"roc_auc": float(roc_auc), **rnk_metrics}
 
 
-def main():
+def main() -> None:
     print("--- DriftGuard-X Generalization Experiment ---")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -88,14 +90,14 @@ def main():
     train_dataset = build_pyg_dataset(num_episodes=500, workloads=["A"], fault_range=(1, 8))
     for data in train_dataset:
         data.y = torch.tensor([data.y_root.max().item()], dtype=torch.long)
-        
+
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    
+
     print("Training GAT model...")
     model = DriftGuardX_GAT(in_channels=6, hidden_dim=64, num_classes=2).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-4)
-    
-    for epoch in range(10):  # fast training for demo
+
+    for _epoch in range(10):  # fast training for demo
         model.train()
         for data in train_loader:
             data = data.to(device)
@@ -126,23 +128,27 @@ def main():
     print("\n==============================================")
     print("      GENERALIZATION EXPERIMENT RESULTS       ")
     print("==============================================")
-    print(f"Metric       | In-Distribution | Out-Of-Distribution")
-    print(f"-------------|-----------------|--------------------")
+    print("Metric       | In-Distribution | Out-Of-Distribution")
+    print("-------------|-----------------|--------------------")
     print(f"ROC AUC      | {id_metrics['roc_auc']:15.3f} | {ood_metrics['roc_auc']:19.3f}")
     print(f"Hit@1        | {id_metrics['hit@1']:15.3f} | {ood_metrics['hit@1']:19.3f}")
     print(f"Hit@3        | {id_metrics['hit@3']:15.3f} | {ood_metrics['hit@3']:19.3f}")
     print(f"MRR          | {id_metrics['mrr']:15.3f} | {ood_metrics['mrr']:19.3f}")
-    
+
     out_dir = Path("packages/rag_benchmark/results")
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "generalization_results.json"
-    
+
     with open(out_file, "w") as f:
-        json.dump({
-            "in_distribution": id_metrics,
-            "out_of_distribution": ood_metrics,
-            "timestamp": time.time()
-        }, f, indent=2)
+        json.dump(
+            {
+                "in_distribution": id_metrics,
+                "out_of_distribution": ood_metrics,
+                "timestamp": time.time(),
+            },
+            f,
+            indent=2,
+        )
 
     print(f"\nResults saved to {out_file}")
 

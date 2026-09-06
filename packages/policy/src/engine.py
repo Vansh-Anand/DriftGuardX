@@ -28,7 +28,7 @@ from packages.policy.src.approvals import (
 )
 
 # Re-export the existing gate for backward compatibility
-from packages.policy.src.gate import (  # noqa: F401
+from packages.policy.src.gate import (
     PolicyAction,
     PolicyGate,
     PolicyResult,

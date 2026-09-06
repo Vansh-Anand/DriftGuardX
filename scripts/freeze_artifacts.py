@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 
-def generate_freeze():
+def generate_freeze() -> None:
     out_dir = Path("releases/v2.0.0-rc.1")
     out_dir.mkdir(parents=True, exist_ok=True)
 

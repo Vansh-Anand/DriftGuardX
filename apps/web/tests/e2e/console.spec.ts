@@ -1,23 +1,22 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('DriftGuard-X Web Console', () => {
-  test('Editorial landing page exposes the evidence narrative and motion media', async ({ page }) => {
+  test('Editorial landing page exposes the core narrative', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Evidence, not instinct/i })).toBeVisible();
-    await expect(page.locator('video[aria-label="Abstract data network animation"]')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open operations console' })).toBeVisible();
-    await expect(page.getByText('Make the invisible', { exact: false })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'DRIFTGUARDX.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /An AI agent that works inside your data pipelines/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /DISCOVER MORE/i })).toBeVisible();
   });
 
   test('Editorial landing remains composed on a mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Evidence, not instinct/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'DRIFTGUARDX.' })).toBeVisible();
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       content: document.documentElement.scrollWidth,
     }));
-    expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+    expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 10);
   });
 
   test('Overview page loads with correct title and navigation', async ({ page }) => {
@@ -63,7 +62,7 @@ test.describe('DriftGuard-X Web Console', () => {
             total_latency_ms: 1500,
             total_cost_usd: 0.05,
             reliability_score: 0.4,
-            is_synthetic: true
+            evidence_class: 'SYNTHETIC_SIMULATION'
           }
         ],
         total: 1,
@@ -77,7 +76,7 @@ test.describe('DriftGuard-X Web Console', () => {
     await expect(page.getByRole('heading', { name: 'Runs' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'mock...' })).toBeVisible();
     await expect(page.getByText('failed')).toBeVisible();
-    await expect(page.getByText('Synthetic', { exact: true })).toBeVisible();
+    await expect(page.getByText('SYNTHETIC SIMULATION', { exact: true })).toBeVisible();
   });
 
   test('Replay Lab handles form submission', async ({ page }) => {

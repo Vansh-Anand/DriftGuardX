@@ -1,7 +1,9 @@
-import pytest
 import asyncio
-from typing import Any
 import uuid
+from typing import Any
+
+import pytest
+
 
 @pytest.mark.asyncio
 async def test_worker_chaos_recovery():
@@ -10,9 +12,9 @@ async def test_worker_chaos_recovery():
     the system correctly restarts the job without corrupting state.
     """
     from apps.api.src.jobs.orchestrator import orchestrator
-    
+
     tenant_id = str(uuid.uuid4())
-    
+
     # We submit a mock job that will simulate a crash halfway through
     # and verify idempotency/retry correctly restores it.
     async def chaotic_task(*args: Any, **kwargs: Any) -> Any:
@@ -22,32 +24,30 @@ async def test_worker_chaos_recovery():
         if not kwargs.get("is_retry", False):
             raise RuntimeError("Simulated Worker Crash (Chaos)")
         return "recovered_success"
-    
+
     job_id = orchestrator.submit_job(
-        task_type="chaos_test",
-        coro_func=chaotic_task,
-        tenant_id=tenant_id,
-        is_retry=False
+        task_type="chaos_test", coro_func=chaotic_task, tenant_id=tenant_id, is_retry=False
     )
-    
+
     # Wait for failure
     await asyncio.sleep(0.1)
     status = await orchestrator.get_job_status(job_id, tenant_id=tenant_id)
     assert status["status"] == "failed"
-    
+
     # Simulate ARQ retry kicking in (we call it manually here)
     retry_job_id = orchestrator.submit_job(
         task_type="chaos_test",
         coro_func=chaotic_task,
         tenant_id=tenant_id,
         idempotency_key=job_id,
-        is_retry=True
+        is_retry=True,
     )
-    
+
     await asyncio.sleep(0.1)
     retry_status = await orchestrator.get_job_status(retry_job_id, tenant_id=tenant_id)
     assert retry_status["status"] == "completed"
     assert retry_status["result"] == "recovered_success"
+
 
 @pytest.mark.asyncio
 async def test_db_dropout_during_diagnosis():

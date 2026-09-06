@@ -15,7 +15,7 @@ from sqlalchemy.pool import NullPool
 import apps.api.src.models_bandit
 import apps.api.src.models_graph
 import apps.api.src.models_ingestion
-import apps.api.src.models_manifest  # noqa: F401
+import apps.api.src.models_manifest
 from apps.api.src.config import settings
 from apps.api.src.models import Base
 

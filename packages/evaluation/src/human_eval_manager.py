@@ -1,16 +1,17 @@
 import csv
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from packages.evaluation.src.human_eval_schema import EvaluationItem
 
 
-import tempfile
-
 class HumanEvalManager:
     def __init__(self, data_dir: str | None = None):
-        self.data_dir = Path(data_dir) if data_dir else Path(tempfile.gettempdir()) / "human_eval_data"
+        self.data_dir = (
+            Path(data_dir) if data_dir else Path(tempfile.gettempdir()) / "human_eval_data"
+        )
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.items_file = self.data_dir / "evaluation_items.json"
         self.items: dict[str, EvaluationItem] = {}

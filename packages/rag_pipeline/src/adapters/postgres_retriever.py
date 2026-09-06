@@ -1,5 +1,6 @@
 import uuid
 from typing import Any
+
 import numpy as np
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,10 +49,12 @@ class PostgresHybridRetriever(RetrieverAdapter):
     ) -> list[RetrievedChunk]:
         # 1. Embed query
         query_embedding = await self.embedding_adapter.embed(query)
-        
+
         expected_dim = getattr(self.embedding_adapter, "dimension", None)
         if expected_dim is not None and len(query_embedding) != expected_dim:
-            raise ValueError(f"Embedding dimension mismatch: expected {expected_dim}, got {len(query_embedding)}")
+            raise ValueError(
+                f"Embedding dimension mismatch: expected {expected_dim}, got {len(query_embedding)}"
+            )
 
         # Detect dialect to determine if native pgvector/FTS is available
         dialect_name = "postgresql"
@@ -66,7 +69,11 @@ class PostgresHybridRetriever(RetrieverAdapter):
                 s_bind = getattr(sync_session, "bind", None)
                 if s_bind is not None and hasattr(s_bind, "dialect"):
                     s_dialect = getattr(s_bind, "dialect", None)
-                    if s_dialect is not None and hasattr(s_dialect, "name") and isinstance(s_dialect.name, str):
+                    if (
+                        s_dialect is not None
+                        and hasattr(s_dialect, "name")
+                        and isinstance(s_dialect.name, str)
+                    ):
                         dialect_name = s_dialect.name.lower()
 
         if "sqlite" in dialect_name:
@@ -136,7 +143,10 @@ class PostgresHybridRetriever(RetrieverAdapter):
                     text_content=row["text_content"],
                     score=float(row["rrf_score"]),
                     document_id=str(row["document_id"]),
-                    metadata={"retriever": "pgvector_fts_hybrid", "rrf_score": float(row["rrf_score"])},
+                    metadata={
+                        "retriever": "pgvector_fts_hybrid",
+                        "rrf_score": float(row["rrf_score"]),
+                    },
                 )
             )
 
@@ -194,6 +204,7 @@ class PostgresHybridRetriever(RetrieverAdapter):
             if emb is not None:
                 if isinstance(emb, str):
                     import json
+
                     try:
                         emb = json.loads(emb)
                     except Exception:

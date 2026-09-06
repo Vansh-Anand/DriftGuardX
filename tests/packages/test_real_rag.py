@@ -52,7 +52,11 @@ async def test_real_rag_pipeline_structure(mock_retriever):
         artifact_store=AsyncMock(),
         provenance=RealPipelineProvenance(
             retriever_version="pgvector-v1@sha256:abc",
+            embedding_provider="openai",
+            embedding_model_id="text-embedding-3-small",
             embedding_model_version="test-embedding-v1@sha256:def",
+            embedding_vector_dimension=1536,
+            embedding_config_hash="emb-hash",
             vector_index_snapshot_id="index-v1@sha256:123",
             policy_config_hash="sha256:456",
             container_image_digest="sha256:789",

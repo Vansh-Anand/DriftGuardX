@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import Field
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.models import DGXBaseModel
 
 
@@ -61,11 +61,13 @@ class FaultInjector(abc.ABC):
 
 class SyntheticFaultInjector(FaultInjector):
     """Injects faults by monkey-patching Python objects (mock/synthetic)."""
+
     pass
 
 
 class RealControlledFaultInjector(FaultInjector):
     """Injects genuine infrastructural faults (e.g., SQL corruption, network config)."""
+
     pass
 
 
@@ -108,7 +110,7 @@ class BenchmarkTrial(DGXBaseModel):
     localization_correct: bool = False
     top_candidate: str | None = None
     observations: list[dict[str, Any]] = Field(default_factory=list)
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_kind: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION
 
 
 def generate_stable_seed(

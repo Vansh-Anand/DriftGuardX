@@ -18,6 +18,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.models import (
     AgentPipeline,
     ComponentType,
@@ -232,7 +233,7 @@ class MockRAGPipeline:
         run_id: uuid.UUID,
         query: str,
         seed: int = 42,
-        is_synthetic: bool = True,
+        evidence_class: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION,
     ) -> tuple[RequestRun, TraceArtifact]:
         """
         Execute the pipeline deterministically.
@@ -371,7 +372,7 @@ class MockRAGPipeline:
             error_message=error_message,
             started_at=started_at,
             completed_at=completed_at,
-            is_synthetic=is_synthetic,
+            evidence_class=evidence_class,
         )
 
         return run, trace

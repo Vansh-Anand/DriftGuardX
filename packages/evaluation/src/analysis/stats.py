@@ -89,12 +89,12 @@ def compute_comprehensive_stats(
     baseline_data: list[float], proposed_data: list[float], alpha: float = 0.05
 ) -> dict:
     """Computes a comprehensive set of statistics comparing a proposed approach to a baseline.
-    
+
     Args:
         baseline_data: Metric values for the baseline approach across N trials/seeds.
         proposed_data: Metric values for the proposed approach across N trials/seeds.
         alpha: Significance level.
-        
+
     Returns:
         A dictionary containing:
         - N: Number of paired observations
@@ -111,17 +111,17 @@ def compute_comprehensive_stats(
     """
     n = len(baseline_data)
     assert n == len(proposed_data), "Data arrays must be of equal length for paired tests"
-    
+
     if n == 0:
         return {}
-        
+
     b_arr = np.array(baseline_data)
     p_arr = np.array(proposed_data)
-    
+
     lower_ci, upper_ci = paired_bootstrap_interval(proposed_data, baseline_data, alpha=alpha)
     p_val = permutation_test(proposed_data, baseline_data)
     effect_size = cohens_d(proposed_data, baseline_data)
-    
+
     return {
         "N": n,
         "baseline_mean": float(np.mean(b_arr)),

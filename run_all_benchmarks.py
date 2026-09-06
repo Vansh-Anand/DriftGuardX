@@ -1,17 +1,11 @@
-import json
 import subprocess
 
-with open("data/dataset_registry.json") as f:
-    registry = json.load(f)
-
-datasets = [d for d in registry.keys() if d != "scifact"]
-
+datasets = ["arguana", "fiqa"]
 providers = ["local-deterministic", "openai-simulated"]
 topologies = ["standard", "complex"]
 
 for dataset in datasets:
-    splits = registry[dataset]["available_splits"]
-    split = "test" if "test" in splits else splits[0]
+    split = "test"
 
     for provider in providers:
         for topology in topologies:

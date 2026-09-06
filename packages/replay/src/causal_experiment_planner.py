@@ -16,9 +16,9 @@ from typing import TYPE_CHECKING, Any
 
 from packages.contracts.src.interfaces import ResourceContext, ResourceEstimate, ResourceMeasurement
 from packages.replay.src.belief_model import (
-    HeuristicLikelihoodEstimator,
     LikelihoodEstimator,
     RootCauseBeliefModel,
+    TopologicalLikelihoodEstimator,
     calculate_graph_impact,
 )
 
@@ -119,7 +119,9 @@ class RiskLimitedSequentialCausalExperimentPlanner:
         risk_penalty: float = 2.0,
     ) -> None:
         self._blast_estimator = blast_radius_estimator or BlastRadiusEstimator()
-        self._likelihood_estimator = likelihood_estimator or HeuristicLikelihoodEstimator()
+        self._likelihood_estimator = likelihood_estimator or TopologicalLikelihoodEstimator(
+            graph_edges=self._blast_estimator._edges
+        )
         self._default_cost = default_experiment_cost_usd
         self._min_eig_threshold = min_eig_threshold
         self._eig_weight = eig_weight

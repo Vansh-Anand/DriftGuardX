@@ -48,8 +48,6 @@ class DiagnosisEngine:
 
         candidate_map = {c.candidate_id: c for c in candidates}
 
-        from packages.contracts.src.bcrb_models import DiagnosisOutcome
-
         # Find all steps/candidates with actual CAUSAL CONFIDENCE (Bayesian posterior) >= 0.9
         high_confidence_candidates = []
         highest_posterior = -1.0
@@ -64,23 +62,31 @@ class DiagnosisEngine:
                     highest_posterior = posterior
                     best_candidate = cand
                     best_step = step
-                
-                if posterior >= 0.9:
+
+                if posterior >= 0.80:
                     high_confidence_candidates.append((cand, step, posterior))
 
-        # We require high causal confidence (e.g. >= 0.9) to claim a root cause, separating this from recovery utility.
-        diagnosis_outcome = DiagnosisOutcome.UNKNOWN
+        # We require high causal confidence (e.g. >= 0.80) to claim a root cause, separating this from recovery utility.
+        confidence_threshold = 0.80
+        status = "UNKNOWN"
+        next_action = None
 
         if high_confidence_candidates:
-            diagnosis_outcome = DiagnosisOutcome.ROOT_CAUSE_SUPPORTED
+            status = "ROOT_CAUSE_ISOLATED"
             # We still return the absolute best candidate as the primary root_cause_component for legacy compatibility
             root_cause_component = ComponentType(best_candidate.component_type)
-            
+
             if len(high_confidence_candidates) > 1:
                 components = [str(c[0].component_type) for c in high_confidence_candidates]
-                root_cause_description = f"Multiple interacting root causes isolated: {', '.join(components)}. "
+                root_cause_description = (
+                    f"Multiple interacting root causes isolated: {', '.join(components)}. "
+                )
             else:
-                recovery_delta = best_step.recovery_effect.reliability_delta if best_step and best_step.recovery_effect else 0.0
+                recovery_delta = (
+                    best_step.recovery_effect.reliability_delta
+                    if best_step and best_step.recovery_effect
+                    else 0.0
+                )
                 root_cause_description = (
                     f"Root cause isolated to {best_candidate.component_type} with Bayesian posterior {highest_posterior:.2f}. "
                     f"Intervention '{best_candidate.intervention_type}' produced a reliability delta of {recovery_delta:.2f}."
@@ -94,13 +100,14 @@ class DiagnosisEngine:
                         status=DiagnosisClaimStatus.MEASURED,
                         evidence=[
                             f"Replay ID: {step.replay_episode_id}",
-                            f"Bayesian Posterior: {posterior:.2f}"
+                            f"Bayesian Posterior: {posterior:.2f}",
                         ],
                         confidence=posterior,
                     )
                 )
         else:
-            diagnosis_outcome = DiagnosisOutcome.INSUFFICIENT_EVIDENCE
+            status = "INSUFFICIENT_EVIDENCE"
+            next_action = "collect another replay"
             root_cause_description = "Evidence is insufficient to confirm a root cause."
             claims.append(
                 DiagnosisClaim(
@@ -119,4 +126,11 @@ class DiagnosisEngine:
             claims=claims,
             root_cause_component=root_cause_component,
             root_cause_description=root_cause_description,
+            status=status,
+            highest_candidate_component=(
+                ComponentType(best_candidate.component_type) if best_candidate else None
+            ),
+            highest_posterior=highest_posterior if highest_posterior >= 0.0 else None,
+            confidence_threshold=confidence_threshold,
+            next_action=next_action,
         )

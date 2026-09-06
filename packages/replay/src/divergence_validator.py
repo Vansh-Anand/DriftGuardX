@@ -94,7 +94,7 @@ def _check_tolerance(
         if _stable_hash(original_val) != _stable_hash(replay_val):
             return False, f"Node {node_id}: exact match failed"
         return True, ""
-        
+
     if tolerance_type == "semantic_json":
         try:
             o_json = json.loads(original_val) if isinstance(original_val, str) else original_val
@@ -102,13 +102,14 @@ def _check_tolerance(
             # A true semantic check would use an LLM-as-a-judge here or schema matching.
             # We mock structural equivalence for now.
             if set(o_json.keys()) != set(r_json.keys()):
-                 return False, f"Node {node_id}: JSON schema keys mismatch"
+                return False, f"Node {node_id}: JSON schema keys mismatch"
             return True, ""
         except Exception:
             return False, f"Node {node_id}: Invalid JSON for semantic check"
-            
+
     if tolerance_type == "jaccard_overlap":
         try:
+
             def _flatten_to_set(v: Any) -> set:
                 if isinstance(v, dict):
                     return set(f"{k}:{val}" for k, val in v.items())
@@ -117,10 +118,11 @@ def _check_tolerance(
                 elif isinstance(v, str):
                     return set(v.split())
                 return set(v)
-                
+
             o_set = _flatten_to_set(original_val)
             r_set = _flatten_to_set(replay_val)
-            if not o_set and not r_set: return True, ""
+            if not o_set and not r_set:
+                return True, ""
             overlap = len(o_set.intersection(r_set)) / len(o_set.union(r_set))
             threshold = float(constraint.get("threshold", 0.8))
             if overlap < threshold:
@@ -132,15 +134,19 @@ def _check_tolerance(
     if tolerance_type == "semantic_text":
         try:
             import difflib
+
             orig_str = str(original_val) if not isinstance(original_val, str) else original_val
             replay_str = str(replay_val) if not isinstance(replay_val, str) else replay_val
-            
+
             # Use difflib's SequenceMatcher ratio as a mock for semantic similarity (e.g. cosine/TF-IDF)
             similarity = difflib.SequenceMatcher(None, orig_str, replay_str).ratio()
             threshold = float(constraint.get("threshold", 0.9))
-            
+
             if similarity < threshold:
-                return False, f"Node {node_id}: Semantic text similarity {similarity:.2f} < {threshold}"
+                return (
+                    False,
+                    f"Node {node_id}: Semantic text similarity {similarity:.2f} < {threshold}",
+                )
             return True, ""
         except Exception as e:
             return False, f"Node {node_id}: Could not compute semantic text similarity: {e}"

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -15,8 +16,6 @@ from sqlalchemy import select
 from apps.api.src.database import get_db
 from apps.api.src.dependencies import get_current_tenant
 from apps.api.src.models import SpanRecordORM
-
-from uuid import UUID
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

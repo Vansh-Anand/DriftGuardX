@@ -23,9 +23,9 @@ async def test_replay_manifest_generation(client: AsyncClient):
             "target_component": "retriever",
             "intervention_type": "rollback",
             "current_version": "v2-exp",
-            "candidate_version": "v1"
+            "candidate_version": "v1",
         },
-        "seed": 42
+        "seed": 42,
     }
     replay_resp = await client.post(f"/v1/runs/{run_id}/replays", json=replay_payload)
     assert replay_resp.status_code == 201
@@ -35,7 +35,7 @@ async def test_replay_manifest_generation(client: AsyncClient):
     assert replay_data["manifest_id"] is not None
     assert replay_data["manifest_hash"] is not None
     assert replay_data["is_pinned"] is True
-    assert replay_data["evidence_kind"] == "synthetic_simulation"
+    assert replay_data["evidence_class"] == "SYNTHETIC_SIMULATION"
 
     # 4. Fetch the replay directly to ensure it was persisted correctly
     replay_id = replay_data["id"]
@@ -46,4 +46,4 @@ async def test_replay_manifest_generation(client: AsyncClient):
     assert get_data["manifest_id"] == replay_data["manifest_id"]
     assert get_data["manifest_hash"] == replay_data["manifest_hash"]
     assert get_data["is_pinned"] is True
-    assert get_data["evidence_kind"] == "synthetic_simulation"
+    assert get_data["evidence_class"] == "SYNTHETIC_SIMULATION"

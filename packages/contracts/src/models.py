@@ -15,9 +15,9 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from .evidence import EvidenceClassification
 
 # ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -90,10 +90,11 @@ class ReplayStatus(str, enum.Enum):
     INVALID = "invalid"
     NEGATIVE_OUTCOME = "negative_outcome"
 
+
 class ReplayMode(str, enum.Enum):
-    EXACT = "exact"       # Strictly return historical values
-    SEMANTIC = "semantic" # Run fresh, compare semantically
-    FRESH = "fresh"       # Purely new run, ignore history
+    EXACT = "exact"  # Strictly return historical values
+    SEMANTIC = "semantic"  # Run fresh, compare semantically
+    FRESH = "fresh"  # Purely new run, ignore history
 
 
 class InterventionType(str, enum.Enum):
@@ -328,13 +329,48 @@ class RequestRun(DGXBaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
 
-    # Flag: is this a synthetic/demo run?
-    is_synthetic: bool = False
+    evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     run_hash: str | None = None
+
+    @computed_field
+    @property
+    def is_synthetic(self) -> bool:
+        ec = (
+            self.evidence_class
+            if isinstance(self.evidence_class, EvidenceClassification)
+            else EvidenceClassification(self.evidence_class)
+        )
+        return ec.is_synthetic
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            if "evidence_kind" in data and "evidence_class" not in data:
+                data["evidence_class"] = data["evidence_kind"]
+            if "is_synthetic" in data and "evidence_class" not in data:
+                data["evidence_class"] = (
+                    EvidenceClassification.SYNTHETIC_SIMULATION
+                    if data["is_synthetic"]
+                    else EvidenceClassification.PRODUCTION
+                )
+            if "evidence_class" in data and isinstance(data["evidence_class"], str):
+                try:
+                    data["evidence_class"] = EvidenceClassification(data["evidence_class"])
+                except ValueError:
+                    pass
+            data.pop("is_synthetic", None)
+            data.pop("evidence_kind", None)
+        return data
 
     def compute_hash(self) -> str:
         import json
-        data = self.model_dump(mode='json', exclude={"id", "created_at", "started_at", "completed_at", "run_hash"}, exclude_none=True)
+
+        data = self.model_dump(
+            mode="json",
+            exclude={"id", "created_at", "started_at", "completed_at", "run_hash"},
+            exclude_none=True,
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
@@ -363,16 +399,45 @@ class TraceArtifact(DGXBaseModel):
     completeness_score: float | None = None
     retention_days: int | None = None
     tenant_sampling_rate: float | None = None
-    is_synthetic: bool = False
+    evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     run_hash: str | None = None
+
+    @computed_field
+    @property
+    def is_synthetic(self) -> bool:
+        ec = (
+            self.evidence_class
+            if isinstance(self.evidence_class, EvidenceClassification)
+            else EvidenceClassification(self.evidence_class)
+        )
+        return ec.is_synthetic
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            if "evidence_kind" in data and "evidence_class" not in data:
+                data["evidence_class"] = data["evidence_kind"]
+            if "is_synthetic" in data and "evidence_class" not in data:
+                data["evidence_class"] = (
+                    EvidenceClassification.SYNTHETIC_SIMULATION
+                    if data["is_synthetic"]
+                    else EvidenceClassification.PRODUCTION
+                )
+            data.pop("is_synthetic", None)
+            data.pop("evidence_kind", None)
+        return data
+
     trace_hash: str | None = None
 
     def compute_hash(self) -> str:
         import json
-        data = self.model_dump(mode='json', exclude={"id", "created_at", "trace_hash"}, exclude_none=True)
+
+        data = self.model_dump(
+            mode="json", exclude={"id", "created_at", "trace_hash"}, exclude_none=True
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-
 
     @model_validator(mode="after")
     def compute_span_count(self) -> TraceArtifact:
@@ -420,12 +485,44 @@ class Intervention(DGXBaseModel):
     applied_at: datetime | None = None
     # SAFETY: never auto-applies; requires human approval
     requires_human_approval: bool = True
+    evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     posterior_hash: str | None = None
     intervention_hash: str | None = None
 
+    @computed_field
+    @property
+    def is_synthetic(self) -> bool:
+        ec = (
+            self.evidence_class
+            if isinstance(self.evidence_class, EvidenceClassification)
+            else EvidenceClassification(self.evidence_class)
+        )
+        return ec.is_synthetic
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            if "evidence_kind" in data and "evidence_class" not in data:
+                data["evidence_class"] = data["evidence_kind"]
+            if "is_synthetic" in data and "evidence_class" not in data:
+                data["evidence_class"] = (
+                    EvidenceClassification.SYNTHETIC_SIMULATION
+                    if data["is_synthetic"]
+                    else EvidenceClassification.PRODUCTION
+                )
+            data.pop("is_synthetic", None)
+            data.pop("evidence_kind", None)
+        return data
+
     def compute_hash(self) -> str:
         import json
-        data = self.model_dump(mode='json', exclude={"id", "created_at", "applied_at", "intervention_hash"}, exclude_none=True)
+
+        data = self.model_dump(
+            mode="json",
+            exclude={"id", "created_at", "applied_at", "intervention_hash"},
+            exclude_none=True,
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
@@ -486,9 +583,34 @@ class ReplayEpisode(DGXBaseModel):
     # Timestamps
     created_at: datetime = Field(default_factory=_utcnow)
     completed_at: datetime | None = None
-    is_synthetic: bool = False
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_class: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION
     cryptographic_signature: dict[str, Any] = Field(default_factory=dict)
+
+    @computed_field
+    @property
+    def is_synthetic(self) -> bool:
+        ec = (
+            self.evidence_class
+            if isinstance(self.evidence_class, EvidenceClassification)
+            else EvidenceClassification(self.evidence_class)
+        )
+        return ec.is_synthetic
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            if "evidence_kind" in data and "evidence_class" not in data:
+                data["evidence_class"] = data["evidence_kind"]
+            if "is_synthetic" in data and "evidence_class" not in data:
+                data["evidence_class"] = (
+                    EvidenceClassification.SYNTHETIC_SIMULATION
+                    if data["is_synthetic"]
+                    else EvidenceClassification.PRODUCTION
+                )
+            data.pop("is_synthetic", None)
+            data.pop("evidence_kind", None)
+        return data
 
     # Manifest
     manifest_id: UUID | None = None
@@ -497,9 +619,14 @@ class ReplayEpisode(DGXBaseModel):
     replay_hash: str | None = None
 
     def compute_hash(self) -> str:
-        import json
         import hashlib
-        data = self.model_dump(mode='json', exclude={"id", "created_at", "completed_at", "replay_id", "replay_hash"}, exclude_none=True)
+        import json
+
+        data = self.model_dump(
+            mode="json",
+            exclude={"id", "created_at", "completed_at", "replay_id", "replay_hash"},
+            exclude_none=True,
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
@@ -602,7 +729,11 @@ class ReplayStateManifest(DGXBaseModel):
             self.dependency_lockfile_hash,
             self.trace_root_hash,
         ]
-        return all(bool(r) for r in required)
+        for i, r in enumerate(required):
+            if not bool(r):
+                print(f"is_fully_pinned failed at index {i}, value: {r}")
+                return False
+        return True
 
 
 # ─── Diagnosis ────────────────────────────────────────────────────────────────
@@ -628,14 +759,48 @@ class Diagnosis(DGXBaseModel):
     claims: list[DiagnosisClaim]
     root_cause_component: ComponentType | None = None
     root_cause_description: str = ""
+    status: str = "UNKNOWN"
+    highest_candidate_component: ComponentType | None = None
+    highest_posterior: float | None = None
+    confidence_threshold: float = 0.80
+    next_action: str | None = None
     created_at: datetime = Field(default_factory=_utcnow)
-    is_synthetic: bool = False
+    evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     trace_hash: str | None = None
     diagnosis_hash: str | None = None
 
+    @computed_field
+    @property
+    def is_synthetic(self) -> bool:
+        ec = (
+            self.evidence_class
+            if isinstance(self.evidence_class, EvidenceClassification)
+            else EvidenceClassification(self.evidence_class)
+        )
+        return ec.is_synthetic
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            if "evidence_kind" in data and "evidence_class" not in data:
+                data["evidence_class"] = data["evidence_kind"]
+            if "is_synthetic" in data and "evidence_class" not in data:
+                data["evidence_class"] = (
+                    EvidenceClassification.SYNTHETIC_SIMULATION
+                    if data["is_synthetic"]
+                    else EvidenceClassification.PRODUCTION
+                )
+            data.pop("is_synthetic", None)
+            data.pop("evidence_kind", None)
+        return data
+
     def compute_hash(self) -> str:
         import json
-        data = self.model_dump(mode='json', exclude={"id", "created_at", "diagnosis_hash"}, exclude_none=True)
+
+        data = self.model_dump(
+            mode="json", exclude={"id", "created_at", "diagnosis_hash"}, exclude_none=True
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
@@ -681,7 +846,8 @@ class RecoveryCertificate(DGXBaseModel):
     issued_by: str  # system or user identifier
     payload_summary: str = ""
     is_valid: bool = True
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
+    approval_state: str = "APPROVED"
     cryptographic_signature: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
@@ -691,10 +857,10 @@ class RecoveryCertificate(DGXBaseModel):
         replay_id: UUID,
         intervention_id: UUID,
         issued_by: str,
-        evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION,
+        evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED,
     ) -> str:
         """Compute deterministic certificate hash."""
-        payload = f"{run_id}:{replay_id}:{intervention_id}:{issued_by}:{evidence_kind.value}"
+        payload = f"{run_id}:{replay_id}:{intervention_id}:{issued_by}:{evidence_class.value}"
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -843,9 +1009,15 @@ class RootCauseReport(DGXBaseModel):
 
     def compute_hash(self) -> str:
         import json
-        data = self.model_dump(mode='json', exclude={"id", "created_at", "detected_at", "report_hash"}, exclude_none=True)
+
+        data = self.model_dump(
+            mode="json",
+            exclude={"id", "created_at", "detected_at", "report_hash"},
+            exclude_none=True,
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
     certification_policy_version: str = "v1.0"
     bound_method: str | None = None  # hoeffding | bootstrap | conformal | unsupported
     epsilon: float | None = None  # margin of error
@@ -1020,20 +1192,22 @@ def serialize_for_signing(rec: RecoveryEligibilityCertificate) -> bytes:
     payload = f"DriftGuard-X-REC-v1\n{serialized_json}"
     return payload.encode("utf-8")
 
+
 class GATFeatureSchema(DGXBaseModel):
     """
     Canonical feature contract for GAT Training and Inference.
     Features must be ordered exactly as defined here for PyTorch tensor conversion.
     """
+
     feature_schema_version: str = "1.0.0"
-    
+
     log_duration: float
     relative_duration: float
     self_time_ratio: float
     is_error: float
     fanout: float
     operation_encoding: float
-    
+
     def to_list(self) -> list[float]:
         return [
             self.log_duration,
@@ -1041,5 +1215,5 @@ class GATFeatureSchema(DGXBaseModel):
             self.self_time_ratio,
             self.is_error,
             self.fanout,
-            self.operation_encoding
+            self.operation_encoding,
         ]

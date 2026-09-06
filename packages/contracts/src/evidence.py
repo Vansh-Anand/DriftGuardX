@@ -3,22 +3,18 @@
 import enum
 
 
-class RecoveryEvidenceKind(str, enum.Enum):
-    """How recovery evidence was obtained, ordered from weakest to strongest."""
+class EvidenceClassification(str, enum.Enum):
+    """Canonical classification for how evidence was obtained, applied across all artifacts."""
 
-    UNAVAILABLE = "unavailable"
-    SYNTHETIC_DEMO = "synthetic_demo"
-    SYNTHETIC_SIMULATION = "synthetic_simulation"
-    ESTIMATED = "estimated"
-    TEST_FIXTURE = "test_fixture"
-    CONTROLLED_REPLAY = "controlled_replay"
-    PRODUCTION_CANARY = "production_canary"
-    REAL_EXECUTION = "real_execution"
+    PRODUCTION = "PRODUCTION"
+    REAL_CONTROLLED_EXPERIMENT = "REAL_CONTROLLED_EXPERIMENT"
+    SYNTHETIC_SIMULATION = "SYNTHETIC_SIMULATION"
+    TEST_FIXTURE = "TEST_FIXTURE"
+    UNVERIFIED = "UNVERIFIED"
 
     @property
     def is_synthetic(self) -> bool:
         return self in {
-            RecoveryEvidenceKind.SYNTHETIC_DEMO,
-            RecoveryEvidenceKind.SYNTHETIC_SIMULATION,
-            RecoveryEvidenceKind.TEST_FIXTURE
+            EvidenceClassification.SYNTHETIC_SIMULATION,
+            EvidenceClassification.TEST_FIXTURE,
         }

@@ -1,4 +1,4 @@
-with open('apps/api/src/services/recovery_pipeline.py', 'r') as f:
+with open('apps/api/src/services/recovery_pipeline.py') as f:
     code = f.read()
 
 code = code.replace('if not candidates:\n            return None', 'if not candidates:\n            print("No candidates returned by BCRBOrchestrator")\n            return None')

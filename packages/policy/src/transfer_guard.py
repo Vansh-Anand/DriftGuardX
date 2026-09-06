@@ -8,7 +8,7 @@ import hashlib
 
 from pydantic import BaseModel
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.transport_models import (
     CausalEnvironmentDescriptor,
     RecoveryMechanismFootprint,
@@ -34,7 +34,7 @@ class ProvenanceEnvelope(BaseModel):
     components: list[str]
     environment_hash: str
     calibration_evidence: CalibrationEvidence
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_kind: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION
     signature: str | None = None
 
     def recompute_signature(self, secret_key: str) -> str:
@@ -132,7 +132,7 @@ class TransferGuard:
             return False
 
         # Explicitly reject synthetic simulation for production transfer
-        if source_provenance.evidence_kind == RecoveryEvidenceKind.SYNTHETIC_SIMULATION:
+        if source_provenance.evidence_kind == EvidenceClassification.SYNTHETIC_SIMULATION:
             return False
 
         # If it's the same tenant and exact environment, transfer is safe

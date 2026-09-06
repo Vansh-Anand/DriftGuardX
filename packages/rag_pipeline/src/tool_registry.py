@@ -8,9 +8,10 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 
 class SideEffectClass(Enum):
@@ -96,36 +97,48 @@ class ToolRegistry:
         }
         canonical = json.dumps(schema_dump, sort_keys=True)
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-        
+
     def _validate_inputs(self, spec: ToolDefinition, kwargs: dict[str, Any]) -> None:
         if spec.parameters_schema:
             try:
                 import jsonschema
+
                 jsonschema.validate(instance=kwargs, schema=spec.parameters_schema)
             except ImportError:
                 pass
             except Exception as e:
                 raise ValueError(f"Tool {spec.name} input validation failed: {e}")
-                
-    def _check_permissions(self, spec: ToolDefinition, user_permissions: list[str] | None = None) -> None:
+
+    def _check_permissions(
+        self, spec: ToolDefinition, user_permissions: list[str] | None = None
+    ) -> None:
         if spec.permissions:
             user_perms = set(user_permissions or [])
             for p in spec.permissions:
                 if p not in user_perms:
-                    raise PermissionError(f"Missing required permission '{p}' for tool '{spec.name}'")
+                    raise PermissionError(
+                        f"Missing required permission '{p}' for tool '{spec.name}'"
+                    )
 
-    async def execute_tool(self, name: str, user_permissions: list[str] | None = None, is_replay: bool = False, **kwargs: Any) -> Any:
+    async def execute_tool(
+        self,
+        name: str,
+        user_permissions: list[str] | None = None,
+        is_replay: bool = False,
+        **kwargs: Any,
+    ) -> Any:
         spec = self._tools.get(name)
         if not spec:
             raise ValueError(f"Tool '{name}' not found in registry")
-            
+
         if is_replay and spec.side_effect_class == SideEffectClass.IRREVERSIBLE:
             raise RuntimeError(f"Cannot blindly replay irreversible tool '{name}'")
-            
+
         self._check_permissions(spec, user_permissions)
         self._validate_inputs(spec, kwargs)
 
         import asyncio
+
         handler = spec.handler
         if inspect.iscoroutinefunction(handler):
             if spec.timeout_ms:
@@ -133,7 +146,13 @@ class ToolRegistry:
             return await handler(**kwargs)
         return handler(**kwargs)
 
-    def execute_tool_sync(self, name: str, user_permissions: list[str] | None = None, is_replay: bool = False, **kwargs: Any) -> Any:
+    def execute_tool_sync(
+        self,
+        name: str,
+        user_permissions: list[str] | None = None,
+        is_replay: bool = False,
+        **kwargs: Any,
+    ) -> Any:
         spec = self._tools.get(name)
         if not spec:
             raise ValueError(f"Tool '{name}' not found in registry")
@@ -147,20 +166,31 @@ class ToolRegistry:
         handler = spec.handler
         if inspect.iscoroutinefunction(handler):
             import asyncio
+
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
                     import concurrent.futures
+
                     with concurrent.futures.ThreadPoolExecutor() as pool:
                         if spec.timeout_ms:
-                            return pool.submit(asyncio.run, asyncio.wait_for(handler(**kwargs), timeout=spec.timeout_ms / 1000.0)).result()
+                            return pool.submit(
+                                asyncio.run,
+                                asyncio.wait_for(
+                                    handler(**kwargs), timeout=spec.timeout_ms / 1000.0
+                                ),
+                            ).result()
                         return pool.submit(asyncio.run, handler(**kwargs)).result()
                 if spec.timeout_ms:
-                    return loop.run_until_complete(asyncio.wait_for(handler(**kwargs), timeout=spec.timeout_ms / 1000.0))
+                    return loop.run_until_complete(
+                        asyncio.wait_for(handler(**kwargs), timeout=spec.timeout_ms / 1000.0)
+                    )
                 return loop.run_until_complete(handler(**kwargs))
             except RuntimeError:
                 if spec.timeout_ms:
-                    return asyncio.run(asyncio.wait_for(handler(**kwargs), timeout=spec.timeout_ms / 1000.0))
+                    return asyncio.run(
+                        asyncio.wait_for(handler(**kwargs), timeout=spec.timeout_ms / 1000.0)
+                    )
                 return asyncio.run(handler(**kwargs))
         return handler(**kwargs)
 

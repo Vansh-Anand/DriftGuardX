@@ -9,7 +9,6 @@ Includes deterministic fallback if factual validation fails.
 import json
 import logging
 import os
-import time
 
 from packages.rationale.src.models import RationaleInputContract, RationaleOutput, RationaleStyle
 from packages.rationale.src.templates import generate_template_rationale
@@ -62,15 +61,16 @@ def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[st
     In real mode (DGX_REAL_MODE=1), strictly enforces real providers.
     """
     import asyncio
+
     from packages.rag_pipeline.src.providers import ProviderRegistry
-    
+
     real_mode = os.getenv("DGX_REAL_MODE") == "1"
-    
+
     registry = ProviderRegistry()
-    
+
     # Check if we should use a real provider
     use_real = real_mode or (os.getenv("DGX_USE_REAL_LLM") == "1" and os.getenv("OPENAI_API_KEY"))
-    
+
     if use_real:
         if not os.getenv("OPENAI_API_KEY"):
             raise RuntimeError("real_mode is enabled but OPENAI_API_KEY is not set.")
@@ -79,20 +79,24 @@ def invoke_llm(prompt: str, json_evidence: str, model: str = "mock") -> tuple[st
         if real_mode:
             raise RuntimeError("real_mode is enabled but mock fallback was attempted.")
         provider = registry.get_provider("local-deterministic")
-        
+
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 res = pool.submit(
-                    asyncio.run, provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"])
+                    asyncio.run,
+                    provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"]),
                 ).result()
         else:
-            res = loop.run_until_complete(provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"]))
+            res = loop.run_until_complete(
+                provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"])
+            )
     except RuntimeError:
         res = asyncio.run(provider.generate(prompt=prompt, context=[f"Evidence:\n{json_evidence}"]))
-        
+
     if not use_real:
         data = json.loads(json_evidence)
         content = (

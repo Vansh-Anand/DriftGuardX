@@ -101,17 +101,20 @@ def test_detector_faulty_trace_localization(detector):
             "is_error": False,
         },
     ]
-    import torch
     from unittest.mock import patch
-    
+
+    import torch
+
     with patch.object(detector, "model") as mock_model:
         mock_model.return_value = (
-            torch.tensor([[0.1, 0.9]]), 
-            torch.tensor([
-                [0.9, 0.1],  # root
-                [0.1, 0.9],  # child1
-                [0.9, 0.1],  # child2
-            ])
+            torch.tensor([[0.1, 0.9]]),
+            torch.tensor(
+                [
+                    [0.9, 0.1],  # root
+                    [0.1, 0.9],  # child1
+                    [0.9, 0.1],  # child2
+                ]
+            ),
         )
         result = detector.detect_trace_anomaly(faulty_trace)
     assert len(result["root_cause_candidates"]) > 0

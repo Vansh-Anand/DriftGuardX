@@ -18,8 +18,14 @@ from typing import Any
 
 from pydantic import Field, model_validator
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
-from packages.contracts.src.models import DGXBaseModel, _new_uuid, _utcnow, ComponentType, InterventionType
+from packages.contracts.src.evidence import EvidenceClassification
+from packages.contracts.src.models import (
+    ComponentType,
+    DGXBaseModel,
+    InterventionType,
+    _new_uuid,
+    _utcnow,
+)
 
 
 class OptimizationMethod(str, enum.Enum):
@@ -258,7 +264,7 @@ class RecoveryValidationResult(DGXBaseModel):
     residual_risk: float = 0.0
     eligible_for_canary: bool = False
     reason: str = ""
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     validated_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -277,7 +283,7 @@ class RecoveryReplayResult(DGXBaseModel):
     """The result of attempting to execute a recovery replay pipeline."""
 
     outcome: SandboxOutcome
-    evidence_kind: RecoveryEvidenceKind = RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+    evidence_kind: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION
     new_trace_id: str | None = None
     new_spans: list[dict[str, Any]] = Field(default_factory=list)
     new_state_snapshot: dict[str, Any] | None = None
@@ -369,16 +375,26 @@ class InterventionSpec(DGXBaseModel):
         of this intervention.
         """
         from packages.trace_sdk.src.tracer import hash_payload
-        
-        return hash_payload({
-            "target_component": str(self.target_component.value) if hasattr(self.target_component, "value") else str(self.target_component),
-            "intervention_type": str(self.intervention_type.value) if hasattr(self.intervention_type, "value") else str(self.intervention_type),
-            "current_version": self.current_version,
-            "candidate_version": self.candidate_version,
-            "expected_cost": self.expected_cost,
-            "rollback_plan": self.rollback_plan,
-            "dependencies": sorted(self.dependencies)
-        })
+
+        return hash_payload(
+            {
+                "target_component": (
+                    str(self.target_component.value)
+                    if hasattr(self.target_component, "value")
+                    else str(self.target_component)
+                ),
+                "intervention_type": (
+                    str(self.intervention_type.value)
+                    if hasattr(self.intervention_type, "value")
+                    else str(self.intervention_type)
+                ),
+                "current_version": self.current_version,
+                "candidate_version": self.candidate_version,
+                "expected_cost": self.expected_cost,
+                "rollback_plan": self.rollback_plan,
+                "dependencies": sorted(self.dependencies),
+            }
+        )
 
     @model_validator(mode="before")
     @classmethod

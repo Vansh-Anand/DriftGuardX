@@ -9,11 +9,9 @@ def test_agent_pipeline_execution():
     run_id = str(uuid.uuid4())
     tenant_id = str(uuid.uuid4())
     pipeline_id = uuid.uuid4()
-    
+
     trace_ctx = TraceContext(
-        tenant_id=uuid.UUID(tenant_id),
-        pipeline_id=pipeline_id,
-        run_id=uuid.UUID(run_id)
+        tenant_id=uuid.UUID(tenant_id), pipeline_id=pipeline_id, run_id=uuid.UUID(run_id)
     )
 
     state = pipeline.run("health_check", run_id, tenant_id, trace_ctx=trace_ctx)
@@ -34,30 +32,30 @@ def test_agent_pipeline_execution():
     ]
 
     spans = trace_ctx.get_spans()
-    
-    # 7 agents + multiple memory ops. 
+
+    # 7 agents + multiple memory ops.
     # memory writes: retrieved_docs, reasoning, tool_results, verified, policy_decision
     # memory reads: retrieved_docs
     assert len(spans) > 7
-    
+
     # Check that agent spans have stable identity fields
     agent_spans = [s for s in spans if s.name in agents_executed]
     assert len(agent_spans) == 7
-    
+
     for span in agent_spans:
         assert "dgx.agent.id" in span.attributes
         assert "dgx.agent.type" in span.attributes
         assert span.attributes["dgx.agent.version"] == "v1.0"
-        
+
     # Check causal relationships
     # The first agent (orchestrator) has no source span, but the second (retrieval) should have the first as its source.
     assert "dgx.causal.source_span_id" not in agent_spans[0].attributes
     assert agent_spans[1].attributes["dgx.causal.source_span_id"] == agent_spans[0].span_id
-    
+
     # Check memory spans
     memory_spans = [s for s in spans if s.name in ("memory_read", "memory_write")]
     assert len(memory_spans) >= 6
-    
+
     # Check policy decision span
     policy_span = next(s for s in agent_spans if s.name == "policy")
     assert policy_span.attributes.get("dgx.decision.outcome") == "allow"
@@ -66,6 +64,7 @@ def test_agent_pipeline_execution():
 
 def test_agent_pipeline_with_real_components():
     from unittest.mock import AsyncMock
+
     from packages.rag_pipeline.src.adapters.postgres_retriever import PgRetrievedChunk
     from packages.rag_pipeline.src.tool_registry import ToolRegistry
 
@@ -95,7 +94,9 @@ def test_agent_pipeline_with_real_components():
         run_id=uuid.UUID(run_id),
     )
 
-    state = pipeline.run("Check cluster health and calculate metrics", run_id, tenant_id, trace_ctx=trace_ctx)
+    state = pipeline.run(
+        "Check cluster health and calculate metrics", run_id, tenant_id, trace_ctx=trace_ctx
+    )
 
     assert state.is_finished is True
     assert state.read_memory("verified") is True

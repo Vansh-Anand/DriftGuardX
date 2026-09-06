@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
@@ -239,10 +239,12 @@ def _execute_component_isolated(
 
 # ─── Mock Component Executors (Prompt 01) ─────────────────────────────────────
 
+
 class MockComponentExecutor(ComponentExecutor):
     @property
     def is_synthetic(self) -> bool:
         return True
+
 
 MOCK_RAG_CORPUS_VERSION_ID = "mock-rag-corpus-v1"
 MOCK_RAG_EMBEDDING_MODEL_VERSION = "no-embedding-deterministic-v1"
@@ -535,7 +537,7 @@ class ReplayEngine:
                     continue  # skip components not in original
 
             executor = get_executor(component_type, cv.version_tag)
-            
+
             if executor.is_synthetic:
                 has_synthetic_executor = True
 
@@ -569,7 +571,9 @@ class ReplayEngine:
                 component_type = ComponentType(component_type)
 
             # Build span
-            ct_str = component_type.value if hasattr(component_type, "value") else str(component_type)
+            ct_str = (
+                component_type.value if hasattr(component_type, "value") else str(component_type)
+            )
             builder = ctx.start_span(
                 f"{ct_str}/{cv.version_tag}",
                 parent_span_id=root_span_id,
@@ -634,10 +638,16 @@ class ReplayEngine:
         original_score = aggregate_reliability_score(original_reliability_vector)
 
         original_target_span = next(
-            (s for s in original_trace.spans if str(s.component_type) == str(intervention.target_component)),
+            (
+                s
+                for s in original_trace.spans
+                if str(s.component_type) == str(intervention.target_component)
+            ),
             None,
         )
-        orig_version_id = original_target_span.component_version_id if original_target_span else None
+        orig_version_id = (
+            original_target_span.component_version_id if original_target_span else None
+        )
 
         # Build ReplayEpisode
         episode = ReplayEpisode(
@@ -662,12 +672,12 @@ class ReplayEngine:
             completed_at=datetime.now(UTC),
             is_synthetic=original_run.is_synthetic or has_synthetic_executor,
             evidence_kind=(
-                RecoveryEvidenceKind.SYNTHETIC_DEMO
+                EvidenceClassification.SYNTHETIC_SIMULATION
                 if has_synthetic_executor
                 else (
-                    RecoveryEvidenceKind.SYNTHETIC_SIMULATION
+                    EvidenceClassification.SYNTHETIC_SIMULATION
                     if original_run.is_synthetic
-                    else RecoveryEvidenceKind.REAL_EXECUTION
+                    else EvidenceClassification.PRODUCTION
                 )
             ),
             status=ReplayStatus.COMPLETED,

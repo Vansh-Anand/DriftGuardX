@@ -228,7 +228,11 @@ class RequestRunORM(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
+    evidence_class: Mapped[str] = mapped_column(String(32), default="UNVERIFIED")
+
+    @property
+    def is_synthetic(self) -> bool:
+        return self.evidence_class in {"SYNTHETIC_SIMULATION", "TEST_FIXTURE"}
 
     pipeline: Mapped[AgentPipelineORM] = relationship("AgentPipelineORM", back_populates="runs")
     trace: Mapped[TraceArtifactORM | None] = relationship(
@@ -401,7 +405,12 @@ class ReplayEpisodeORM(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
+    evidence_class: Mapped[str] = mapped_column(String(32), default="UNVERIFIED")
+
+    @property
+    def is_synthetic(self) -> bool:
+        return self.evidence_class in {"SYNTHETIC_SIMULATION", "TEST_FIXTURE"}
+
     replay_mode: Mapped[str] = mapped_column(String(32), default="exact")
 
     original_run: Mapped[RequestRunORM] = relationship(
@@ -664,15 +673,15 @@ class RecoveryCertificateORM(Base):
     replay_episode_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     intervention_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     repair_decision_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
-    
+
     certificate_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     issued_by: Mapped[str] = mapped_column(String(128), nullable=False)
     payload_summary: Mapped[str] = mapped_column(Text, nullable=False)
     is_valid: Mapped[bool] = mapped_column(Boolean, default=True)
-    evidence_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    evidence_class: Mapped[str] = mapped_column(String(64), nullable=False)
     approval_state: Mapped[str] = mapped_column(String(32), nullable=False)
     cryptographic_signature: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
-    
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     __table_args__ = (
@@ -688,7 +697,9 @@ class BackgroundJobORM(Base):
     __tablename__ = "background_jobs"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("tenants.id"), nullable=False
+    )
     job_type: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")
     payload_json: Mapped[dict] = mapped_column(_JSON_TYPE, default=dict)
@@ -709,7 +720,11 @@ class BackgroundJobORM(Base):
     )
 
 
+from typing import Never
+
 from sqlalchemy import event
-@event.listens_for(ReplayStateManifestORM, 'before_update')
-def receive_before_update(mapper, connection, target):
-    raise RuntimeError('ReplayStateManifest is immutable and cannot be updated.')
+
+
+@event.listens_for(ReplayStateManifestORM, "before_update")
+def receive_before_update(mapper, connection, target) -> Never:
+    raise RuntimeError("ReplayStateManifest is immutable and cannot be updated.")

@@ -9,7 +9,8 @@ def test_diagnosis_engine_generation():
     engine = DiagnosisEngine(tenant_id=str(uuid.uuid4()))
     run_id = str(uuid.uuid4())
 
-    from packages.contracts.src.bcrb_models import ReplayCost, CausalEvidence, RecoveryEffect
+    from packages.contracts.src.bcrb_models import CausalEvidence, RecoveryEffect, ReplayCost
+
     # Create candidates
     c1 = BCRBCandidate(
         candidate_id=uuid.uuid4(),

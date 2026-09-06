@@ -92,6 +92,7 @@ class CounterfactualSupport(DGXBaseModel):
     repeated_replay_count: int = 0
     observed_effect: dict[str, Any] | None = None
 
+
 class CausalEvidence(DGXBaseModel):
     prior: float
     posterior: float | None = None
@@ -118,9 +119,12 @@ class BCRBCandidate(DGXBaseModel):
     candidate_hash: str | None = None
 
     def compute_hash(self) -> str:
-        import json
         import hashlib
-        data = self.model_dump(mode='json', exclude={"candidate_id", "candidate_hash"}, exclude_none=True)
+        import json
+
+        data = self.model_dump(
+            mode="json", exclude={"candidate_id", "candidate_hash"}, exclude_none=True
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
@@ -141,9 +145,14 @@ class BCRBStep(DGXBaseModel):
     posterior_hash: str | None = None
 
     def compute_hash(self) -> str:
-        import json
         import hashlib
-        data = self.model_dump(mode='json', exclude={"step_id", "start_time", "end_time", "posterior_hash"}, exclude_none=True)
+        import json
+
+        data = self.model_dump(
+            mode="json",
+            exclude={"step_id", "start_time", "end_time", "posterior_hash"},
+            exclude_none=True,
+        )
         serialized = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 

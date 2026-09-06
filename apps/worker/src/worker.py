@@ -79,8 +79,8 @@ async def run_recovery_diagnosis(
 ) -> dict[str, Any]:
     """Execute the recovery loop in the background."""
     from apps.api.src.database import async_session_maker
-    from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
     from apps.api.src.models import JobORM
+    from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
     from packages.contracts.src.agent_models import AgentInvocation
 
     log.info("Starting run_recovery_diagnosis", job_id=job_id, run_id=run_id)
@@ -99,18 +99,37 @@ async def run_recovery_diagnosis(
 
         try:
             pipeline = EndToEndRecoveryPipeline(tenant_id=tenant_id)
-            approval_req = await pipeline.execute_recovery_loop(run_id, invocations, failure_symptom, db)
+            approval_req = await pipeline.execute_recovery_loop(
+                run_id, invocations, failure_symptom, db
+            )
             await db.commit()
 
             if job_orm:
                 job_orm.status = "SUCCEEDED"
                 job_orm.completed_at = datetime.now(UTC)
-                job_orm.result = (
-                    {"approval_request_id": str(approval_req.id)}
-                    if approval_req
-                    else {"status": "no_candidates"}
-                )
+                if (
+                    approval_req
+                    and getattr(approval_req, "status", None) == "INSUFFICIENT_EVIDENCE"
+                ):
+                    job_orm.result = {
+                        "status": "INSUFFICIENT_EVIDENCE",
+                        "next_action": getattr(approval_req, "next_action", None),
+                        "highest_posterior": getattr(approval_req, "highest_posterior", None),
+                        "threshold": getattr(approval_req, "threshold", None),
+                        "highest_candidate_component": str(
+                            getattr(approval_req, "highest_candidate_component", None)
+                        ),
+                    }
+                else:
+                    job_orm.result = (
+                        {"approval_request_id": str(approval_req.id)}
+                        if approval_req
+                        else {"status": "no_candidates"}
+                    )
                 await db.commit()
+
+            if approval_req and getattr(approval_req, "status", None) == "INSUFFICIENT_EVIDENCE":
+                return job_orm.result
 
             return {
                 "status": "success",
@@ -164,25 +183,23 @@ async def execute_replay_job(
 
         async with AsyncSessionLocal() as session:
             from apps.api.src.models import (
+                InterventionORM,
+                ReplayEpisodeORM,
+                ReplayStateManifestORM,
                 RequestRunORM,
                 TraceArtifactORM,
-                ReplayStateManifestORM,
-                ReplayEpisodeORM,
             )
-            from apps.api.src.models import InterventionORM
             from packages.contracts.src.models import (
-                RequestRun,
-                TraceArtifact,
-                SpanRecord,
-                ReplayStateManifest,
                 ComponentType,
                 ComponentVersion,
-                SpanKind,
+                ReplayStateManifest,
+                RequestRun,
+                SpanRecord,
+                TraceArtifact,
             )
             from packages.contracts.src.recovery_models import InterventionSpec
-            from packages.replay.src.engine import ReplayEngine, VersionRegistry
             from packages.replay.src.divergence_validator import DynamicCausalDivergenceValidator
-            from packages.trace_sdk.src.tracer import hash_payload
+            from packages.replay.src.engine import ReplayEngine, VersionRegistry
 
             # 1. Load run — validate tenant
             run_orm = await session.get(RequestRunORM, run_uuid)
@@ -237,7 +254,7 @@ async def execute_replay_job(
                 total_tokens=run_orm.total_tokens or 0,
                 total_cost_usd=run_orm.total_cost_usd or 0.0,
                 seed=run_orm.seed or seed,
-                is_synthetic=run_orm.is_synthetic,
+                evidence_class=run_orm.evidence_class,
             )
 
             manifest = ReplayStateManifest(
@@ -322,12 +339,17 @@ async def execute_replay_job(
 
             # 9. Run divergence validation using span-based snapshots
             from packages.replay.src.divergence_validator import (
-                DynamicCausalDivergenceValidator,
                 ExecutionSnapshot,
             )
 
-            orig_snapshot = ExecutionSnapshot.from_spans([s.model_dump() for s in original_trace.spans])
-            replay_trace_spans = [s.model_dump() for s in replay_trace.spans] if replay_trace and replay_trace.spans else []
+            orig_snapshot = ExecutionSnapshot.from_spans(
+                [s.model_dump() for s in original_trace.spans]
+            )
+            replay_trace_spans = (
+                [s.model_dump() for s in replay_trace.spans]
+                if replay_trace and replay_trace.spans
+                else []
+            )
             replay_snapshot = ExecutionSnapshot.from_spans(replay_trace_spans)
 
             # Build a minimal envelope: intervened node is the swapped component's span
@@ -346,8 +368,6 @@ async def execute_replay_job(
                 if found_intervention:
                     allowed_descendants.append(s.span_id)
 
-            from packages.contracts.src.interfaces import DivergenceReport
-
             class _SimpleEnvelope:
                 intervened_variables = intervened_ids
                 allowed_causal_descendants = allowed_descendants
@@ -356,7 +376,9 @@ async def execute_replay_job(
                 constraints: dict[str, Any] = {}
 
             validator = DynamicCausalDivergenceValidator()
-            divergence_report = validator.validate(orig_snapshot, replay_snapshot, _SimpleEnvelope())
+            divergence_report = validator.validate(
+                orig_snapshot, replay_snapshot, _SimpleEnvelope()
+            )
 
             # 10. Persist ReplayEpisodeORM
             episode_orm = ReplayEpisodeORM(
@@ -384,7 +406,7 @@ async def execute_replay_job(
                 replay_response_hash=episode.replay_response_hash,
                 seed=episode.seed,
                 completed_at=datetime.now(UTC),
-                is_synthetic=False,
+                evidence_class=str(episode.evidence_class.value) if hasattr(episode.evidence_class, "value") else str(episode.evidence_class),
                 replay_mode="real",
             )
             session.add(episode_orm)
@@ -440,11 +462,10 @@ async def execute_graph_construction_job(
         run_uuid = uuid.UUID(run_id_str)
 
         async with AsyncSessionLocal() as session:
-            from apps.api.src.models import TraceArtifactORM, RequestRunORM
+            from apps.api.src.models import RequestRunORM, TraceArtifactORM
             from apps.api.src.models_graph import CausalGraphORM, GraphEdgeORM
-            from packages.contracts.src.models import TraceArtifact, SpanRecord
-            from packages.contracts.src.registry import VersionRegistry as ContractVersionRegistry
-            from packages.graph.src.builder import GraphBuilder, BUILDER_VERSION
+            from packages.contracts.src.models import SpanRecord, TraceArtifact
+            from packages.graph.src.builder import BUILDER_VERSION, GraphBuilder
             from packages.trace_sdk.src.tracer import hash_payload
 
             # 1. Load run — validate tenant
@@ -495,12 +516,15 @@ async def execute_graph_construction_job(
             else:
                 # Use the in-memory version registry (graph builder reads from it)
                 from packages.replay.src.engine import VersionRegistry as LocalRegistry
+
                 local_registry = LocalRegistry()
 
                 class _RegistryAdapter:
                     """Adapts LocalRegistry to satisfy ContractVersionRegistry interface."""
+
                     def __init__(self, inner):
                         self._inner = inner
+
                     async def get_version(self, tenant_id, version_id):
                         return self._inner.get(version_id)
 
@@ -531,7 +555,9 @@ async def execute_graph_construction_job(
                         graph_hash=graph_hash,
                         source_id=edge.source_id,
                         target_id=edge.target_id,
-                        edge_type=str(edge.type.value) if hasattr(edge.type, "value") else str(edge.type),
+                        edge_type=(
+                            str(edge.type.value) if hasattr(edge.type, "value") else str(edge.type)
+                        ),
                         label=edge.label,
                         properties_json=edge.properties or {},
                     )
@@ -594,8 +620,8 @@ async def execute_bcrb_diagnosis_job(
         async with AsyncSessionLocal() as session:
             from apps.api.src.models import RequestRunORM, SpanRecordORM
             from packages.bcrb.src.orchestrator import BCRBOrchestrator
-            from packages.contracts.src.bcrb_models import BCRBSession, StoppingCondition
             from packages.contracts.src.agent_models import AgentInvocation
+            from packages.contracts.src.bcrb_models import BCRBSession, StoppingCondition
 
             # 1. Load run — validate tenant
             run_orm = await session.get(RequestRunORM, run_uuid_val)
@@ -672,14 +698,17 @@ async def execute_bcrb_diagnosis_job(
                 "run_id": run_id_str,
                 "diagnosed_root_cause": diagnosed_root_cause,
                 "confidence": confidence,
-                "stopping_condition": stopping.value if hasattr(stopping, "value") else str(stopping),
+                "stopping_condition": (
+                    stopping.value if hasattr(stopping, "value") else str(stopping)
+                ),
                 "total_spent_usd": completed_session.total_spent_usd,
                 "steps_executed": len(completed_session.steps),
                 "posterior_history": [
                     {
                         "candidate_id": str(c.candidate_id),
                         "component_type": (
-                            c.component_type.value if hasattr(c.component_type, "value")
+                            c.component_type.value
+                            if hasattr(c.component_type, "value")
                             else str(c.component_type)
                         ),
                         "prior": c.causal_evidence.prior if c.causal_evidence else None,

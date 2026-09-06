@@ -53,7 +53,7 @@ def test_controlled_replay_is_hash_bound_and_provenance_labeled(tmp_path: Path) 
         seed=7,
     )
 
-    assert evidence["evidence_kind"] == "controlled_replay"
+    assert evidence["evidence_class"] == "REAL_CONTROLLED_EXPERIMENT"
     assert evidence["dataset"]["evaluated_query_count"] == 1
     assert len(evidence["manifest_sha256"]) == 64
     assert all(len(trial["evidence_sha256"]) == 64 for trial in evidence["trials"])

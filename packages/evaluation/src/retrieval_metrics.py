@@ -1,6 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from typing import Any
+
 import numpy as np
 
 from packages.evaluation.src.metrics import DeterministicMetricsEngine
@@ -73,9 +74,15 @@ class RetrievalEvaluator:
             item_recalls = {}
             item_ndcgs = {}
             for k in self.k_values:
-                rec_val = DeterministicMetricsEngine.calculate_recall_at_k(retrieved_ids, relevant_ids, k)
-                prec_val = DeterministicMetricsEngine.calculate_precision_at_k(retrieved_ids, relevant_ids, k)
-                ndcg_val = DeterministicMetricsEngine.calculate_ndcg_at_k(retrieved_ids, relevant_ids, k)
+                rec_val = DeterministicMetricsEngine.calculate_recall_at_k(
+                    retrieved_ids, relevant_ids, k
+                )
+                prec_val = DeterministicMetricsEngine.calculate_precision_at_k(
+                    retrieved_ids, relevant_ids, k
+                )
+                ndcg_val = DeterministicMetricsEngine.calculate_ndcg_at_k(
+                    retrieved_ids, relevant_ids, k
+                )
 
                 recalls[k].append(rec_val)
                 precisions[k].append(prec_val)
@@ -96,7 +103,9 @@ class RetrievalEvaluator:
             )
 
         avg_recalls = {k: float(np.mean(recalls[k])) if recalls[k] else 0.0 for k in self.k_values}
-        avg_precisions = {k: float(np.mean(precisions[k])) if precisions[k] else 0.0 for k in self.k_values}
+        avg_precisions = {
+            k: float(np.mean(precisions[k])) if precisions[k] else 0.0 for k in self.k_values
+        }
         avg_ndcgs = {k: float(np.mean(ndcgs[k])) if ndcgs[k] else 0.0 for k in self.k_values}
         avg_mrr = float(np.mean(mrrs)) if mrrs else 0.0
 

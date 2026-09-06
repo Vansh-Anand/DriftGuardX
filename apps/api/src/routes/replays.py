@@ -6,20 +6,20 @@ GET /v1/replays/{id} — get replay metrics and provenance
 
 from __future__ import annotations
 
+import uuid
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-import uuid
 
 from apps.api.src.database import get_db
-from apps.api.src.dependencies import get_current_tenant, require_role
-from packages.contracts.src.auth import Role, User
+from apps.api.src.dependencies import get_current_tenant
 from apps.api.src.models import ReplayEpisodeORM
 from apps.api.src.schemas import ReplayResponse
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from packages.contracts.src.auth import Tenant
 
 router = APIRouter(prefix="/v1", tags=["replays"])
@@ -63,6 +63,7 @@ async def get_replay(
         completed_at=episode.completed_at,
         is_synthetic=episode.is_synthetic,
         evidence_kind=("synthetic_simulation" if episode.is_synthetic else "controlled_replay"),
+        evidence_class=episode.evidence_class,
         manifest_id=episode.manifest_id,
         manifest_hash=manifest_hash,
         is_pinned=episode.is_pinned,

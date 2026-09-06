@@ -15,8 +15,8 @@ from sqlalchemy.pool import StaticPool
 # Preserve a CI-provided live database for the explicit service smoke test,
 # while keeping application fixtures hermetic and fast.
 os.environ.setdefault("DGX_SERVICE_DATABASE_URL", os.environ.get("DATABASE_URL", ""))
-# Force SQLite for application-level tests.
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["ENVIRONMENT"] = "test"
 os.environ.setdefault(
     "DGX_CAPABILITY_SECRET",
     "driftguardx-test-capability-secret-32-bytes-minimum",

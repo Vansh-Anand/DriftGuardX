@@ -44,7 +44,7 @@ class MLPBaseline(nn.Module):
             nn.Linear(in_channels, hidden_channels),
             nn.ReLU(),
             nn.Linear(hidden_channels, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x, edge_index, edge_attr=None):

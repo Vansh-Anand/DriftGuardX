@@ -9,16 +9,28 @@ and tracking capacity/costs. Keep secrets out of code and database logs.
 import os
 from typing import Any
 
+from packages.provider_registry.src.providers import (
+    AnthropicProvider,
+    BaseProvider,
+    MockProvider,
+    OpenAIProvider,
+)
 
-from packages.provider_registry.src.providers import BaseProvider, MockProvider, OpenAIProvider, AnthropicProvider
 
 class ProviderStatus:
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     OFFLINE = "offline"
 
+
 class ModelConfig:
-    def __init__(self, provider: str, model_id: str, cost_per_1k_tokens: float, provider_class: type[BaseProvider]):
+    def __init__(
+        self,
+        provider: str,
+        model_id: str,
+        cost_per_1k_tokens: float,
+        provider_class: type[BaseProvider],
+    ):
         self.provider = provider
         self.model_id = model_id
         self.cost_per_1k_tokens = cost_per_1k_tokens

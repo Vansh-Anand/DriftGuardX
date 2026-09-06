@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.evaluation.src.bandit_baselines import CandidateArm
 from packages.replay.src.bandit import ResourceAdmittedBCRBController
 
@@ -64,8 +64,8 @@ class DatasetSnapshot:
     file_digests: dict[str, str]
 
 
-def load_scifact_snapshot(root: Path, split: str) -> DatasetSnapshot:
-    """Load and hash a SciFact snapshot, failing closed on missing/malformed data."""
+def load_dataset_snapshot(root: Path, split: str, dataset_name: str) -> DatasetSnapshot:
+    """Load and hash a dataset snapshot, failing closed on missing/malformed data."""
     corpus_path = root / "corpus.jsonl"
     queries_path = root / "queries.jsonl"
     qrels_path = root / "qrels" / f"{split}.tsv"
@@ -73,7 +73,7 @@ def load_scifact_snapshot(root: Path, split: str) -> DatasetSnapshot:
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
         raise FileNotFoundError(
-            "controlled replay requires a materialized SciFact snapshot; missing: "
+            f"controlled replay requires a materialized {dataset_name} snapshot; missing: "
             + ", ".join(missing)
         )
 
@@ -117,7 +117,7 @@ def load_scifact_snapshot(root: Path, split: str) -> DatasetSnapshot:
         if query_id in queries and relevant & documents.keys()
     }
     if not documents or not queries or not valid:
-        raise ValueError("SciFact snapshot contains no usable documents, queries, or qrels")
+        raise ValueError(f"{dataset_name} snapshot contains no usable documents, queries, or qrels")
 
     return DatasetSnapshot(
         root=root,
@@ -151,7 +151,7 @@ class BM25Index:
         self._average_length = sum(self._lengths.values()) / self._document_count
 
     def search(
-        self, query: str, top_k: int = 10, excluded_document_ids: set[str] | None = None
+        self, query: str, top_k: int = 10, excluded_document_ids: set[str] | None = None, idf_override: dict[str, float] | None = None
     ) -> list[str]:
         if top_k <= 0:
             return []
@@ -162,9 +162,12 @@ class BM25Index:
             if not postings:
                 continue
             document_frequency = len(postings)
-            inverse_document_frequency = math.log(
-                1.0 + (self._document_count - document_frequency + 0.5) / (document_frequency + 0.5)
-            )
+            if idf_override and token in idf_override:
+                inverse_document_frequency = idf_override[token]
+            else:
+                inverse_document_frequency = math.log(
+                    1.0 + (self._document_count - document_frequency + 0.5) / (document_frequency + 0.5)
+                )
             for doc_id, term_frequency in postings:
                 if doc_id in excluded:
                     continue
@@ -190,7 +193,7 @@ def _git_state(repo_root: Path) -> dict[str, Any]:
         git = shutil.which("git")
         if git is None:
             return {"commit": None, "dirty": None}
-        commit = subprocess.run(  # noqa: S603 - resolved executable and fixed arguments
+        commit = subprocess.run(  # - resolved executable and fixed arguments
             [git, "rev-parse", "HEAD"],
             cwd=repo_root,
             check=True,
@@ -198,7 +201,7 @@ def _git_state(repo_root: Path) -> dict[str, Any]:
             text=True,
         ).stdout.strip()
         dirty = bool(
-            subprocess.run(  # noqa: S603 - resolved executable and fixed arguments
+            subprocess.run(  # - resolved executable and fixed arguments
                 [git, "status", "--porcelain"],
                 cwd=repo_root,
                 check=True,
@@ -206,7 +209,7 @@ def _git_state(repo_root: Path) -> dict[str, Any]:
                 text=True,
             ).stdout.strip()
         )
-        tracked_diff = subprocess.run(  # noqa: S603 - resolved executable and fixed arguments
+        tracked_diff = subprocess.run(  # - resolved executable and fixed arguments
             [git, "diff", "--binary", "HEAD"],
             cwd=repo_root,
             check=True,
@@ -218,7 +221,7 @@ def _git_state(repo_root: Path) -> dict[str, Any]:
             "packages/evaluation/src/bandit_baselines.py",
             "packages/rag_benchmark/src/controlled_replay.py",
             "packages/replay/src/bandit.py",
-            "scripts/download_scifact.py",
+            "scripts/download_beir.py",
         )
         implementation_hashes = {
             relative_path: _file_digest(repo_root / relative_path)
@@ -309,6 +312,7 @@ def _paired_statistics(
 def run_controlled_replay(
     dataset_root: Path,
     repo_root: Path,
+    dataset_name: str = "scifact",
     split: str = "test",
     max_queries: int = 50,
     seed: int = 42,
@@ -316,7 +320,7 @@ def run_controlled_replay(
     """Execute and return hash-bound real-dataset controlled replay evidence."""
     if max_queries <= 0:
         raise ValueError("max_queries must be positive")
-    snapshot = load_scifact_snapshot(dataset_root, split)
+    snapshot = load_dataset_snapshot(dataset_root, split, dataset_name)
     index = BM25Index(snapshot.documents)
     query_ids = sorted(snapshot.qrels)
     random.Random(seed).shuffle(query_ids)  # noqa: S311 - benchmark sampling
@@ -324,6 +328,14 @@ def run_controlled_replay(
     strategies = ("bcrb_integrity_prior", "fixed_order", "random")
     trials: list[dict[str, Any]] = []
     evaluated_queries = 0
+    
+    fault_families = [
+        ("relevant_document_tombstone", "index_snapshot_digest_changed", "restore_index_snapshot"),
+        ("low_recall_cutoff", "backend_truncation_bug", "increase_top_k"),
+        ("malformed_query", "payload_corruption", "normalize_query"),
+        ("stale_idf", "corpus_drift", "recompute_idf"),
+    ]
+
     for query_id in query_ids:
         query = snapshot.queries[query_id]
         relevant = snapshot.qrels[query_id]
@@ -331,56 +343,92 @@ def run_controlled_replay(
         clean_recall = _recall(clean, relevant)
         if clean_recall <= 0.0:
             continue
-        faulted = index.search(query, top_k=10, excluded_document_ids=relevant)
-        faulted_recall = _recall(faulted, relevant)
+            
+        generated_trials = 0
+        for fault_name, fault_sig, ground_truth in fault_families:
+            faulted_query = query
+            faulted_top_k = 10
+            faulted_excluded = set()
+            faulted_idf_override = None
 
-        query_seed = int(hashlib.sha256(query_id.encode("utf-8")).hexdigest()[:16], 16)
-        for strategy in strategies:
-            attempts: list[dict[str, Any]] = []
-            recovered = False
-            for candidate in _candidate_order(strategy, seed ^ query_seed):
-                started = time.perf_counter_ns()
-                excluded = set() if candidate == "restore_index_snapshot" else relevant
-                top_k = 50 if candidate == "increase_top_k" else 10
-                replayed = index.search(query.strip().lower(), top_k, excluded)
-                elapsed_ns = time.perf_counter_ns() - started
-                replay_recall = _recall(replayed, relevant)
-                recovered = replay_recall >= clean_recall and replay_recall > faulted_recall
-                attempts.append(
-                    {
-                        "candidate": candidate,
-                        "elapsed_ns": elapsed_ns,
-                        "retrieved_ids": replayed,
-                        "recall": replay_recall,
-                        "mitigation_observed": recovered,
-                    }
-                )
-                if recovered:
-                    break
+            if fault_name == "relevant_document_tombstone":
+                faulted_excluded = relevant
+            elif fault_name == "low_recall_cutoff":
+                faulted_top_k = 1
+            elif fault_name == "malformed_query":
+                # Scramble to break tokenization/matching
+                faulted_query = query[::-1] 
+            elif fault_name == "stale_idf":
+                faulted_idf_override = {t: 0.0001 for t in _tokens(query)}
 
-            trial = {
-                "query_id": query_id,
-                "query_sha256": hashlib.sha256(query.encode("utf-8")).hexdigest(),
-                "strategy": strategy,
-                "fault": "relevant_document_tombstone",
-                "fault_signature": "index_snapshot_digest_changed",
-                "ground_truth_intervention": "restore_index_snapshot",
-                "clean_recall_at_10": clean_recall,
-                "faulted_recall_at_10": faulted_recall,
-                "recovered": recovered,
-                "replays_executed": len(attempts),
-                "elapsed_ns": sum(int(attempt["elapsed_ns"]) for attempt in attempts),
-                "attempts": attempts,
-            }
-            trial["evidence_sha256"] = _canonical_digest(trial)
-            trials.append(trial)
+            faulted = index.search(
+                faulted_query, 
+                top_k=faulted_top_k, 
+                excluded_document_ids=faulted_excluded, 
+                idf_override=faulted_idf_override
+            )
+            faulted_recall = _recall(faulted, relevant)
+            if faulted_recall >= clean_recall:
+                continue  # Fault didn't cause a regression
 
-        evaluated_queries += 1
-        if evaluated_queries >= max_queries:
-            break
+            query_seed = int(hashlib.sha256(f"{query_id}-{fault_name}".encode("utf-8")).hexdigest()[:16], 16)
+            for strategy in strategies:
+                attempts: list[dict[str, Any]] = []
+                recovered = False
+                for candidate in _candidate_order(strategy, seed ^ query_seed):
+                    started = time.perf_counter_ns()
+                    
+                    replay_query = query if candidate == "normalize_query" else faulted_query
+                    replay_top_k = 50 if candidate == "increase_top_k" else faulted_top_k
+                    replay_excluded = set() if candidate == "restore_index_snapshot" else faulted_excluded
+                    replay_idf = None if candidate == "recompute_idf" else faulted_idf_override
+                    
+                    replayed = index.search(
+                        replay_query, 
+                        top_k=replay_top_k, 
+                        excluded_document_ids=replay_excluded,
+                        idf_override=replay_idf
+                    )
+                    elapsed_ns = time.perf_counter_ns() - started
+                    replay_recall = _recall(replayed, relevant)
+                    recovered = replay_recall >= clean_recall and replay_recall > faulted_recall
+                    attempts.append(
+                        {
+                            "candidate": candidate,
+                            "elapsed_ns": elapsed_ns,
+                            "retrieved_ids": replayed,
+                            "recall": replay_recall,
+                            "mitigation_observed": recovered,
+                        }
+                    )
+                    if recovered:
+                        break
+
+                trial = {
+                    "query_id": query_id,
+                    "query_sha256": hashlib.sha256(query.encode("utf-8")).hexdigest(),
+                    "strategy": strategy,
+                    "fault": fault_name,
+                    "fault_signature": fault_sig,
+                    "ground_truth_intervention": ground_truth,
+                    "clean_recall_at_10": clean_recall,
+                    "faulted_recall_at_10": faulted_recall,
+                    "recovered": recovered,
+                    "replays_executed": len(attempts),
+                    "elapsed_ns": sum(int(attempt["elapsed_ns"]) for attempt in attempts),
+                    "attempts": attempts,
+                }
+                trial["evidence_sha256"] = _canonical_digest(trial)
+                trials.append(trial)
+                generated_trials += 1
+
+        if generated_trials > 0:
+            evaluated_queries += 1
+            if evaluated_queries >= max_queries:
+                break
 
     if evaluated_queries == 0:
-        raise RuntimeError("no SciFact query was recoverable by the clean BM25 baseline")
+        raise RuntimeError(f"no {dataset_name} query was recoverable by the clean BM25 baseline and regressed by any fault")
 
     aggregates: dict[str, dict[str, float | int]] = {}
     for strategy in strategies:
@@ -417,23 +465,23 @@ def run_controlled_replay(
 
     evidence: dict[str, Any] = {
         "schema_version": "1.0.0",
-        "evidence_kind": RecoveryEvidenceKind.CONTROLLED_REPLAY.value,
+        "evidence_class": EvidenceClassification.REAL_CONTROLLED_EXPERIMENT.value,
         "evidence_notice": (
-            "Real public SciFact records and real local BM25 executions with a controlled "
+            f"Real public {dataset_name} records and real local BM25 executions with a controlled "
             "index fault. This is not production traffic, a production canary, a safety "
             "certification, or proof of patentability."
         ),
         "limitations": [
             "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
-            "SciFact qrels define both evaluation relevance and the controlled tombstone fault.",
+            f"{dataset_name} qrels define both evaluation relevance and the controlled tombstone fault.",
             "The index-digest fault signature supplies the BCRB intervention prior.",
             "Results do not establish superiority for other fault families or workloads.",
             "Elapsed time is host-specific observational telemetry; replay counts are the primary metric.",
         ],
         "dataset": {
-            "name": "BEIR/SciFact",
+            "name": f"BEIR/{dataset_name}",
             "split": split,
-            "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
+            "source_url": f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip",
             "document_count": len(snapshot.documents),
             "query_count": len(snapshot.queries),
             "evaluated_query_count": evaluated_queries,

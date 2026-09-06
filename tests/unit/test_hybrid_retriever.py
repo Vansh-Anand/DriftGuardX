@@ -1,18 +1,20 @@
 import uuid
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
+from packages.evaluation.src.retrieval_metrics import RetrievalEvaluator
 from packages.rag_pipeline.src.adapters.postgres_retriever import (
     PgRetrievedChunk,
     PostgresHybridRetriever,
 )
-from packages.evaluation.src.retrieval_metrics import RetrievalEvaluator
 
 
 class DummyEmbeddingAdapter:
     async def embed(self, text: str) -> list[float]:
         # Deterministic pseudo-embedding based on string hash
         import hashlib
+
         h = hashlib.sha256(text.encode()).digest()
         return [float(b) / 255.0 for b in h[:16]]
 
@@ -55,9 +57,16 @@ async def test_postgres_hybrid_retriever_tenant_isolation():
         assert "tenant_id" in params
         req_tenant = params["tenant_id"]
         if req_tenant == tenant_a:
-            return MockDBResult([
-                {"chunk_id": "c1", "text_content": "Tenant A Secret Info", "rrf_score": 0.032, "document_id": "d1"}
-            ])
+            return MockDBResult(
+                [
+                    {
+                        "chunk_id": "c1",
+                        "text_content": "Tenant A Secret Info",
+                        "rrf_score": 0.032,
+                        "document_id": "d1",
+                    }
+                ]
+            )
         return MockDBResult([])
 
     mock_session.execute.side_effect = mock_execute
@@ -115,7 +124,7 @@ async def test_retrieval_evaluator_metrics():
 
     assert result.total_queries == 2
     assert result.recall_at_k[1] == 0.75  # (1/2 + 1/1) / 2 = 0.75
-    assert result.recall_at_k[2] == 1.0   # Both found in top 2
-    assert result.mrr == 1.0              # Both had top-1 hit
+    assert result.recall_at_k[2] == 1.0  # Both found in top 2
+    assert result.mrr == 1.0  # Both had top-1 hit
     assert result.ndcg_at_k[1] > 0.5
     assert result.latency_p50_ms >= 0.0

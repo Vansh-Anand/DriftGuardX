@@ -8,10 +8,9 @@ Currently backed by local filesystem mock.
 import hashlib
 import json
 import os
+import tempfile
 from abc import ABC, abstractmethod
 from typing import Any
-
-import tempfile
 
 # Default storage location for local mock
 _STORAGE_DIR = os.environ.get(

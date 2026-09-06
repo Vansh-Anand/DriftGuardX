@@ -92,11 +92,15 @@ class LocalDeterministicLLMAdapter(LLMAdapter):
         if context:
             citations_text = " ".join([f"[{i+1}]" for i in range(min(len(context), 3))])
             snippets = " ".join([c.text_content for c in context[:2]])
-            response_text = f"Synthesized answer based on verified context: {snippets} {citations_text}".strip()
+            response_text = (
+                f"Synthesized answer based on verified context: {snippets} {citations_text}".strip()
+            )
         else:
             response_text = f"Synthesized general response for: {prompt[:100]}".strip()
 
-        tokens_input = max(len(prompt.split()) + sum(len(c.text_content.split()) for c in context), 1)
+        tokens_input = max(
+            len(prompt.split()) + sum(len(c.text_content.split()) for c in context), 1
+        )
         tokens_output = max(len(response_text.split()), 1)
         latency_ms = (time.time() - start_time) * 1000.0
 

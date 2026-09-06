@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from apps.api.src.database import AsyncSessionLocal
 
 
-async def purge_old_traces(retention_days: int = 30):
+async def purge_old_traces(retention_days: int = 30) -> None:
     """
     Purges trace data older than retention_days.
     NOTE: In DriftGuard-X, cryptographically signed ledger claims are NEVER deleted.

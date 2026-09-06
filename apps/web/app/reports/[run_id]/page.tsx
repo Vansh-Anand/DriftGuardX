@@ -2,8 +2,8 @@
 import React from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type CertStatus = "CERTIFIED" | "UNCERTIFIED" | "REJECTED";
-type EvidenceKind = "synthetic_simulation" | "controlled_replay" | "production_canary";
+type CertStatus = "CERTIFIED" | "UNCERTIFIED" | "REJECTED" | "INSUFFICIENT_EVIDENCE";
+type EvidenceClassification = "PRODUCTION" | "REAL_CONTROLLED_EXPERIMENT" | "SYNTHETIC_SIMULATION" | "TEST_FIXTURE" | "UNVERIFIED";
 
 interface MockReport {
   run_id: string;
@@ -12,7 +12,7 @@ interface MockReport {
   recommended_next_step: string;
   // Certification fields (Prompt 10)
   certificate_status: CertStatus;
-  evidence_kind: EvidenceKind;
+  evidence_class: EvidenceClassification;
   bound_method: string;
   epsilon: number;
   delta: number;
@@ -24,6 +24,8 @@ interface MockReport {
   assumptions_violated: string[];
   human_review_required: boolean;
   block_automated_action: boolean;
+  highest_posterior?: number;
+  next_action?: string;
   ranked_candidates: Array<{
     id: string;
     component_type: string;
@@ -48,8 +50,10 @@ const MOCK_REPORT: MockReport = {
   ],
   recommended_next_step: "Approve Rollback of Retriever to v1.",
   // Certification fields
-  certificate_status: "CERTIFIED",
-  evidence_kind: "synthetic_simulation",
+  certificate_status: "INSUFFICIENT_EVIDENCE",
+  highest_posterior: 0.51,
+  next_action: "collect another replay",
+  evidence_class: "SYNTHETIC_SIMULATION",
   bound_method: "hoeffding",
   epsilon: 0.087,
   delta: 0.10,
@@ -95,7 +99,7 @@ const MOCK_REPORT: MockReport = {
 function CertificationBadge({ report }: { report: MockReport }) {
   const { certificate_status, bound_method, epsilon, delta, nominal_confidence,
     observed_coverage, calibration_version, calibration_age_days,
-    assumptions_met, assumptions_violated } = report;
+    assumptions_met, assumptions_violated, highest_posterior, next_action } = report;
 
   const badgeConfig = {
     CERTIFIED: {
@@ -113,6 +117,11 @@ function CertificationBadge({ report }: { report: MockReport }) {
       dot: "bg-red-600", label: "✗ Rejected — Automated Actions Blocked",
       subtext: "critical assumption violations; manual review mandatory",
     },
+    INSUFFICIENT_EVIDENCE: {
+      bg: "bg-slate-100", border: "border-slate-400", text: "text-slate-700",
+      dot: "bg-slate-400", label: "⚠ INSUFFICIENT EVIDENCE",
+      subtext: `posterior (${highest_posterior}) did not meet the required threshold. Next action: ${next_action}`,
+    },
   }[certificate_status];
 
   return (
@@ -128,8 +137,8 @@ function CertificationBadge({ report }: { report: MockReport }) {
         This diagnosis is {badgeConfig.subtext}. It does NOT constitute a system safety guarantee.
       </p>
       <div className="mb-4 rounded border border-amber-500 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
-        Evidence provenance: {report.evidence_kind.replaceAll("_", " ")}.
-        {report.evidence_kind === "synthetic_simulation" &&
+        Evidence provenance: {report.evidence_class.replaceAll("_", " ")}.
+        {report.evidence_class === "SYNTHETIC_SIMULATION" &&
           " Synthetic evidence cannot authorize production execution."}
       </div>
 
@@ -179,7 +188,7 @@ function CertificationBadge({ report }: { report: MockReport }) {
 export default function RootCauseReportPage({ params }: { params: { run_id: string } }) {
   const canExecute =
     MOCK_REPORT.certificate_status === "CERTIFIED" &&
-    MOCK_REPORT.evidence_kind !== "synthetic_simulation" &&
+    MOCK_REPORT.evidence_class !== "SYNTHETIC_SIMULATION" &&
     !MOCK_REPORT.block_automated_action;
 
   return (

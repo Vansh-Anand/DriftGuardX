@@ -80,8 +80,10 @@ export default function RunsPage() {
                 <div className="px-4 py-3 font-mono text-xs">${run.total_cost_usd.toFixed(4)}</div>
                 <div className="px-4 py-3 font-mono text-xs font-bold">{run.reliability_score.toFixed(2)}</div>
                 <div className="px-4 py-3">
-                  {run.is_synthetic && (
-                    <span className="font-mono text-[10px] border border-[#888] text-[#888] px-2 py-0.5">Synthetic</span>
+                  {run.evidence_class && (
+                    <span className="font-mono text-[8px] border border-[#888] text-[#888] px-2 py-0.5">
+                      {run.evidence_class.replace(/_/g, ' ')}
+                    </span>
                   )}
                 </div>
               </div>

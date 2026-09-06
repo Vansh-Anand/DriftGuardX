@@ -9,7 +9,6 @@ Supports queued, running, completed, failed, and cancelled states, retries, and 
 from __future__ import annotations
 
 import asyncio
-import inspect
 import logging
 import uuid
 from collections.abc import Callable, Coroutine
@@ -18,11 +17,10 @@ from typing import Any
 
 from arq import create_pool
 from arq.connections import RedisSettings
-
-from apps.api.src.config import settings
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.api.src.config import settings
 from apps.api.src.database import AsyncSessionLocal
 from apps.api.src.models import BackgroundJobORM
 
@@ -64,7 +62,9 @@ class JobOrchestrator:
 
     async def get_pool(self):
         if not self._arq_pool:
-            self._arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url.get_secret_value()))
+            self._arq_pool = await create_pool(
+                RedisSettings.from_dsn(settings.redis_url.get_secret_value())
+            )
         return self._arq_pool
 
     def submit_job(
@@ -126,7 +126,7 @@ class JobOrchestrator:
                                 current_job.completed_at = datetime.now(UTC)
                                 current_job.result_json = (
                                     {"result": result}
-                                    if isinstance(result, (dict, list, str, int, float, bool))
+                                    if isinstance(result, dict | list | str | int | float | bool)
                                     else {"status": "ok"}
                                 )
                                 await session.commit()
@@ -167,11 +167,22 @@ class JobOrchestrator:
 
         # In production, we enqueue this onto ARQ instead of running locally.
         # This gives us durable, distributed execution with retries.
-        async def enqueue_to_arq():
+        async def enqueue_to_arq() -> None:
             pool = await self.get_pool()
-            await pool.enqueue_job("generic_job_runner", task_type, *args, tenant_id=tenant_id, _job_id=job_id, **kwargs)
+            await pool.enqueue_job(
+                "generic_job_runner",
+                task_type,
+                *args,
+                tenant_id=tenant_id,
+                _job_id=job_id,
+                **kwargs,
+            )
 
-        task = asyncio.create_task(enqueue_to_arq())
+        if settings.environment == "test":
+            task = asyncio.create_task(run_pipeline())
+        else:
+            task = asyncio.create_task(enqueue_to_arq())
+
         job_handle._task = task
         self._active_tasks[job_id] = task
         return job_id

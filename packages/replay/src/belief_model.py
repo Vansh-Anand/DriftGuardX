@@ -11,24 +11,65 @@ class LikelihoodEstimator(Protocol):
         ...
 
 
-class HeuristicLikelihoodEstimator:
+class TopologicalLikelihoodEstimator:
     """
-    A clearly named heuristic estimator for prototype use.
-    If we intervene on a node, and it WAS the root cause, it should heavily mitigate the failure.
-    outcome in ["mitigated", "reproduced"]
+    Topologically-aware estimator.
+    Takes a list of graph edges (e.g. [{"source_id": A, "target_id": B}]) and computes 
+    ancestor/descendant relationships using transitive closure.
     """
+    def __init__(self, graph_edges: list[dict[str, str]]):
+        self._edges = graph_edges
+        self._ancestors: dict[str, set[str]] = {}
+        self._descendants: dict[str, set[str]] = {}
+        self._build_closures()
+
+    def _build_closures(self):
+        # Initialize direct edges
+        for edge in self._edges:
+            s, t = edge["source_id"], edge["target_id"]
+            self._descendants.setdefault(s, set()).add(t)
+            self._ancestors.setdefault(t, set()).add(s)
+
+        # Floyd-Warshall style transitive closure
+        nodes = set(self._ancestors.keys()) | set(self._descendants.keys())
+        changed = True
+        while changed:
+            changed = False
+            for n in nodes:
+                # For each descendant of n, it inherits n's descendants
+                current_desc = self._descendants.get(n, set())
+                for d in list(current_desc):
+                    d_desc = self._descendants.get(d, set())
+                    old_len = len(current_desc)
+                    current_desc.update(d_desc)
+                    if len(current_desc) > old_len:
+                        changed = True
+
+                # For each ancestor of n, it inherits n's ancestors
+                current_anc = self._ancestors.get(n, set())
+                for a in list(current_anc):
+                    a_anc = self._ancestors.get(a, set())
+                    old_len = len(current_anc)
+                    current_anc.update(a_anc)
+                    if len(current_anc) > old_len:
+                        changed = True
 
     def estimate_likelihood(self, intervention_node: str, root_cause: str, outcome: str) -> float:
         if intervention_node == root_cause:
-            if outcome == "mitigated":
-                return 0.9  # high likelihood of fixing it
-            else:
-                return 0.1
-        else:
-            if outcome == "mitigated":
-                return 0.1  # low likelihood of fixing it if we didn't touch the root cause
-            else:
-                return 0.9
+            # We fixed the exact problem node
+            return 0.9 if outcome == "mitigated" else 0.1
+        
+        if intervention_node in self._descendants.get(root_cause, set()):
+            # Intervention is a descendant of the root cause.
+            # Masking downstream often fixes symptoms of upstream failure.
+            return 0.8 if outcome == "mitigated" else 0.2
+        
+        if intervention_node in self._ancestors.get(root_cause, set()):
+            # Intervention is an ancestor. Feeding healthy data to a broken node still fails.
+            return 0.1 if outcome == "mitigated" else 0.9
+
+        # Unrelated / independent component
+        return 0.1 if outcome == "mitigated" else 0.9
 
 
 class DeterminismEstimator:

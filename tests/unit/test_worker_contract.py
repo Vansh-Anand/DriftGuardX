@@ -6,7 +6,6 @@ from apps.worker.src.worker import (
     execute_graph_construction_job,
     execute_recovery_job,
     execute_replay_job,
-    worker_healthcheck,
 )
 
 
@@ -63,4 +62,3 @@ def test_recovery_job_not_stub():
     assert "tenant_id" in src
     # Must NOT return hardcoded verification_passed=True
     assert '"verification_passed": True' not in src
-

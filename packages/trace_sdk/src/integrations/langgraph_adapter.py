@@ -6,11 +6,14 @@ Provides decorators and callbacks to automatically trace LangGraph nodes and map
 
 import functools
 import inspect
-from typing import Any, Callable, TypeVar, cast
-from packages.contracts.src.models import ComponentType, PrivacyMode, SpanKind
-from packages.trace_sdk.src.decorators import get_active_trace_context, _active_parent_span_id
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
-F = TypeVar('F', bound=Callable[..., Any])
+from packages.contracts.src.models import ComponentType, PrivacyMode, SpanKind
+from packages.trace_sdk.src.decorators import _active_parent_span_id, get_active_trace_context
+
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 def langgraph_node(
     name: str | None = None,
@@ -20,10 +23,12 @@ def langgraph_node(
     """
     Traces a LangGraph node. LangGraph nodes are typically functions that take State and return an update to State.
     """
+
     def decorator(func: F) -> F:
         func_name = name or func.__name__
 
         if inspect.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(state: Any, *args, **kwargs) -> Any:
                 ctx = get_active_trace_context()
@@ -31,12 +36,14 @@ def langgraph_node(
                     return await func(state, *args, **kwargs)
 
                 parent_id = _active_parent_span_id.get()
-                builder = ctx.start_span(name=func_name, kind=SpanKind.INTERNAL, parent_span_id=parent_id)
+                builder = ctx.start_span(
+                    name=func_name, kind=SpanKind.INTERNAL, parent_span_id=parent_id
+                )
                 builder.set_attribute("dgx.component.type", str(ComponentType.AGENT.value))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
                 builder.set_attribute("dgx.agent.type", "langgraph_node")
                 builder.set_component_type(ComponentType.AGENT)
-                
+
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
 
@@ -59,6 +66,7 @@ def langgraph_node(
 
             return cast(F, async_wrapper)
         else:
+
             @functools.wraps(func)
             def sync_wrapper(state: Any, *args, **kwargs) -> Any:
                 ctx = get_active_trace_context()
@@ -66,12 +74,14 @@ def langgraph_node(
                     return func(state, *args, **kwargs)
 
                 parent_id = _active_parent_span_id.get()
-                builder = ctx.start_span(name=func_name, kind=SpanKind.INTERNAL, parent_span_id=parent_id)
+                builder = ctx.start_span(
+                    name=func_name, kind=SpanKind.INTERNAL, parent_span_id=parent_id
+                )
                 builder.set_attribute("dgx.component.type", str(ComponentType.AGENT.value))
                 builder.set_attribute("dgx.component.version_tag", version_tag)
                 builder.set_attribute("dgx.agent.type", "langgraph_node")
                 builder.set_component_type(ComponentType.AGENT)
-                
+
                 if parent_id:
                     builder.set_attribute("dgx.causal.source_span_id", parent_id)
 

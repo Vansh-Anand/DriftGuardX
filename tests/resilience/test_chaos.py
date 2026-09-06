@@ -1,10 +1,10 @@
-import asyncio
-import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
-from packages.rag_benchmark.src.fault_models import FaultScenario, FaultType
-from packages.diagnosis.src.engine import DiagnosisEngine
+import pytest
+
 from packages.bcrb.src.orchestrator import BCRBOrchestrator
+from packages.diagnosis.src.engine import DiagnosisEngine
+from packages.rag_benchmark.src.fault_models import FaultScenario, FaultType
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def sample_scenario():
         expected_failure_property="latency",
         allowed_interventions=[],
         ground_truth_metadata={},
-        environment_metadata={}
+        environment_metadata={},
     )
 
 
@@ -40,9 +40,11 @@ def sample_scenario():
 async def test_redis_enqueue_failure(diagnosis_engine, sample_scenario):
     """Test system resilience when Redis enqueue fails."""
     # Simulate a ConnectionError when trying to enqueue a diagnosis job
-    with patch("packages.diagnosis.src.engine.DiagnosisEngine.generate_diagnosis", new_callable=AsyncMock) as mock_diagnose:
+    with patch(
+        "packages.diagnosis.src.engine.DiagnosisEngine.generate_diagnosis", new_callable=AsyncMock
+    ) as mock_diagnose:
         mock_diagnose.side_effect = ConnectionError("Redis cluster unreachable")
-        
+
         # System should catch the error and not crash
         try:
             # For the mock, we just call the mocked function to ensure the exception propagates cleanly
@@ -55,11 +57,17 @@ async def test_redis_enqueue_failure(diagnosis_engine, sample_scenario):
 @pytest.mark.asyncio
 async def test_postgres_persistence_failure(orchestrator):
     """Test system resilience when Postgres fails during save."""
-    with patch("packages.bcrb.src.orchestrator.BCRBOrchestrator.execute_session", new_callable=AsyncMock) as mock_exec:
+    with patch(
+        "packages.bcrb.src.orchestrator.BCRBOrchestrator.execute_session", new_callable=AsyncMock
+    ) as mock_exec:
         # Simulate asyncpg Error
-        class MockPostgresError(Exception): pass
-        mock_exec.side_effect = MockPostgresError("terminating connection due to administrator command")
-        
+        class MockPostgresError(Exception):
+            pass
+
+        mock_exec.side_effect = MockPostgresError(
+            "terminating connection due to administrator command"
+        )
+
         try:
             await mock_exec("diag-1")
         except MockPostgresError as e:
@@ -71,9 +79,11 @@ async def test_worker_crash_mid_replay(orchestrator):
     """Test that a worker crashing mid-replay is handled gracefully."""
     # If a worker crashes, the orchestrator should mark the run as failed.
     # We mock the candidate evaluation to raise a hard RuntimeError
-    with patch("packages.bcrb.src.orchestrator.BCRBOrchestrator.execute_session", new_callable=AsyncMock) as mock_eval:
+    with patch(
+        "packages.bcrb.src.orchestrator.BCRBOrchestrator.execute_session", new_callable=AsyncMock
+    ) as mock_eval:
         mock_eval.side_effect = RuntimeError("Worker process died unexpectedly: SIGKILL")
-        
+
         # Call the private evaluation function directly to ensure the error is what we expect
         try:
             await mock_eval("diag-1")
@@ -84,10 +94,15 @@ async def test_worker_crash_mid_replay(orchestrator):
 @pytest.mark.asyncio
 async def test_provider_rate_limit(orchestrator):
     """Test that provider rate limits trigger backoff/failure rather than process crash."""
-    with patch("packages.bcrb.src.orchestrator.BCRBOrchestrator.execute_session", new_callable=AsyncMock) as mock_eval:
-        class RateLimitError(Exception): pass
+    with patch(
+        "packages.bcrb.src.orchestrator.BCRBOrchestrator.execute_session", new_callable=AsyncMock
+    ) as mock_eval:
+
+        class RateLimitError(Exception):
+            pass
+
         mock_eval.side_effect = RateLimitError("429 Too Many Requests: please try again in 10s")
-        
+
         try:
             await mock_eval("diag-1")
         except RateLimitError as e:

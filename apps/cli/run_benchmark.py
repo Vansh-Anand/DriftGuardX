@@ -44,11 +44,11 @@ from packages.rag_benchmark.src.fault_models import (
 from packages.rag_benchmark.src.rag_pipeline import RAGPipeline
 from packages.rag_benchmark.src.schedulers import BCRBSchedulerWrapper
 from packages.recovery.src.causal_cut import CutOptimizer, FailurePathEnumerator
-from packages.replay.src.belief_model import HeuristicLikelihoodEstimator, RootCauseBeliefModel
 from packages.replay.src.causal_experiment_planner import (
     BlastRadiusEstimator,
     RiskLimitedSequentialCausalExperimentPlanner,
 )
+from packages.replay.src.belief_model import RootCauseBeliefModel, TopologicalLikelihoodEstimator
 from packages.replay.src.stopping_rule import EvidentiaryStoppingRule, StoppingOutcome
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -96,7 +96,7 @@ class RAGEvaluationOracle(EvaluationOracle):
         elif scenario.fault_type == FaultType.EMBEDDING_DRIFT:
             return "EMBEDDING_DRIFT_FAILURE" not in resp
         elif scenario.fault_type == FaultType.RETRIEVAL_FAILURE:
-            return not (new_output.get("retrieved_chunks") == [])
+            return new_output.get("retrieved_chunks") != []
         elif scenario.fault_type == FaultType.LLM_DEGRADATION:
             return "LLM_DEGRADATION_FAILURE" not in resp
         elif scenario.fault_type == FaultType.MALFORMED_TOOL_OUTPUT:
@@ -406,7 +406,14 @@ def _run_real_trial(
     )
 
 
-async def run_benchmark(dataset: str, split: str, max_trials: int, global_seed: int = 42, provider: str = "local", topology: str = "standard") -> None:
+async def run_benchmark(
+    dataset: str,
+    split: str,
+    max_trials: int,
+    global_seed: int = 42,
+    provider: str = "local",
+    topology: str = "standard",
+) -> None:
     print(f"DriftGuard-X v2 - Benchmark ({provider} | {topology})")
     queries_dict, qrels_dict, valid_qids = load_beir_data(dataset, split)
 
@@ -559,4 +566,8 @@ if __name__ == "__main__":
     parser.add_argument("--provider", type=str, default="local-deterministic")
     parser.add_argument("--topology", type=str, default="standard")
     args = parser.parse_args()
-    asyncio.run(run_benchmark(args.dataset, args.split, args.max_trials, args.seed, args.provider, args.topology))
+    asyncio.run(
+        run_benchmark(
+            args.dataset, args.split, args.max_trials, args.seed, args.provider, args.topology
+        )
+    )

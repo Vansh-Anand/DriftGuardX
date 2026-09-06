@@ -360,14 +360,14 @@ class CausalRecoveryOrchestrator:
                 return ""
 
             machine.transition(IncidentStatus.CANARY, "Deploying canary.")
-            
+
             # We do not have a real canary deployment mechanism yet.
             # We must explicitly fail or halt rather than fabricating success.
             # No fake quarantine confirmation or simulated successful recovery.
-            if incident_state.envelope_id: # placeholder check
+            if incident_state.envelope_id:  # placeholder check
                 machine.transition(
-                    IncidentStatus.RECOVERY_REJECTED, 
-                    "Real canary deployments are currently blocked pending production support. Refusing to fabricate recovery success."
+                    IncidentStatus.RECOVERY_REJECTED,
+                    "Real canary deployments are currently blocked pending production support. Refusing to fabricate recovery success.",
                 )
                 return ""
             cert = {

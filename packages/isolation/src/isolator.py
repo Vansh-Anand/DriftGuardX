@@ -48,7 +48,12 @@ class CausalIsolator:
 
         if db:
             from apps.api.src.models import QuarantineRuleORM
-            comp_str = root_cause_component.value if hasattr(root_cause_component, "value") else str(root_cause_component)
+
+            comp_str = (
+                root_cause_component.value
+                if hasattr(root_cause_component, "value")
+                else str(root_cause_component)
+            )
             orm_rule = QuarantineRuleORM(
                 id=uuid.UUID(rule.rule_id),
                 tenant_id=uuid.UUID(self.tenant_id),
@@ -69,10 +74,12 @@ class CausalIsolator:
         for rule in self._active_rules:
             if rule.rule_id == rule_id:
                 rule.active = False
-                
+
         if db:
             from sqlalchemy import select
+
             from apps.api.src.models import QuarantineRuleORM
+
             stmt = select(QuarantineRuleORM).where(QuarantineRuleORM.id == uuid.UUID(rule_id))
             result = await db.execute(stmt)
             rule_orm = result.scalar_one_or_none()
@@ -99,15 +106,21 @@ class CausalIsolator:
         quarantined = set()
         for rule in self._active_rules:
             if rule.active:
-                comp_str = rule.target_component.value if hasattr(rule.target_component, "value") else str(rule.target_component)
+                comp_str = (
+                    rule.target_component.value
+                    if hasattr(rule.target_component, "value")
+                    else str(rule.target_component)
+                )
                 quarantined.add(comp_str)
 
         if db:
             from sqlalchemy import select
+
             from apps.api.src.models import QuarantineRuleORM
+
             stmt = select(QuarantineRuleORM).where(
                 QuarantineRuleORM.tenant_id == uuid.UUID(self.tenant_id),
-                QuarantineRuleORM.active == True
+                QuarantineRuleORM.active is True,
             )
             result = await db.execute(stmt)
             for rule_orm in result.scalars().all():
@@ -147,7 +160,11 @@ class CausalIsolator:
         """
         comp_str = component.value if hasattr(component, "value") else str(component)
         for rule in self._active_rules:
-            r_comp_str = rule.target_component.value if hasattr(rule.target_component, "value") else str(rule.target_component)
+            r_comp_str = (
+                rule.target_component.value
+                if hasattr(rule.target_component, "value")
+                else str(rule.target_component)
+            )
             if rule.active and r_comp_str == comp_str:
                 return False  # Quarantined
         return True

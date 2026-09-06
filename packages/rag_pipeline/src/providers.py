@@ -5,7 +5,6 @@ PRIVATE — All Rights Reserved.
 
 from __future__ import annotations
 
-import os
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -30,7 +29,7 @@ class LocalDeterministicProvider(BaseProvider):
         start_time = time.monotonic()
         text = "Reasoning produced."
         latency_ms = (time.monotonic() - start_time) * 1000
-        
+
         return ProviderResponse(
             text=text,
             metadata={
@@ -50,13 +49,13 @@ class OpenAIProvider(BaseProvider):
     async def generate(self, prompt: str, context: list[str], **kwargs: Any) -> ProviderResponse:
         start_time = time.monotonic()
         import openai
-        
+
         client = openai.AsyncClient()
         model = kwargs.get("model", "gpt-4o")
         messages = [{"role": "system", "content": prompt}]
         if context:
             messages.append({"role": "user", "content": "\n".join(context)})
-            
+
         try:
             response = await client.chat.completions.create(
                 model=model,
@@ -66,13 +65,13 @@ class OpenAIProvider(BaseProvider):
             )
             text = response.choices[0].message.content or ""
             latency_ms = (time.monotonic() - start_time) * 1000
-            
+
             prompt_tokens = response.usage.prompt_tokens if response.usage else 0
             completion_tokens = response.usage.completion_tokens if response.usage else 0
-            
+
             # Simple cost heuristic for gpt-4o
             cost_usd = (prompt_tokens * 0.005 + completion_tokens * 0.015) / 1000.0
-            
+
             return ProviderResponse(
                 text=text,
                 metadata={
@@ -95,7 +94,7 @@ class OpenAIProvider(BaseProvider):
                     "model_id": model,
                     "error": str(e),
                     "latency_ms": latency_ms,
-                }
+                },
             )
 
 
@@ -105,11 +104,11 @@ class ProviderRegistry:
             "local-deterministic": LocalDeterministicProvider(),
             "openai": OpenAIProvider(),
         }
-        
+
     def get_provider(self, provider_id: str) -> BaseProvider:
         if provider_id not in self._providers:
             raise ValueError(f"Provider '{provider_id}' not found in registry.")
         return self._providers[provider_id]
-        
+
     def register_provider(self, provider_id: str, provider: BaseProvider) -> None:
         self._providers[provider_id] = provider

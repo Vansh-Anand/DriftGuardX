@@ -12,7 +12,7 @@ import json
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 
 if TYPE_CHECKING:
     from packages.ledger.src.schema import RecoveryCertificate
@@ -57,7 +57,8 @@ def export_machine_bundle(certs: list[RecoveryCertificate]) -> str:
         "version": "2.0",
         "type": "DriftGuardX_Ledger_Verification_Bundle",
         "evidence_summary": {
-            kind.value: sum(c.evidence_kind == kind for c in certs) for kind in RecoveryEvidenceKind
+            kind.value: sum(c.evidence_kind == kind for c in certs)
+            for kind in EvidenceClassification
         },
         "certificates": [asdict(c) for c in certs],
     }

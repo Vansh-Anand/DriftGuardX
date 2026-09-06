@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
-from apps.api.src.pipeline.mock_rag import RETRIEVER_V1
 from apps.api.src.routes.runs import _build_replay_manifest
 
 

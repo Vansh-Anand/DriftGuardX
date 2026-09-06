@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from packages.contracts.src.models import GATFeatureSchema
-
 
 import numpy as np
+
+from packages.contracts.src.models import GATFeatureSchema
 
 try:
     import torch
@@ -59,7 +59,7 @@ class DriftGuardX_GAT(torch.nn.Module):
         self.graph_classifier = Sequential(
             Linear(hidden_dim * 2, 64), ReLU(), Dropout(0.3), Linear(64, num_classes)
         )
-        
+
         # Node Classifier Head
         self.node_classifier = Sequential(
             Linear(hidden_dim, 32), ReLU(), Dropout(0.3), Linear(32, num_classes)
@@ -86,7 +86,7 @@ class DriftGuardX_GAT(torch.nn.Module):
 
         graph_logits = self.graph_classifier(x_pool)
         node_logits = self.node_classifier(x_node)
-        
+
         return graph_logits, node_logits
 
 
@@ -176,14 +176,14 @@ class GATTraceDetector:
             is_err = 1.0 if s.get("is_error", False) else 0.0
             fanout = float(len(children[i]))
             op_code = float(hash(s.get("operation_name", "")) % 50)
-            
+
             schema = GATFeatureSchema(
                 log_duration=float(np.log1p(dur)),
                 relative_duration=rel_dur,
                 self_time_ratio=self_time,
                 is_error=is_err,
                 fanout=fanout,
-                operation_encoding=op_code
+                operation_encoding=op_code,
             )
             node_features.append(schema.to_list())
 
@@ -209,11 +209,16 @@ class GATTraceDetector:
                     "duration_ms": s.get("duration_ms", 0.0),
                     "is_error": s.get("is_error", False),
                     "self_time_ratio": node_features[i][2],
-                    "node_fault_prob": float(node_probs[i])
+                    "node_fault_prob": float(node_probs[i]),
                 }
                 for i, s in enumerate(spans)
             ],
-            key=lambda item: (item["node_fault_prob"], item["is_error"], item["self_time_ratio"], item["duration_ms"]),
+            key=lambda item: (
+                item["node_fault_prob"],
+                item["is_error"],
+                item["self_time_ratio"],
+                item["duration_ms"],
+            ),
             reverse=True,
         )
 

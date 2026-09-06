@@ -3,10 +3,12 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
+
 from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
 from packages.contracts.src.agent_models import AgentInvocation
 
 pytestmark = pytest.mark.asyncio
+
 
 async def test_end_to_end_recovery_pipeline():
     tenant_id = str(uuid.uuid4())
@@ -26,9 +28,17 @@ async def test_end_to_end_recovery_pipeline():
     ]
 
     # Execute with mocked successful canary
-    with patch("apps.api.src.services.recovery_pipeline.CanaryTestFramework.execute_canary") as mock_exec:
-        
-        from packages.contracts.src.bcrb_models import BCRBStep, BCRBStepStatus, ReplayCost, RecoveryEffect
+    with patch(
+        "apps.api.src.services.recovery_pipeline.CanaryTestFramework.execute_canary"
+    ) as mock_exec:
+
+        from packages.contracts.src.bcrb_models import (
+            BCRBStep,
+            BCRBStepStatus,
+            RecoveryEffect,
+            ReplayCost,
+        )
+
         def mock_execute_canary(candidate, run_id, session_id, db):
             return BCRBStep(
                 step_id=uuid.uuid4(),
@@ -38,8 +48,9 @@ async def test_end_to_end_recovery_pipeline():
                 replay_episode_id=uuid.uuid4(),
                 utility_observed=0.95,
                 cost_incurred=ReplayCost(total_cost=0.02),
-                recovery_effect=RecoveryEffect(reliability_delta=0.95)
+                recovery_effect=RecoveryEffect(reliability_delta=0.95),
             )
+
         mock_exec.side_effect = mock_execute_canary
 
         certificate = await pipeline.execute_recovery_loop(

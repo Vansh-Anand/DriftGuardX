@@ -1,5 +1,4 @@
 import os
-import json
 
 RESULTS_DIR = "results/causal_benchmark_runs"
 TABLES_DIR = "results/paper_tables"

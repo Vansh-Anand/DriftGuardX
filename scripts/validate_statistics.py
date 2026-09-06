@@ -9,7 +9,7 @@ from packages.evaluation.src.analysis.stats import (
 )
 
 
-def run():
+def run() -> None:
     # Attempt to read real experimental output from Stage 17
     preds_file = "reports/raw_preds_smoke.json"
     data_exhaustive = []

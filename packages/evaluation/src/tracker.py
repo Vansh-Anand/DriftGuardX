@@ -24,7 +24,9 @@ class Tracker:
             mlflow.set_tracking_uri("sqlite:///mlruns.db")
             mlflow.set_experiment(self.experiment_name)
 
-    def log_episode(self, episode_data: dict[str, Any], metrics: dict[str, float], run_id: str) -> None:
+    def log_episode(
+        self, episode_data: dict[str, Any], metrics: dict[str, float], run_id: str
+    ) -> None:
         # 1. Local JSON File Logging (MinIO equivalent for local runs)
         run_file = os.path.join(self.results_dir, f"run_{run_id}.json")
         payload = {"episode": episode_data, "metrics": metrics}

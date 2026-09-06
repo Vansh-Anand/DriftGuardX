@@ -46,7 +46,11 @@ export default function RunDetailPage() {
             <Badge variant={run.status === 'stable' ? 'measured' : run.status === 'failed' ? 'destructive' : 'default'}>
               {run.status}
             </Badge>
-            {run.is_synthetic && <Badge variant="synthetic">Synthetic</Badge>}
+            {run.evidence_class && (
+              <Badge variant="outline" className="border-zinc-500 text-zinc-500 font-mono text-[10px]">
+                {run.evidence_class.replace(/_/g, ' ')}
+              </Badge>
+            )}
           </div>
           <p className="text-zinc-400 font-mono text-sm">{run.id}</p>
         </div>

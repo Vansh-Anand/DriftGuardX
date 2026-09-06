@@ -51,6 +51,7 @@ _REDACTED_PLACEHOLDER = "[REDACTED]"
 _ENABLE_REDACTION = os.environ.get("ENABLE_REDACTION", "true").lower() == "true"
 
 
+import contextlib
 import re
 
 if TYPE_CHECKING:
@@ -229,10 +230,8 @@ class SpanBuilder:
         if isinstance(component_type, ComponentType):
             self._component_type = component_type
         else:
-            try:
+            with contextlib.suppress(ValueError):
                 self._component_type = ComponentType(component_type)
-            except ValueError:
-                pass
         return self
 
     def set_input(self, payload: Any) -> SpanBuilder:

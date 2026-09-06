@@ -21,7 +21,6 @@ from apps.api.src.pipeline.mock_rag import (
 )
 from packages.contracts.src.models import (
     ComponentType,
-    ComponentType,
     InterventionType,
     ReplayStateManifest,
     RequestRun,
@@ -78,7 +77,9 @@ def _make_original_run_and_trace() -> tuple[RequestRun, TraceArtifact]:
     """Execute the experimental pipeline to get original run + trace."""
     run_id = uuid.uuid4()
     pipeline = MockRAGPipeline(PIPELINE_WITH_EXPERIMENTAL_RETRIEVER)
-    run, trace = pipeline.execute(run_id=run_id, query="test query", seed=42, is_synthetic=True)
+    run, trace = pipeline.execute(
+        run_id=run_id, query="test query", seed=42, evidence_class="SYNTHETIC_SIMULATION"
+    )
     return run, trace
 
 
@@ -88,6 +89,7 @@ def test_replay_only_swaps_one_component() -> None:
     original_run, original_trace = _make_original_run_and_trace()
 
     from packages.contracts.src.recovery_models import InterventionSpec
+
     intervention = InterventionSpec(
         target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
@@ -123,6 +125,7 @@ def test_replay_pins_non_swapped_versions() -> None:
     original_run, original_trace = _make_original_run_and_trace()
 
     from packages.contracts.src.recovery_models import InterventionSpec
+
     intervention = InterventionSpec(
         target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
@@ -157,6 +160,7 @@ def test_replay_improves_reliability_over_experimental() -> None:
     original_run, original_trace = _make_original_run_and_trace()
 
     from packages.contracts.src.recovery_models import InterventionSpec
+
     intervention = InterventionSpec(
         target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,
@@ -190,6 +194,7 @@ def test_replay_episode_has_correct_version_ids() -> None:
     original_run, original_trace = _make_original_run_and_trace()
 
     from packages.contracts.src.recovery_models import InterventionSpec
+
     intervention = InterventionSpec(
         target_component=ComponentType.RETRIEVER,
         intervention_type=InterventionType.ROLLBACK,

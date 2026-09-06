@@ -2,7 +2,7 @@ import json
 import os
 import uuid
 
-from packages.contracts.src.evidence import RecoveryEvidenceKind
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.evaluation.src.verifier import DeterministicVerifier
 from packages.rag_benchmark.src.fault_injector import FaultInjector
 from packages.rag_benchmark.src.rag_pipeline import RAGPipeline
@@ -36,7 +36,7 @@ def run_benchmark():
     verifier = DeterministicVerifier()
 
     results = {
-        "evidence_kind": RecoveryEvidenceKind.SYNTHETIC_SIMULATION.value,
+        "evidence_class": EvidenceClassification.SYNTHETIC_SIMULATION.value,
         "evidence_notice": "Fault-injection simulation; not production replay evidence.",
         "golden_runs": [],
         "faulty_runs": [],

@@ -8,7 +8,13 @@ import uuid
 from packages.bcrb.src.calibration import BCRBCalibrator
 from packages.bcrb.src.utility_function import calculate_candidate_utility
 from packages.contracts.src.agent_models import AgentInvocation
-from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBSession, StoppingCondition, UnifiedCandidatePrior, AblationConfig
+from packages.contracts.src.bcrb_models import (
+    AblationConfig,
+    BCRBCandidate,
+    BCRBSession,
+    StoppingCondition,
+    UnifiedCandidatePrior,
+)
 from packages.contracts.src.graph import EdgeType, NodeType
 from packages.contracts.src.models import ComponentType, InterventionType
 from packages.detectors.src.gat_inference import GATTraceDetector
@@ -29,8 +35,11 @@ class CandidatePlanner:
         self.calibrator = calibrator or BCRBCalibrator()
 
     def generate_candidates(
-        self, invocations: list[AgentInvocation], run_id: str, failure_symptom: str,
-        ablation_config: "AblationConfig | None" = None
+        self,
+        invocations: list[AgentInvocation],
+        run_id: str,
+        failure_symptom: str,
+        ablation_config: "AblationConfig | None" = None,
     ) -> list[BCRBCandidate]:
         """
         Analyze the invocation history to propose targeted interventions based on priors.
@@ -58,7 +67,7 @@ class CandidatePlanner:
             is_error = inv.metadata.get("is_error", False)
             if i == len(invocations) - 1 and failure_symptom:
                 is_error = True
-                
+
             local_symptom = 1.0 if is_error else 0.0
 
             node_id = f"node_{i}_{role_type}"
@@ -78,8 +87,12 @@ class CandidatePlanner:
 
             parent_id = None
             if i > 0:
-                prev_inv = invocations[i-1]
-                prev_role = prev_inv.agent_identity.agent_type if prev_inv.agent_identity else prev_inv.agent_name
+                prev_inv = invocations[i - 1]
+                prev_role = (
+                    prev_inv.agent_identity.agent_type
+                    if prev_inv.agent_identity
+                    else prev_inv.agent_name
+                )
                 parent_id = f"node_{i-1}_{prev_role}"
 
             span = {
@@ -87,7 +100,7 @@ class CandidatePlanner:
                 "duration_ms": dur,
                 "operation_name": role_type,
                 "is_error": is_error,
-                "parent_id": parent_id
+                "parent_id": parent_id,
             }
             spans.append(span)
 
@@ -113,15 +126,20 @@ class CandidatePlanner:
             gat_candidates = gat_result.get("root_cause_candidates", [])
             for gc in gat_candidates:
                 # GAT uses a combination of error and self time to rank candidates.
-                gat_scores[gc["span_id"]] = gc["self_time_ratio"] * (1.0 if not gc["is_error"] else 2.0)
+                gat_scores[gc["span_id"]] = gc["self_time_ratio"] * (
+                    1.0 if not gc["is_error"] else 2.0
+                )
 
         # 3. Run backward diffusion to propagate anomaly scores
         if ablation_config and ablation_config.without_diffusion:
+
             class MockOutput:
                 root_probability = 0.0
-                explanation = type('Exp', (), {'model_dump': lambda *args, **kwargs: {}})()
+                explanation = type("Exp", (), {"model_dump": lambda *args, **kwargs: {}})()
+
             class MockResult:
                 node_outputs = {n.node_id: MockOutput() for n in nodes}
+
             diffusion_result = MockResult()
         else:
             diffusion_input = DiffusionInput(nodes=nodes, edges=edges)
@@ -131,7 +149,7 @@ class CandidatePlanner:
         for node_id, output in diffusion_result.node_outputs.items():
             diff_score = output.root_probability
             gat_score = gat_scores.get(node_id, 0.0)
-            
+
             # Find matching node state
             node_state = next((n for n in nodes if n.node_id == node_id), None)
             symptom_score = node_state.local_symptom_score if node_state else 0.0
@@ -180,16 +198,26 @@ class CandidatePlanner:
                 )
 
                 # Data-driven candidate parameter estimation
-                edge_pairs = [(getattr(e, "source_id", getattr(e, "source_node_id", "")), getattr(e, "target_id", getattr(e, "target_node_id", ""))) for e in edges]
+                edge_pairs = [
+                    (
+                        getattr(e, "source_id", getattr(e, "source_node_id", "")),
+                        getattr(e, "target_id", getattr(e, "target_node_id", "")),
+                    )
+                    for e in edges
+                ]
                 all_ids = [n.node_id for n in nodes]
                 est_cost = self.calibrator.estimate_candidate_cost(comp_type.value)
                 est_blast_radius = self.calibrator.estimate_candidate_blast_radius(
                     comp_type.value, causal_graph_edges=edge_pairs, all_nodes=all_ids
                 )
                 est_risk = self.calibrator.estimate_candidate_risk(comp_type.value, int_type.value)
-                est_reliability_delta = self.calibrator.estimate_reliability_delta(comp_type.value, int_type.value)
-                est_info_gain = self.calibrator.estimate_information_gain(comp_type.value, int_type.value)
-                
+                est_reliability_delta = self.calibrator.estimate_reliability_delta(
+                    comp_type.value, int_type.value
+                )
+                est_info_gain = self.calibrator.estimate_information_gain(
+                    comp_type.value, int_type.value
+                )
+
                 # Calculate true BCRB Utility based on calibrated unified prior
                 utility = calculate_candidate_utility(
                     probability=combined_prior,
@@ -199,8 +227,12 @@ class CandidatePlanner:
                     risk=est_risk,
                     blast_radius=est_blast_radius,
                 )
-                
-                from packages.contracts.src.bcrb_models import ReplayCost, CausalEvidence, CounterfactualSupport
+
+                from packages.contracts.src.bcrb_models import (
+                    CausalEvidence,
+                    CounterfactualSupport,
+                    ReplayCost,
+                )
 
                 candidates.append(
                     BCRBCandidate(
@@ -208,15 +240,17 @@ class CandidatePlanner:
                         component_type=comp_type,
                         intervention_type=int_type,
                         estimated_utility=utility,
-                        cost_estimate=ReplayCost(total_cost=est_cost, measurement_status="ESTIMATED"),
+                        cost_estimate=ReplayCost(
+                            total_cost=est_cost, measurement_status="ESTIMATED"
+                        ),
                         risk_estimate=est_risk,
                         blast_radius_estimate=est_blast_radius,
                         expected_reliability_delta=est_reliability_delta,
                         expected_information_gain=est_info_gain,
                         causal_evidence=CausalEvidence(
-                            prior=combined_prior, 
+                            prior=combined_prior,
                             counterfactual_support=CounterfactualSupport(),
-                            evidence_provenance="Derived from GAT and Diffusion priors."
+                            evidence_provenance="Derived from GAT and Diffusion priors.",
                         ),
                         metadata={
                             "rationale": f"Unified Prior calculated: {combined_prior:.2f}",

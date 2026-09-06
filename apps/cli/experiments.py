@@ -50,9 +50,7 @@ def main() -> None:
     run_parser.add_argument("--seed", type=int, default=42, help="Random seed for fault overlays")
 
     # Plot command
-    subparsers.add_parser(
-        "plot", help="Generate publication-grade plots from reports"
-    )
+    subparsers.add_parser("plot", help="Generate publication-grade plots from reports")
 
     args = parser.parse_args()
 

@@ -138,9 +138,9 @@ async def test_replay_endpoint_full_flow(client: AsyncClient) -> None:
                 "intervention_type": "rollback",
                 "current_version": "v2-exp",
                 "candidate_version": "v1",
-                "rollback_plan": "Test plan"
+                "rollback_plan": "Test plan",
             },
-            "seed": 42
+            "seed": 42,
         },
     )
     assert replay_resp.status_code == 201
@@ -177,9 +177,9 @@ async def test_non_synthetic_run_replay_blocked(client: AsyncClient) -> None:
                 "target_component": "retriever",
                 "intervention_type": "rollback",
                 "current_version": "v2-exp",
-                "candidate_version": "v1"
+                "candidate_version": "v1",
             },
-            "seed": 42
+            "seed": 42,
         },
     )
     assert replay_resp.status_code == 400

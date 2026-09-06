@@ -6,6 +6,7 @@ production replay. New real-data evidence must use ``controlled_replay.py``.
 
 import asyncio
 import math
+import os
 import random
 import statistics
 import time
@@ -17,7 +18,8 @@ from packages.evaluation.src.datasets.schema import EvaluationEpisode
 from packages.evaluation.src.metrics import DeterministicMetricsEngine
 from packages.evaluation.src.ragas_evaluator import RagasEvaluator
 from packages.evaluation.src.tracker import Tracker
-from packages.rag_benchmark.src.real_fault_injector import FaultType, RealFaultInjector
+from packages.rag_benchmark.src.fault_models import FaultType
+from packages.rag_benchmark.src.real_fault_injector import RealFaultInjector
 from packages.rag_benchmark.src.schedulers import (
     BCRBSchedulerWrapper,
     CheapestFirstScheduler,
@@ -117,7 +119,7 @@ async def run_mocked_integration_benchmark() -> None:
 
     # 1. Initialize Pipeline
     import tempfile
-    
+
     retriever = MockHybridRetriever()
     llm = MockLLMAdapter(model_name="gpt-3.5-turbo-mock")
     artifact_store = LocalArtifactStore(os.path.join(tempfile.gettempdir(), "artifacts"))

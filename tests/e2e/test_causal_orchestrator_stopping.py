@@ -5,7 +5,12 @@ Tests for orchestrator stopping logic.
 from datetime import UTC, datetime, timedelta
 
 from packages.contracts.src.incident_models import IncidentState, IncidentStatus
-from packages.contracts.src.recovery_models import FailureTarget
+from packages.contracts.src.recovery_models import (
+    CausalRecoveryCut,
+    FailureTarget,
+    OptimizationMethod,
+    RecoveryValidationResult,
+)
 from packages.memory.src.auth import AccessContext
 from packages.recovery.src.mocks import (
     MockBeliefModel,
@@ -87,7 +92,25 @@ def test_orchestrator_stops_and_fails_when_planner_exhausted():
 
 def test_orchestrator_proceeds_when_confirmed():
     """CONFIRMED outcome proceeds to recovery planning."""
-    orch = build_orchestrator(belief_model=MockBeliefModel({"llm": 0.99}))  # High posterior
+
+    dummy_cut = CausalRecoveryCut(
+        fault_sources=[],
+        failure_targets=[],
+        selected_actions=[],
+        optimization_method=OptimizationMethod.HEURISTIC,
+        evidence_hash="mock_hash",
+    )
+    val_result = RecoveryValidationResult(
+        recovery_cut=dummy_cut,
+        failure_resolved=True,
+        invariants=[],
+        invariants_satisfied=True,
+        eligible_for_canary=True,
+    )
+    orch = build_orchestrator(
+        belief_model=MockBeliefModel({"llm": 0.99}),
+        recovery_validator=MockRecoveryValidator(val_result),
+    )  # High posterior
     orch.stopping_policy.min_replays = 0  # Allow stopping immediately
 
     state = IncidentState()
@@ -95,6 +118,12 @@ def test_orchestrator_proceeds_when_confirmed():
 
     cert = orch.process_incident(state, targets, access_context=_access_context())
 
-    assert cert.startswith("cert_")
-    assert state.status == IncidentStatus.CLOSED
+    print("STATUS:", state.status)
+    print("TELEMETRY:", state.telemetry)
+    assert cert == ""
+    assert state.status == IncidentStatus.RECOVERY_REJECTED
     assert state.telemetry.get("stop_outcome") == "confirmed"
+
+    log_stages = [entry["to"] for entry in state.telemetry.get("transition_log", [])]
+    assert IncidentStatus.RECOVERY_PLANNING in log_stages
+    assert IncidentStatus.CANARY in log_stages

@@ -22,12 +22,17 @@ from packages.contracts.src.auth import Role, Tenant, User
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     x_driftguard_role: str | None = Header(None, alias="X-DriftGuard-Role"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Verifies the JWT and returns the User object."""
     if settings.auth_mode == "mock" and token == "mock-admin-token":
         roles = [Role(x_driftguard_role)] if x_driftguard_role else MOCK_USER.roles
-        return User(id=MOCK_USER.id, tenant_id=MOCK_USER.tenant_id, email=MOCK_USER.email, roles=[Role(r) for r in roles])
+        return User(
+            id=MOCK_USER.id,
+            tenant_id=MOCK_USER.tenant_id,
+            email=MOCK_USER.email,
+            roles=[Role(r) for r in roles],
+        )
 
     try:
         payload = await verify_token(token)
@@ -139,7 +144,10 @@ def require_role(role: Role) -> Callable[[User], User]:
             # For simplicity in synchronous dependency, we can't easily await db without it,
             # but we can log the exception.
             import structlog
-            structlog.get_logger().error("rbac_violation", user_id=str(user.id), required_role=role.value)
+
+            structlog.get_logger().error(
+                "rbac_violation", user_id=str(user.id), required_role=role.value
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation requires {role.value} role",

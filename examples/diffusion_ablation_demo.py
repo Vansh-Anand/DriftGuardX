@@ -11,7 +11,7 @@ from packages.diffusion.src.models import (
     LearnedGATDiffusion,
     LocalDetectorBaseline,
     LogisticRegressionBaseline,
-    MLPBaseline
+    MLPBaseline,
 )
 from packages.diffusion.src.trainer import train_diffusion_model
 

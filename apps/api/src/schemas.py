@@ -7,12 +7,12 @@ PRIVATE — All Rights Reserved.
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-import uuid
-from datetime import datetime
 from packages.contracts.src.recovery_models import InterventionSpec
 
 if TYPE_CHECKING:
@@ -35,7 +35,10 @@ class RunCreateRequest(APIBase):
         default="real",
         description="Execution mode: real (production RAG), controlled (fault injection), or synthetic (mock)",
     )
-    is_synthetic: bool = Field(default=False, description="Mark as synthetic/demo run (legacy flag)")
+    is_synthetic: bool = Field(
+        default=False, description="Mark as synthetic/demo run (legacy flag)"
+    )
+    evidence_class: str = Field(default="UNVERIFIED", description="The evidence classification")
     corpus_version_id: str = Field(default="v1", description="Corpus version identifier")
     request_id: str | None = Field(default=None, max_length=255, description="Idempotency key")
 
@@ -47,6 +50,7 @@ class RunRegisterRequest(APIBase):
         default=None, description="Provide a pre-generated UUID, or one will be assigned"
     )
     is_synthetic: bool = Field(default=False, description="Is this an external synthetic run?")
+    evidence_class: str = Field(default="UNVERIFIED", description="The evidence classification")
 
 
 class RunRegisterResponse(APIBase):
@@ -55,6 +59,7 @@ class RunRegisterResponse(APIBase):
     pipeline_id: uuid.UUID
     status: str
     is_synthetic: bool
+    evidence_class: str
 
 
 class RunFinalizeRequest(APIBase):
@@ -90,6 +95,7 @@ class RunResponse(APIBase):
     started_at: datetime | None
     completed_at: datetime | None
     is_synthetic: bool
+    evidence_class: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -158,6 +164,7 @@ class ReplayResponse(APIBase):
     completed_at: datetime | None
     is_synthetic: bool
     evidence_kind: str
+    evidence_class: str
     manifest_id: uuid.UUID | None = None
     manifest_hash: str | None = None
     is_pinned: bool = False

@@ -123,7 +123,7 @@ async def test_schema_columns_present() -> None:
         "request_hash",
         "reliability_score",
         "reliability_vector",
-        "is_synthetic",
+        "evidence_class",
         "created_at",
         "completed_at",
     ]

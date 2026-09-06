@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOTS = ("apps", "packages", "tests", "scripts", "deploy", "infra", ".github")
 SOURCE_FILES = ("pyproject.toml", "Makefile", "pytest.ini")

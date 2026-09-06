@@ -6,7 +6,7 @@ import { ArrowRight, Plus } from "lucide-react";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans relative pb-32">
+    <div className="min-h-screen bg-background text-foreground font-sans relative pb-32 overflow-x-hidden">
       {/* Drafting Guidelines (Background grid is handled in globals.css) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
         <div className="absolute top-0 bottom-0 left-[10%] w-px bg-foreground" />
