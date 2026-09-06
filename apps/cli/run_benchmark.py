@@ -185,7 +185,8 @@ def _run_real_trial(
     )
 
     belief_model = RootCauseBeliefModel(components=candidates)
-    estimator = HeuristicLikelihoodEstimator()
+    graph_dict_edges = [{"source_id": e.source, "target_id": e.target} for e in graph.edges]
+    estimator = TopologicalLikelihoodEstimator(graph_dict_edges)
     resource_context = ResourceContext(budget_usd=budget_usd)
 
     planner = RiskLimitedSequentialCausalExperimentPlanner(
