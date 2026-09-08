@@ -66,11 +66,13 @@ attempt to raise the evidence classification would cause refusal; a failed or ex
 execution would release the reservation and void the receipt. This is a proposed
 engineering embodiment, not a novelty conclusion.
 
-Current code contains separate manifest, intervention, admission, evidence and capsule
-checks, but does not implement an atomic receipt, durable reservation lifecycle or
-end-to-end independent verification. It must not be claimed as implemented until that
-path, its failure cases and integration tests exist. `novelty_strategy.md` defines the
-build and comparison work required before it can be assessed.
+The first in-process receipt slice is implemented in
+`packages/replay/src/admission_receipt.py` and covered by focused unit tests. It binds
+the proposed values to the existing thread-safe reservation primitive. The project
+still does not implement an atomic durable receipt, worker-boundary verification or
+end-to-end independent recovery verification. Those parts must not be claimed until
+their failure cases and integration tests exist. `novelty_strategy.md` defines the
+remaining build and comparison work required before it can be assessed.
 
 ## Disclosure chronology
 
