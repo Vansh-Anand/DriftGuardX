@@ -347,9 +347,7 @@ async def execute_replay_job(
                 evidence_class=evidence_class,
             )
             if not admitted:
-                raise ValueError(
-                    f"Replay refused at worker admission boundary: {admission_reason}"
-                )
+                raise ValueError(f"Replay refused at worker admission boundary: {admission_reason}")
             receipt_verified = True
 
             # 7. Build version registry from trace spans
@@ -464,7 +462,11 @@ async def execute_replay_job(
                 replay_response_hash=episode.replay_response_hash,
                 seed=episode.seed,
                 completed_at=datetime.now(UTC),
-                evidence_class=str(episode.evidence_class.value) if hasattr(episode.evidence_class, "value") else str(episode.evidence_class),
+                evidence_class=(
+                    str(episode.evidence_class.value)
+                    if hasattr(episode.evidence_class, "value")
+                    else str(episode.evidence_class)
+                ),
                 replay_mode="real",
             )
             session.add(episode_orm)

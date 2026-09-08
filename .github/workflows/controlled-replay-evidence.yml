@@ -25,7 +25,7 @@ jobs:
         version: "0.11.23"
     - run: uv sync --frozen --extra dev
     - name: Materialize hash-pinned SciFact snapshot
-      run: uv run python scripts/download_scifact.py
+      run: uv run python scripts/download_beir.py --dataset scifact
     - name: Run real-data controlled replay
       env:
         MAX_QUERIES: ${{ inputs.max_queries }}

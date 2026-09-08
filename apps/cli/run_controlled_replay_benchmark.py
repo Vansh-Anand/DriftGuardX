@@ -10,8 +10,12 @@ from packages.rag_benchmark.src.controlled_replay import run_controlled_replay, 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="scifact", help="BEIR dataset canonical name")
-    parser.add_argument("--dataset-root", type=Path, default=None, help="Override root path for dataset")
+    parser.add_argument(
+        "--dataset", type=str, default="scifact", help="BEIR dataset canonical name"
+    )
+    parser.add_argument(
+        "--dataset-root", type=Path, default=None, help="Override root path for dataset"
+    )
     parser.add_argument("--split", default="test")
     parser.add_argument("--max-queries", type=int, default=20)
     parser.add_argument("--seed", type=int, default=42)

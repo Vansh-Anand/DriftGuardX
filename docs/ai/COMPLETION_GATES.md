@@ -31,7 +31,7 @@ the following gates, not simply more implemented features.
 ## Reproduce the Retrieval Experiment
 
 ```text
-uv run python scripts/download_scifact.py
+uv run python scripts/download_beir.py --dataset scifact
 uv run python -m apps.cli.run_controlled_replay_benchmark --max-queries 100 --fault-family relevant_document_tombstone --fault-family retriever_top_k_regression --output results/controlled_replay/scifact_bm25_multifault_new.json
 ```
 

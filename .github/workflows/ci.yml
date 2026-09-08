@@ -93,7 +93,7 @@ jobs:
           packages/replay/src/exogenous_controller.py packages/rag_benchmark/src/fault_models.py \
           packages/rag_benchmark/src/controlled_replay.py packages/detectors/src/calibration.py \
           packages/evaluation/src/report_generator.py apps/cli/run_controlled_replay_benchmark.py \
-          scripts/download_scifact.py \
+          scripts/download_beir.py \
           scripts/enforce_trivy_report.py \
           packages/utils/src/version.py
 

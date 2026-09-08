@@ -57,7 +57,7 @@ injection and is explicitly classified as `controlled_replay`, not production
 evidence. Run it with:
 
 ```bash
-uv run python scripts/download_scifact.py
+uv run python scripts/download_beir.py --dataset scifact
 uv run python -m apps.cli.run_controlled_replay_benchmark --max-queries 100
 ```
 

@@ -85,9 +85,7 @@ def download_and_extract(dataset: str) -> None:
             raise ValueError(f"{dataset} source URL must use HTTPS")
         request = urllib.request.Request(url, headers={"User-Agent": "DriftGuardX/2.0"})
         with (
-            urllib.request.urlopen(
-                request, timeout=60
-            ) as response,
+            urllib.request.urlopen(request, timeout=60) as response,
             archive_path.open("wb") as out,
         ):
             shutil.copyfileobj(response, out)
