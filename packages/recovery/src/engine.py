@@ -114,7 +114,11 @@ class RecoveryEngine:
         if proposal.execution_mode == ExecutionMode.DRY_RUN:
             machine.transition(RecoveryStatus.PREPARING, reason="Dry run.")
             machine.transition(RecoveryStatus.EXECUTING, reason="Dry run execute.")
-            result = self._executor.execute(proposal)
+            result = (
+                self._executor.execute_with_admission(proposal)
+                if proposal.admission_receipt_id
+                else self._executor.execute(proposal)
+            )
             record.execution_result = result
             machine.transition(RecoveryStatus.VERIFYING, reason="Dry run verify.")
             machine.transition(RecoveryStatus.COMMITTED, reason="Dry run committed.")
@@ -172,7 +176,11 @@ class RecoveryEngine:
         # ── EXECUTING ─────────────────────────────────────────────────────────
         machine.transition(RecoveryStatus.EXECUTING, reason="Executing action.")
         try:
-            result = self._executor.execute(proposal)
+            result = (
+                self._executor.execute_with_admission(proposal)
+                if proposal.admission_receipt_id
+                else self._executor.execute(proposal)
+            )
         except Exception as exc:
             result = ExecutionResult(
                 proposal_id=proposal.proposal_id,

@@ -205,6 +205,8 @@ class RecoveryProposal:
     status: RecoveryStatus = RecoveryStatus.PROPOSED
     policy_decision: str | None = None  # "allow" | "deny" | "needs_approval"
     approval_request_id: str | None = None
+    admission_receipt_id: str | None = None
+    admission_binding: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 

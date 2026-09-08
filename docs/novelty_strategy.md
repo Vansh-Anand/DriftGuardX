@@ -49,15 +49,22 @@ Build a state-bound replay-admission receipt with a two-phase lifecycle:
 This is more specific than a generic signed envelope: the proposed technical effect is
 preventing time-of-check/time-of-use drift across distributed admission, execution and
 recovery decisions while preserving the rollback capacity used in the admission
-decision. It is not currently implemented, and may still be anticipated or obvious.
+decision. The first implementation slice is now present in
+`packages/replay/src/admission_store.py`: a durable SQLite receipt ledger with an
+atomic `ISSUED -> VERIFIED -> CONSUMED` claim, terminal release/void transitions,
+and a hash-chained append-only audit stream. The API replay path and worker replay
+path both use the ledger; the recovery executor exposes the same required
+`execute_with_admission` boundary. This remains an engineering implementation, not
+proof that the feature is novel or patentable.
 
 ## Validation required before claiming it
 
-- Implement a durable, transactional reservation state machine with idempotency keys.
-- Pass the receipt through the actual replay worker boundary; do not verify only in the
-  API process.
-- Add tests that independently mutate every bound field and prove refusal before work is
-  allocated, including concurrent double-finalization and expiry races.
+- Replace the portable SQLite ledger with the deployment's shared transactional store
+  when multiple hosts need one authoritative reservation balance.
+- Pass the receipt through every production remediation queue and verify it in the
+  executor process, not only the API process. The reusable recovery boundary is now
+  available, but existing local fixture callers remain intentionally legacy-compatible.
+- Add multi-process stress tests for double-finalization, worker loss, and expiry races.
 - Meter actual resources and prove reservation release/consumption is correct after
   timeout, worker loss and retry.
 - Add an external-state adapter that attests the referenced dataset/index/configuration
@@ -91,3 +98,16 @@ is enough to avoid a "computer programme per se" or algorithm objection.
 Before filing, supply the human inventors, applicant/ownership, any filing or priority
 history, and the earliest public disclosure date. Preserve dated design records and do
 not rely on Git timestamps as a priority claim.
+
+## Implemented technical effect evidence
+
+The measurable unit is an attempted dispatch, not a model score. For each receipt,
+the ledger records whether dispatch was admitted, refused, consumed, released, or
+voided and preserves the reason and binding values. This supports three concrete
+measurements: (i) unsafe-dispatch rate, computed as executions attempted after a
+state/policy/trace/evidence mismatch and expected to be zero at the guarded
+boundary; (ii) resource overrun, computed as measured charge minus the reserved
+predicted charge plus uncertainty and rollback reserve; and (iii) distributed-drift
+refusal latency, measured from worker load to refusal before executor construction.
+The current tests establish the refusal and single-use invariants; they do not yet
+constitute a production performance study.

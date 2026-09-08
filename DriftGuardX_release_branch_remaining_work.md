@@ -34,6 +34,18 @@
 
 > Do not merge into `main` before all P0 items are fixed.
 
+## 1A. State-bound admission control (2026-09-08)
+
+- [x] Persist receipt payloads durably across process restarts.
+- [x] Claim receipts atomically at the worker/executor boundary.
+- [x] Append hash-linked issue, verify, consume, release, void, and mismatch events.
+- [x] Refuse stale state, changed policy, changed trace, expired receipts, and
+      evidence-ceiling promotion before execution.
+- [x] Measure and document refusal, reservation, and bounded-overrun invariants.
+- [x] Prepare India-facing technical system and method claim candidates.
+- [ ] Replace the portable SQLite ledger with the deployment's shared transactional
+      backend and run multi-host worker-loss/expiry stress tests.
+
 ---
 
 # 2. Fix GAT Training/Inference Compatibility

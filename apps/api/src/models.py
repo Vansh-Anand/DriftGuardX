@@ -378,6 +378,9 @@ class ReplayEpisodeORM(Base):
     intervention_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("interventions.id"), nullable=False
     )
+    admission_receipt_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     manifest_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("replay_state_manifests.id"), nullable=True

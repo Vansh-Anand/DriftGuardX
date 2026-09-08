@@ -5,4 +5,5 @@ from packages.replay.src.admission_receipt import (  # noqa
     ReceiptStatus,
     ReplayAdmissionReceipt,
 )
+from packages.replay.src.admission_store import AdmissionAuditEvent, AdmissionReceiptStore  # noqa
 from packages.replay.src.test_framework import CanaryTestFramework

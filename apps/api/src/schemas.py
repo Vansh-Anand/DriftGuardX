@@ -168,6 +168,7 @@ class ReplayResponse(APIBase):
     manifest_id: uuid.UUID | None = None
     manifest_hash: str | None = None
     is_pinned: bool = False
+    admission_receipt_id: uuid.UUID | None = None
 
 
 # ─── Span Ingestion ───────────────────────────────────────────────────────────

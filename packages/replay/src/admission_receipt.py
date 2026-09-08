@@ -1,8 +1,7 @@
-"""State-bound admission receipts for replay execution.
+"""State-bound admission receipts for replay and recovery execution.
 
-The receipt is an in-process contract until a durable store is wired in. It binds
-the values used by admission to the values later checked by a worker or recovery
-gate, while delegating accounting to the shared ResourceContext.
+The object is the portable receipt contract.  Durable deployments persist its
+canonical payload in :mod:`admission_store` before dispatching to a worker.
 """
 
 from __future__ import annotations
@@ -12,21 +11,22 @@ import json
 import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
 from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.interfaces import (
     ResourceContext,
+    ResourceEstimate,
     ResourceMeasurement,
     ResourceReservation,
-    ResourceEstimate,
 )
 
 
-class ReceiptStatus(str, Enum):
+class ReceiptStatus(StrEnum):
     ISSUED = "ISSUED"
+    VERIFIED = "VERIFIED"
     CONSUMED = "CONSUMED"
     RELEASED = "RELEASED"
     VOIDED = "VOIDED"
@@ -90,7 +90,7 @@ class ReplayAdmissionReceipt:
         capsule_hash: str,
         expires_at: datetime,
         issued_at: datetime | None = None,
-    ) -> "ReplayAdmissionReceipt":
+    ) -> ReplayAdmissionReceipt:
         issued = issued_at or datetime.now(UTC)
         receipt = cls(
             tenant_id=tenant_id,
@@ -141,11 +141,36 @@ class ReplayAdmissionReceipt:
             "expires_at": self.expires_at.isoformat(),
         }
 
+    @property
+    def canonical_payload(self) -> dict[str, Any]:
+        """Return the exact state-bound payload persisted by a durable store."""
+        return self._canonical_payload().copy()
+
     def _compute_binding_hash(self) -> str:
         payload = json.dumps(
             self._canonical_payload(), sort_keys=True, separators=(",", ":")
         ).encode("utf-8")
         return hashlib.sha256(b"DGX-REPLAY-ADMISSION-V1\0" + payload).hexdigest()
+
+    @staticmethod
+    def intervention_binding_hash(
+        intervention_id: str,
+        target_component: str,
+        current_version: str,
+        candidate_version: str,
+    ) -> str:
+        """Hash the exact intervention identity shared by coordinator and worker."""
+        payload = json.dumps(
+            {
+                "intervention_id": intervention_id,
+                "target_component": target_component,
+                "current_version": current_version,
+                "candidate_version": candidate_version,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(b"DGX-REPLAY-INTERVENTION-V1\0" + payload).hexdigest()
 
     def verify_binding(self, **actual: Any) -> tuple[bool, str]:
         """Verify worker-provided values before any execution allocation."""
@@ -169,14 +194,26 @@ class ReplayAdmissionReceipt:
             return False, "Evidence classification exceeds the receipt ceiling."
         return True, "ok"
 
+    def mark_verified(self) -> None:
+        """Claim the receipt after a successful worker-boundary verification."""
+        if self.status != ReceiptStatus.ISSUED:
+            raise ValueError("Receipt is not available for verification.")
+        self.status = ReceiptStatus.VERIFIED
+
     def commit(self, measurement: ResourceMeasurement) -> None:
-        if self.status != ReceiptStatus.ISSUED or self._reservation is None:
+        if (
+            self.status not in {ReceiptStatus.ISSUED, ReceiptStatus.VERIFIED}
+            or self._reservation is None
+        ):
             raise ValueError("Receipt is not available for commit.")
         self._reservation.commit(measurement)
         self.status = ReceiptStatus.CONSUMED
 
     def release(self) -> None:
-        if self.status != ReceiptStatus.ISSUED or self._reservation is None:
+        if (
+            self.status not in {ReceiptStatus.ISSUED, ReceiptStatus.VERIFIED}
+            or self._reservation is None
+        ):
             return
         self._reservation.release()
         self.status = ReceiptStatus.RELEASED

@@ -163,6 +163,30 @@ class RecoveryExecutor(abc.ABC):
 
         return result
 
+    def execute_with_admission(self, proposal: RecoveryProposal) -> ExecutionResult:
+        """Verify a durable receipt before any remediation state is prepared."""
+        if not proposal.admission_receipt_id:
+            raise ValueError("Remediation refused: durable admission receipt is required.")
+
+        from packages.replay.src.admission_store import AdmissionReceiptStore
+
+        store = AdmissionReceiptStore()
+        actual = {"tenant_id": proposal.tenant_id, **proposal.admission_binding}
+        admitted, reason = store.verify(proposal.admission_receipt_id, actual=actual)
+        if not admitted:
+            raise ValueError(f"Remediation refused at executor admission boundary: {reason}")
+
+        try:
+            result = self.execute(proposal)
+            if result.success:
+                store.consume(proposal.admission_receipt_id)
+            else:
+                store.void(proposal.admission_receipt_id, reason=result.error or "execution failed")
+            return result
+        except Exception as exc:
+            store.void(proposal.admission_receipt_id, reason=str(exc))
+            raise
+
     @abc.abstractmethod
     def _prepare_capsule(self, proposal: RecoveryProposal) -> RollbackCapsule:
         """Snapshot current state and build the rollback capsule."""

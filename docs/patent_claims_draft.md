@@ -7,6 +7,43 @@ Read patent_claims_audit.md and prior_art_worksheet.md with this outline.
 
 ## Candidate system combination
 
+### State-bound admission control embodiment
+
+A computer-implemented technical system for controlling autonomous recovery
+operations in an instrumented computing pipeline, comprising:
+
+1. A durable receipt store configured to persist, before dispatch, a canonical
+   admission record binding a tenant identifier, a replay-state manifest digest, a
+   trace-root digest, an intervention identity digest, a current component version,
+   a candidate component version, a policy-state digest, a rollback-capsule digest,
+   a bounded resource reservation, an evidence ceiling, and an expiry interval.
+2. An admission coordinator configured to atomically reserve the bounded resource
+   amount and append an issue event to an append-only receipt event sequence.
+3. A worker or recovery executor configured to recompute the bound values from the
+   state records available at the worker boundary, atomically claim the receipt, and
+   refuse dispatch before allocating the replay or remediation process when a bound
+   value, expiry interval, receipt status, or evidence class does not match.
+4. A terminal transition controller configured to consume the reservation once on
+   successful completion, or release and void it on refusal, timeout, expiry, or
+   failed execution, while appending a hash-linked event identifying the transition.
+
+The technical contribution should be argued as distributed state and resource
+control: it prevents a stale recovery operation from crossing a time-of-check to
+time-of-use boundary and bounds capacity consumed by refused or failed operations.
+
+### Candidate method claim
+
+A computer-implemented method for state-bound admission control of an autonomous
+recovery operation, comprising issuing and durably storing the canonical receipt,
+reserving predicted resource cost plus uncertainty and rollback reserve, recomputing
+the receipt bindings at a worker or executor boundary, atomically changing the
+receipt from issued to verified only when the bindings and expiry are valid, refusing
+the operation before execution on mismatch or evidence promotion, and atomically
+consuming or releasing the reservation while appending the corresponding event.
+
+These are engineering claim candidates for Indian patent-agent review, not legal
+claims or a patentability conclusion.
+
 A computer system configured to evaluate a proposed recovery for an instrumented
 computing pipeline, comprising:
 

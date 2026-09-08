@@ -159,6 +159,7 @@ async def execute_replay_job(
     Payload expected keys:
         run_id         (str) — UUID of the original run
         intervention_id (str) — UUID of the approved InterventionSpec
+        admission_receipt_id (str) — durable, state-bound admission receipt
         seed           (int, optional) — random seed, default 42
     """
     log.info("worker.execute_replay_job", job_id=job_id, tenant_id=tenant_id)
@@ -168,15 +169,27 @@ async def execute_replay_job(
     async with AsyncSessionLocal() as session:
         await _mark_running(session, job_uuid)
 
+    from packages.replay.src.admission_store import AdmissionReceiptStore
+
+    admission_store = AdmissionReceiptStore()
+    receipt_id: str | None = None
+    receipt_verified = False
+
     try:
         run_id_str = payload.get("run_id")
         intervention_id_str = payload.get("intervention_id")
+        receipt_id = str(payload.get("admission_receipt_id") or "")
         seed = int(payload.get("seed", 42))
 
         if not run_id_str:
             raise ValueError("Replay payload missing required field: run_id")
         if not intervention_id_str:
             raise ValueError("Replay payload missing required field: intervention_id")
+        if not receipt_id:
+            raise ValueError(
+                "Replay payload missing required field: admission_receipt_id. "
+                "Execution is refused at the worker admission boundary."
+            )
 
         run_uuid = uuid.UUID(run_id_str)
         intervention_uuid = uuid.UUID(intervention_id_str)
@@ -189,6 +202,7 @@ async def execute_replay_job(
                 RequestRunORM,
                 TraceArtifactORM,
             )
+            from packages.contracts.src.evidence import EvidenceClassification
             from packages.contracts.src.models import (
                 ComponentType,
                 ComponentVersion,
@@ -198,8 +212,10 @@ async def execute_replay_job(
                 TraceArtifact,
             )
             from packages.contracts.src.recovery_models import InterventionSpec
+            from packages.replay.src.admission_receipt import ReplayAdmissionReceipt
             from packages.replay.src.divergence_validator import DynamicCausalDivergenceValidator
             from packages.replay.src.engine import ReplayEngine, VersionRegistry
+            from packages.trace_sdk.src.tracer import hash_payload
 
             # 1. Load run — validate tenant
             run_orm = await session.get(RequestRunORM, run_uuid)
@@ -295,6 +311,47 @@ async def execute_replay_job(
                     "Cannot safely execute a replay without complete provenance."
                 )
 
+            # Worker-boundary admission: recompute state identity from the durable
+            # records loaded by this process before constructing any executor.
+            trace_root_hash = hash_payload(
+                {
+                    "root_span_id": trace_orm.root_span_id,
+                    "total_span_count": trace_orm.total_span_count,
+                    "spans": trace_orm.spans_json,
+                }
+            )
+            intervention_hash = ReplayAdmissionReceipt.intervention_binding_hash(
+                str(intervention_uuid),
+                str(intervention_orm.target_component_type),
+                str(intervention_orm.from_version_tag),
+                str(intervention_orm.to_version_tag),
+            )
+            actual_binding = {
+                "tenant_id": str(tenant_uuid),
+                "manifest_hash": str(manifest_orm.manifest_hash),
+                "trace_root_hash": trace_root_hash,
+                "intervention_hash": intervention_hash,
+                "current_version": str(intervention_orm.from_version_tag),
+                "candidate_version": str(intervention_orm.to_version_tag),
+                "policy_hash": str(manifest_orm.policy_config_hash or ""),
+                "capsule_hash": str(payload.get("capsule_hash", "")),
+            }
+            evidence_class = (
+                EvidenceClassification.SYNTHETIC_SIMULATION
+                if run_orm.is_synthetic
+                else EvidenceClassification.REAL_CONTROLLED_EXPERIMENT
+            )
+            admitted, admission_reason = admission_store.verify(
+                receipt_id,
+                actual=actual_binding,
+                evidence_class=evidence_class,
+            )
+            if not admitted:
+                raise ValueError(
+                    f"Replay refused at worker admission boundary: {admission_reason}"
+                )
+            receipt_verified = True
+
             # 7. Build version registry from trace spans
             registry = VersionRegistry()
             intervention_spec = InterventionSpec(
@@ -387,6 +444,7 @@ async def execute_replay_job(
                 tenant_id=tenant_uuid,
                 pipeline_id=run_orm.pipeline_id,
                 intervention_id=intervention_uuid,
+                admission_receipt_id=uuid.UUID(receipt_id),
                 manifest_id=manifest_orm.id,
                 status="completed",
                 is_pinned=True,
@@ -412,6 +470,8 @@ async def execute_replay_job(
             session.add(episode_orm)
             await session.commit()
 
+            admission_store.consume(receipt_id)
+
             result = {
                 "status": "completed",
                 "run_id": run_id_str,
@@ -429,6 +489,8 @@ async def execute_replay_job(
 
     except Exception as exc:
         log.exception("worker.execute_replay_job.failed", job_id=job_id, error=str(exc))
+        if receipt_id and receipt_verified:
+            admission_store.void(receipt_id, reason=f"Replay worker failure: {exc}")
         async with AsyncSessionLocal() as session:
             await _mark_failed(session, job_uuid, exc)
         raise

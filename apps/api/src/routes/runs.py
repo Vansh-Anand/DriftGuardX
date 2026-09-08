@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -1168,6 +1168,59 @@ async def create_replay(
 
     original_rv = original_run_orm.reliability_vector or {}
 
+    # Persist and claim the same state-bound admission used by the background
+    # worker.  The local ResourceContext models the reserved replay charge and
+    # rollback reserve until a deployment-specific accounting backend is used.
+    from packages.contracts.src.evidence import EvidenceClassification
+    from packages.contracts.src.interfaces import ResourceContext, ResourceMeasurement
+    from packages.replay.src.admission_receipt import ReplayAdmissionReceipt
+    from packages.replay.src.admission_store import AdmissionReceiptStore
+
+    resource_context = ResourceContext(budget_usd=100.0)
+    admission_receipt = ReplayAdmissionReceipt.issue(
+        resource_context=resource_context,
+        tenant_id=str(tenant.id),
+        manifest_hash=manifest_orm.manifest_hash,
+        trace_root_hash=manifest_orm.trace_root_hash or "",
+        intervention_hash=ReplayAdmissionReceipt.intervention_binding_hash(
+            str(intervention_orm.id),
+            str(intervention_orm.target_component_type),
+            str(intervention_orm.from_version_tag),
+            str(intervention_orm.to_version_tag),
+        ),
+        current_version=intervention_orm.from_version_tag,
+        candidate_version=intervention_orm.to_version_tag,
+        policy_hash=manifest_orm.policy_config_hash or "",
+        predicted_cost=0.1,
+        uncertainty_margin=0.05,
+        rollback_reserve=0.1,
+        evidence_ceiling=EvidenceClassification.SYNTHETIC_SIMULATION,
+        capsule_hash="",
+        expires_at=datetime.now(UTC) + timedelta(minutes=10),
+    )
+    admission_store = AdmissionReceiptStore()
+    admission_store.issue(admission_receipt)
+    admitted, admission_reason = admission_store.verify(
+        admission_receipt.receipt_id,
+        actual={
+            "tenant_id": str(tenant.id),
+            "manifest_hash": manifest_orm.manifest_hash,
+            "trace_root_hash": manifest_orm.trace_root_hash or "",
+            "intervention_hash": admission_receipt.intervention_hash,
+            "current_version": intervention_orm.from_version_tag,
+            "candidate_version": intervention_orm.to_version_tag,
+            "policy_hash": manifest_orm.policy_config_hash or "",
+            "capsule_hash": "",
+        },
+        evidence_class=EvidenceClassification.SYNTHETIC_SIMULATION,
+    )
+    if not admitted:
+        admission_receipt.void()
+        raise HTTPException(
+            status_code=409,
+            detail=f"Replay refused at admission: {admission_reason}",
+        )
+
     try:
         episode, replay_trace = engine.execute_replay(
             original_run=original_run_contract,
@@ -1178,8 +1231,15 @@ async def create_replay(
             seed=request.seed,
             manifest=manifest_contract,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        admission_store.void(admission_receipt.receipt_id, reason=str(exc))
+        admission_receipt.void()
+        if isinstance(exc, ValueError):
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise
+
+    admission_store.consume(admission_receipt.receipt_id)
+    admission_receipt.commit(ResourceMeasurement(cost_usd=0.1, wall_seconds=0.0))
 
     # Persist replay episode
     episode_orm = ReplayEpisodeORM(
@@ -1188,6 +1248,7 @@ async def create_replay(
         tenant_id=episode.tenant_id,
         pipeline_id=original_run_orm.pipeline_id,
         intervention_id=intervention_orm.id,
+        admission_receipt_id=uuid.UUID(admission_receipt.receipt_id),
         status=episode.status.value if hasattr(episode.status, "value") else episode.status,
         swapped_component_type=(
             episode.swapped_component_type.value
@@ -1272,6 +1333,7 @@ async def create_replay(
         manifest_id=manifest_orm.id,
         manifest_hash=manifest_orm.manifest_hash,
         is_pinned=episode_orm.is_pinned,
+        admission_receipt_id=uuid.UUID(admission_receipt.receipt_id),
     )
 
 
