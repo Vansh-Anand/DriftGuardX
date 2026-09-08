@@ -61,3 +61,11 @@ Prior statements that the entire project was complete were too broad.
   7 existing warnings. Hosted CI results pending.
 - Production deployment, additional controlled fault experiments, independent
   replication, and India patent-agent review remain separate completion gates.
+- Added migration `8e7a2d4c6f90` for worker/quarantine persistence, replay evidence
+  and manifest fields, and certificate summaries. Original signed certificates
+  stay in `recovery_certificates`; the API summary format now uses
+  `recovery_certificate_summaries`. No synthetic identities or signatures are
+  backfilled. Existing non-synthetic runs migrate to UNVERIFIED evidence.
+- File-backed migration regression: upgrade/parity, legacy evidence retention,
+  downgrade and clean re-upgrade passed (4 focused migration tests). Hosted
+  PostgreSQL verification remains pending for this migration.

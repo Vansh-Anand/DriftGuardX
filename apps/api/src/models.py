@@ -229,6 +229,7 @@ class RequestRunORM(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     evidence_class: Mapped[str] = mapped_column(String(32), default="UNVERIFIED")
+    _legacy_is_synthetic: Mapped[bool] = mapped_column("is_synthetic", Boolean, default=True)
 
     @property
     def is_synthetic(self) -> bool:
@@ -409,6 +410,7 @@ class ReplayEpisodeORM(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     evidence_class: Mapped[str] = mapped_column(String(32), default="UNVERIFIED")
+    _legacy_is_synthetic: Mapped[bool] = mapped_column("is_synthetic", Boolean, default=True)
 
     @property
     def is_synthetic(self) -> bool:
@@ -429,6 +431,7 @@ class ReplayEpisodeORM(Base):
     __table_args__ = (
         Index("ix_replay_episodes_original_run_id", "original_run_id"),
         Index("ix_replay_episodes_status", "status"),
+        Index("ix_replay_episodes_admission_receipt_id", "admission_receipt_id"),
     )
 
 
@@ -665,8 +668,38 @@ class LedgerEntryORM(Base):
 # ─── Recovery Eligibility Certificate (Prompt 7) ──────────────────────────────
 
 
-class RecoveryCertificateORM(Base):
+class LegacyRecoveryCertificateORM(Base):
+    """Original signed evidence; preserved independently of API certificate summaries."""
+
     __tablename__ = "recovery_certificates"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("tenants.id"))
+    original_trace_root_hash: Mapped[str] = mapped_column(String(64))
+    manifest_hash: Mapped[str] = mapped_column(String(64))
+    intervention_hash: Mapped[str] = mapped_column(String(64))
+    measured_resource_budget_and_usage: Mapped[dict] = mapped_column(_JSON_TYPE)
+    replay_outcome: Mapped[str] = mapped_column(String(32))
+    reliability_delta: Mapped[float] = mapped_column(Float)
+    policy_version: Mapped[str] = mapped_column(String(64))
+    policy_decision: Mapped[str] = mapped_column(String(32))
+    approval_decision_set: Mapped[dict] = mapped_column(_JSON_TYPE)
+    canary_result_hash: Mapped[str] = mapped_column(String(64))
+    recovery_capsule_hash: Mapped[str] = mapped_column(String(64))
+    executor_image_digest: Mapped[str] = mapped_column(String(128))
+    signer_identity: Mapped[str] = mapped_column(String(128))
+    signature_b64: Mapped[str] = mapped_column(Text)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_recovery_certificates_tenant_id", "tenant_id"),
+        Index("ix_recovery_certificates_capsule", "recovery_capsule_hash"),
+        Index("ix_recovery_certificates_trace", "original_trace_root_hash"),
+    )
+
+
+class RecoveryCertificateORM(Base):
+    __tablename__ = "recovery_certificate_summaries"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
@@ -688,8 +721,8 @@ class RecoveryCertificateORM(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     __table_args__ = (
-        Index("ix_recovery_certificates_tenant_id", "tenant_id"),
-        Index("ix_recovery_certificates_run", "run_id"),
+        Index("ix_recovery_certificate_summaries_tenant_id", "tenant_id"),
+        Index("ix_recovery_certificate_summaries_run", "run_id"),
     )
 
 
