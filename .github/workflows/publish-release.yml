@@ -1,0 +1,125 @@
+name: Publish Release Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to publish, for example v2.0.0-rc.1"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/driftguardx
+      RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Publish API, worker, replay, and web images
+        id: images
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-api:${{ env.RELEASE_VERSION }}
+            ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.RELEASE_VERSION }}
+          cache-from: type=gha,scope=release-api
+          cache-to: type=gha,mode=max,scope=release-api
+
+      - name: Publish remaining service images
+        shell: bash
+        run: |
+          set -euo pipefail
+          for service in worker replay web; do
+            case "$service" in
+              worker) dockerfile=apps/worker/Dockerfile ;;
+              replay) dockerfile=apps/replay/Dockerfile ;;
+              web) dockerfile=apps/web/Dockerfile ;;
+            esac
+            docker buildx build \
+              --file "$dockerfile" \
+              --tag "${IMAGE_PREFIX}-${service}:${RELEASE_VERSION}" \
+              --tag "${IMAGE_PREFIX}-${service}:${GITHUB_SHA}" \
+              --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+              --label "org.opencontainers.image.version=${RELEASE_VERSION}" \
+              --push .
+          done
+
+      - name: Resolve and sign immutable image digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          : > release-artifacts/image-digests.env
+          for service in api worker replay web; do
+            image="${IMAGE_PREFIX}-${service}:${RELEASE_VERSION}"
+            digest="$(docker buildx imagetools inspect "$image" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+            test "${digest#sha256:}" != "$digest"
+            printf '%s_IMAGE=%s@%s\n' "$(echo "$service" | tr '[:lower:]' '[:upper:]')" "${IMAGE_PREFIX}-${service}" "$digest" >> release-artifacts/image-digests.env
+            cosign sign --yes "${IMAGE_PREFIX}-${service}@${digest}"
+          done
+
+      - name: Render immutable Kubernetes bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          source release-artifacts/image-digests.env
+          mkdir -p release-artifacts/k8s
+          cp -R deploy/k8s/. release-artifacts/k8s/
+          sed -i "s#ghcr.io/vansh-anand/driftguardx-api@sha256:[0-9a-f]*#${API_IMAGE}#g" release-artifacts/k8s/*.yaml
+          sed -i "s#ghcr.io/vansh-anand/driftguardx-worker@sha256:[0-9a-f]*#${WORKER_IMAGE}#g" release-artifacts/k8s/*.yaml
+          sed -i "s#ghcr.io/vansh-anand/driftguardx-web@sha256:[0-9a-f]*#${WEB_IMAGE}#g" release-artifacts/k8s/*.yaml
+          sed -i "s#sha256:0\{64\}#${API_IMAGE##*@}#g" release-artifacts/k8s/api-deployment.yaml
+          if grep -R -n 'sha256:0\{64\}' release-artifacts/k8s; then
+            echo "zero image digest remains in rendered deployment" >&2
+            exit 1
+          fi
+          sha256sum release-artifacts/k8s/*.yaml > release-artifacts/k8s/SHA256SUMS
+
+      - name: Attest image build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}-api
+          subject-digest: ${{ steps.images.outputs.digest }}
+          push-to-registry: true
+
+      - name: Upload immutable release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.RELEASE_VERSION }}-deployment-bundle
+          path: release-artifacts/
