@@ -221,3 +221,99 @@ def test_replay_episode_has_correct_version_ids() -> None:
     assert episode.original_version_tag == "v2-exp"
     assert episode.replay_version_tag == "v1"
     assert episode.swapped_component_type == ComponentType.RETRIEVER
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "manifest_tenant",
+        "manifest_run",
+        "manifest_content",
+        "manifest_seed",
+        "trace_tenant",
+        "trace_run",
+        "trace_pipeline",
+        "span_tenant",
+        "missing_version",
+        "unregistered_version",
+        "wrong_registered_type",
+        "wrong_registered_tag",
+        "wrong_replacement_type",
+        "wrong_replacement_tag",
+        "conflicting_versions",
+        "wrong_original_tag",
+        "missing_original_tag",
+    ],
+)
+def test_invalid_replay_bindings_refused_before_execution(fault, monkeypatch):
+    import packages.replay.src.engine as engine_module
+    from packages.contracts.src.recovery_models import InterventionSpec
+
+    run, trace = _make_original_run_and_trace()
+    manifest = _make_fully_pinned_manifest(run.id, run.tenant_id)
+    registry = _make_registry()
+    replacement = RETRIEVER_V1
+    preserved = next(
+        s for s in trace.spans if s.component_type and s.component_type != ComponentType.RETRIEVER
+    )
+    if fault == "manifest_tenant":
+        manifest.tenant_id = uuid.uuid4()
+    elif fault == "manifest_run":
+        manifest.run_id = uuid.uuid4()
+    elif fault == "manifest_content":
+        manifest.retriever_settings["k"] = 99
+    elif fault == "manifest_seed":
+        manifest.random_seed = 7
+        manifest.manifest_hash = manifest.compute_hash()
+    elif fault == "trace_tenant":
+        trace.tenant_id = uuid.uuid4()
+    elif fault == "trace_run":
+        trace.run_id = uuid.uuid4()
+    elif fault == "trace_pipeline":
+        trace.pipeline_id = uuid.uuid4()
+    elif fault == "span_tenant":
+        preserved.tenant_id = uuid.uuid4()
+    elif fault == "missing_version":
+        preserved.component_version_id = None
+    elif fault == "unregistered_version":
+        preserved.component_version_id = uuid.uuid4()
+    elif fault in ("wrong_registered_type", "wrong_registered_tag"):
+        version = registry.get(preserved.component_version_id)
+        changes = (
+            {"component_type": ComponentType.RETRIEVER}
+            if fault == "wrong_registered_type"
+            else {"version_tag": "unrecorded"}
+        )
+        registry.register(version.model_copy(update=changes))
+    elif fault == "wrong_replacement_type":
+        replacement = replacement.model_copy(update={"component_type": ComponentType.GENERATOR})
+    elif fault == "wrong_replacement_tag":
+        replacement = replacement.model_copy(update={"version_tag": "unrecorded"})
+    elif fault == "conflicting_versions":
+        version = registry.get(preserved.component_version_id).model_copy(
+            update={"id": uuid.uuid4()}
+        )
+        registry.register(version)
+        trace.spans.append(preserved.model_copy(update={"component_version_id": version.id}))
+
+    def must_not_execute(*args, **kwargs):
+        pytest.fail("Invalid replay bindings reached component execution")
+
+    monkeypatch.setattr(engine_module, "_execute_component_isolated", must_not_execute)
+    with pytest.raises(ValueError, match="Replay refused"):
+        ReplayEngine(registry).execute_replay(
+            original_run=run,
+            original_trace=trace,
+            intervention=InterventionSpec(
+                target_component=ComponentType.RETRIEVER,
+                intervention_type=InterventionType.ROLLBACK,
+                current_version=(
+                    None if fault == "missing_original_tag" else
+                    "unrecorded" if fault == "wrong_original_tag" else RETRIEVER_V2_EXP.version_tag
+                ),
+                candidate_version=RETRIEVER_V1.version_tag,
+            ),
+            replay_version=replacement,
+            original_reliability_vector={},
+            manifest=manifest,
+        )

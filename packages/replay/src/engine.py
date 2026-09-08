@@ -462,6 +462,63 @@ class ReplayEngine:
             raise ValueError("Replay refused: required state manifest is absent.")
         if not manifest.is_fully_pinned():
             raise ValueError("Replay refused: required state manifest cannot be fully pinned.")
+        if manifest.run_id != original_run.id or manifest.tenant_id != original_run.tenant_id:
+            raise ValueError(
+                "Replay refused: manifest does not belong to the original run and tenant."
+            )
+        if manifest.manifest_hash != manifest.compute_hash():
+            raise ValueError("Replay refused: manifest integrity check failed.")
+        if manifest.random_seed != seed:
+            raise ValueError("Replay refused: random seed differs from the pinned manifest.")
+        if not intervention.current_version:
+            raise ValueError("Replay refused: original intervention version is unspecified.")
+        if (
+            original_trace.run_id != original_run.id
+            or original_trace.tenant_id != original_run.tenant_id
+            or original_trace.pipeline_id != original_run.pipeline_id
+        ):
+            raise ValueError("Replay refused: trace does not belong to the original run.")
+        if (
+            replay_version.component_type != intervention.target_component
+            or replay_version.version_tag != intervention.candidate_version
+        ):
+            raise ValueError("Replay refused: replacement version does not match the intervention.")
+
+        # Resolve all preserved versions before starting any component execution.
+        resolved_versions: dict[ComponentType, ComponentVersion] = {}
+        for span in original_trace.spans:
+            if (
+                span.run_id != original_run.id
+                or span.tenant_id != original_run.tenant_id
+                or span.pipeline_id != original_run.pipeline_id
+            ):
+                raise ValueError("Replay refused: span does not belong to the original run.")
+            if span.component_type == intervention.target_component:
+                if (
+                    span.component_version_tag
+                    and span.component_version_tag != intervention.current_version
+                ):
+                    raise ValueError(
+                        "Replay refused: original version does not match the intervention."
+                    )
+                continue
+            if not span.component_type:
+                continue
+            cv_original = (
+                self._registry.get(span.component_version_id) if span.component_version_id else None
+            )
+            if cv_original is None:
+                raise ValueError("Replay refused: pinned component version is unavailable.")
+            if cv_original.component_type != span.component_type or (
+                span.component_version_tag and cv_original.version_tag != span.component_version_tag
+            ):
+                raise ValueError(
+                    "Replay refused: pinned component version does not match its span."
+                )
+            previous = resolved_versions.get(span.component_type)
+            if previous is not None and previous.id != cv_original.id:
+                raise ValueError("Replay refused: conflicting versions for one component type.")
+            resolved_versions[span.component_type] = cv_original
 
         replay_id = uuid4()
         tenant_id = original_run.tenant_id
@@ -531,8 +588,7 @@ class ReplayEngine:
                     None,
                 )
                 if original_span and original_span.component_version_id:
-                    cv_obj = self._registry.get(original_span.component_version_id)
-                    cv = cv_obj if cv_obj else replay_version  # fallback
+                    cv = resolved_versions[component_type]
                 else:
                     continue  # skip components not in original
 
@@ -618,6 +674,17 @@ class ReplayEngine:
         root_span = root_builder.build()
         all_spans.insert(0, root_span)
 
+        # Executing historical state cannot produce live-production evidence.
+        if original_run.is_synthetic or original_trace.is_synthetic or has_synthetic_executor:
+            replay_evidence = EvidenceClassification.SYNTHETIC_SIMULATION
+        elif EvidenceClassification.UNVERIFIED in (
+            original_run.evidence_class,
+            original_trace.evidence_class,
+        ):
+            replay_evidence = EvidenceClassification.UNVERIFIED
+        else:
+            replay_evidence = EvidenceClassification.REAL_CONTROLLED_EXPERIMENT
+
         # Build replay trace
         replay_trace = TraceArtifact(
             run_id=replay_id,
@@ -625,7 +692,7 @@ class ReplayEngine:
             pipeline_id=pipeline_id,
             spans=all_spans,
             root_span_id=root_span.span_id,
-            is_synthetic=original_run.is_synthetic or has_synthetic_executor,
+            evidence_class=replay_evidence,
         )
 
         # Compute reliability vectors
@@ -670,16 +737,7 @@ class ReplayEngine:
             replay_response_hash=hash_payload(current_inputs.get("final_response", "")),
             seed=seed,
             completed_at=datetime.now(UTC),
-            is_synthetic=original_run.is_synthetic or has_synthetic_executor,
-            evidence_kind=(
-                EvidenceClassification.SYNTHETIC_SIMULATION
-                if has_synthetic_executor
-                else (
-                    EvidenceClassification.SYNTHETIC_SIMULATION
-                    if original_run.is_synthetic
-                    else EvidenceClassification.PRODUCTION
-                )
-            ),
+            evidence_class=replay_evidence,
             status=ReplayStatus.COMPLETED,
             manifest_id=manifest.id,
             is_pinned=True,

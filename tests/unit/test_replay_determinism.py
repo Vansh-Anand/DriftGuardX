@@ -1,6 +1,8 @@
 import datetime
 import uuid
 
+import pytest
+
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
@@ -140,9 +142,7 @@ def test_replay_engine_is_strictly_deterministic():
     assert ep1.replay_reliability_vector == ep2.replay_reliability_vector
     assert ep1.replay_reliability_score == ep2.replay_reliability_score
     assert ep1.is_synthetic == ep2.is_synthetic
-    assert ep1.is_synthetic is True  # We must be explicitly deterministic synthetic
-
-    # Trace logic produces same lengths and fields except random IDs and timestamps
+    assert ep1.is_synthetic is True
     assert len(t1.spans) == len(t2.spans)
     for i in range(len(t1.spans)):
         assert t1.spans[i].name == t2.spans[i].name
@@ -152,6 +152,51 @@ def test_replay_engine_is_strictly_deterministic():
         assert t1.spans[i].component_version_tag == t2.spans[i].component_version_tag
         assert t1.spans[i].input_hash == t2.spans[i].input_hash
         assert t1.spans[i].output_hash == t2.spans[i].output_hash
+
+
+@pytest.mark.parametrize(
+    "run_class,trace_class,expected",
+    [
+        ("PRODUCTION", "PRODUCTION", "REAL_CONTROLLED_EXPERIMENT"),
+        ("PRODUCTION", "UNVERIFIED", "UNVERIFIED"),
+        ("UNVERIFIED", "PRODUCTION", "UNVERIFIED"),
+        ("PRODUCTION", "SYNTHETIC_SIMULATION", "SYNTHETIC_SIMULATION"),
+        ("TEST_FIXTURE", "PRODUCTION", "SYNTHETIC_SIMULATION"),
+    ],
+)
+def test_replay_provenance_cannot_be_upgraded(run_class, trace_class, expected, monkeypatch):
+    """Classification unit test with a stubbed execution boundary, not measured evidence."""
+    import packages.replay.src.engine as engine_module
+
+    run = create_mock_run()
+    trace = create_mock_trace(run)
+    run.evidence_class = run_class
+    trace.evidence_class = trace_class
+    manifest = create_mock_manifest(run)
+    replacement = ComponentVersion(
+        component_type=ComponentType.RETRIEVER,
+        version_tag="v2-exp",
+        config_hash="config",
+    )
+    monkeypatch.setattr(
+        engine_module, "get_executor", lambda *args: engine_module.ComponentExecutor()
+    )
+    monkeypatch.setattr(engine_module, "_execute_component_isolated", lambda *args, **kwargs: {})
+    episode, result = ReplayEngine(VersionRegistry()).execute_replay(
+        original_run=run,
+        original_trace=trace,
+        manifest=manifest,
+        intervention=InterventionSpec(
+            target_component=ComponentType.RETRIEVER,
+            current_version="v1",
+            candidate_version="v2-exp",
+            intervention_type="alternate_stable",
+        ),
+        replay_version=replacement,
+        original_reliability_vector={},
+    )
+    assert episode.evidence_class == expected
+    assert result.evidence_class == expected
 
 
 def test_different_intervention_spec_yields_different_hash():

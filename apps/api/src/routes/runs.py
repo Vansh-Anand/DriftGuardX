@@ -16,8 +16,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from packages.contracts.src.evidence import EvidenceClassification
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 
@@ -52,6 +50,7 @@ from apps.api.src.schemas import (
     TraceResponse,
 )
 from packages.contracts.src.auth import Role
+from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.models import (
     ComponentType,
     ReplayStateManifest,
@@ -413,6 +412,9 @@ async def create_run(
                     if s.component_type and hasattr(s.component_type, "value")
                     else s.component_type
                 ),
+                "component_version_id": (
+                    str(s.component_version_id) if s.component_version_id else None
+                ),
                 "component_version_tag": s.component_version_tag,
                 "input_hash": s.input_hash,
                 "output_hash": s.output_hash,
@@ -486,6 +488,7 @@ async def create_run(
         )
         from packages.rag_pipeline.src.adapters.postgres_retriever import PostgresHybridRetriever
 
+        llm: SafeLLMAdapter | LocalDeterministicLLMAdapter
         if settings.llm_api_key and settings.llm_api_key.get_secret_value():
             llm = SafeLLMAdapter()
         else:
@@ -649,6 +652,9 @@ async def create_run(
                     if s.component_type and hasattr(s.component_type, "value")
                     else s.component_type
                 ),
+                "component_version_id": (
+                    str(s.component_version_id) if s.component_version_id else None
+                ),
                 "component_version_tag": s.component_version_tag,
                 "input_hash": s.input_hash,
                 "output_hash": s.output_hash,
@@ -757,7 +763,11 @@ async def register_run(
         error_message=None,
         started_at=datetime.now(UTC),
         completed_at=None,
-        evidence_class=request.evidence_class if request.evidence_class != "UNVERIFIED" else ("SYNTHETIC_SIMULATION" if request.is_synthetic else "PRODUCTION"),
+        evidence_class=(
+            request.evidence_class
+            if request.evidence_class != "UNVERIFIED"
+            else ("SYNTHETIC_SIMULATION" if request.is_synthetic else "PRODUCTION")
+        ),
     )
     db.add(run_orm)
 
@@ -987,6 +997,11 @@ async def create_replay(
                     pipeline_id=original_trace_orm.pipeline_id,
                     run_id=run_id,
                     component_type=ct,
+                    component_version_id=(
+                        uuid.UUID(s["component_version_id"])
+                        if s.get("component_version_id")
+                        else None
+                    ),
                     component_version_tag=s.get("component_version_tag"),
                     input_hash=s.get("input_hash"),
                     output_hash=s.get("output_hash"),
@@ -997,8 +1012,10 @@ async def create_replay(
                     error_type=s.get("error_type"),
                 )
             )
-        except (ValueError, RuntimeError, KeyError, TypeError, OSError):
-            pass  # skip malformed spans
+        except (ValueError, RuntimeError, KeyError, TypeError, OSError) as exc:
+            raise HTTPException(
+                status_code=409, detail="Replay refused: stored trace is malformed"
+            ) from exc
 
     original_trace = TraceArtifact(
         run_id=run_id,
@@ -1072,6 +1089,13 @@ async def create_replay(
             detail=f"Source component version not found: {intervention_spec.current_version}",
         )
 
+    intervention_spec = intervention_spec.model_copy(
+        update={
+            "current_version": from_version.version_tag,
+            "candidate_version": to_version.version_tag,
+        }
+    )
+
     # Create intervention record
     intervention_orm = InterventionORM(
         id=uuid.UUID(intervention_spec.spec_id),
@@ -1144,15 +1168,18 @@ async def create_replay(
 
     original_rv = original_run_orm.reliability_vector or {}
 
-    episode, replay_trace = engine.execute_replay(
-        original_run=original_run_contract,
-        original_trace=original_trace,
-        intervention=intervention_spec,
-        replay_version=to_version,
-        original_reliability_vector=original_rv,
-        seed=request.seed,
-        manifest=manifest_contract,
-    )
+    try:
+        episode, replay_trace = engine.execute_replay(
+            original_run=original_run_contract,
+            original_trace=original_trace,
+            intervention=intervention_spec,
+            replay_version=to_version,
+            original_reliability_vector=original_rv,
+            seed=request.seed,
+            manifest=manifest_contract,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     # Persist replay episode
     episode_orm = ReplayEpisodeORM(
@@ -1204,6 +1231,7 @@ async def create_replay(
                 if s.component_type and hasattr(s.component_type, "value")
                 else s.component_type
             ),
+            "component_version_id": str(s.component_version_id) if s.component_version_id else None,
             "component_version_tag": s.component_version_tag,
             "latency_ms": s.latency_ms,
             "policy_result": s.policy_result,

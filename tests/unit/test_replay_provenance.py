@@ -41,7 +41,7 @@ async def test_synthetic_executor_yields_synthetic_demo_provenance():
     original_trace = TraceArtifact(
         run_id=run_id,
         tenant_id=tenant_id,
-        pipeline_id=uuid.uuid4(),
+        pipeline_id=original_run.pipeline_id,
         spans=[],
     )
 
