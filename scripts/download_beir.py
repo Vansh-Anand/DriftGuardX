@@ -5,14 +5,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import shutil
-import ssl
 import sys
 import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
-
-ssl._create_default_https_context = ssl._create_unverified_context
 
 EXPECTED_SHA256 = {
     "scifact": {

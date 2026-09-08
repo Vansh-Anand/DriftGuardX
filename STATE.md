@@ -1,6 +1,6 @@
 # Current State
 
-Verified 2026-09-08. This file restores the canonical startup status previously
+Updated 2026-09-09. This file restores the canonical startup status previously
 missing on main. See docs/ai/CONTEXT_INDEX.md for scoped navigation.
 
 ## Patent review work
@@ -42,8 +42,22 @@ Local experiments record a dirty working tree and exact implementation hashes;
 they are not clean hosted-CI evidence or production canaries. Windows skips and
 existing coroutine warnings remain recorded. No new production deployment,
 container security assessment, KMS integration, shared-host database deployment,
-patent filing or grant was verified. The broader replay regression suite currently
-has one unrelated failing assertion in
-`tests/unit/test_replay_isolation.py::test_replay_improves_reliability_over_experimental`
-(observed improvement `-0.2017`).
+patent filing or grant was verified.
 Prior statements that the entire project was complete were too broad.
+
+## CI repair verification (2026-09-09)
+
+- Corrected stale dataset downloader paths in both Actions workflows and operator docs.
+- Fixed strict typing failures and runtime worker contract mismatches, including
+  graph node/edge serialization and missing invocation tenant/run identities.
+- Worker replay versions now resolve persisted configuration hashes and refuse
+  missing, foreign-tenant, or mismatched records. Graph construction reads the
+  same tenant-scoped version store. Removed the global TLS verification bypass.
+- Exact workflow commands on Python 3.11: Black 38 files and mypy 39 files passed.
+- Focused worker, receipt, and ledger regression suite: 24 passed.
+- Earlier full local suite: 601 passed, 22 skipped, one latency benchmark failure
+  (66 ms/certificate versus a 50 ms threshold). The unchanged benchmark passed
+  when rerun in the focused suite. Final full suite: 605 passed, 22 skipped,
+  7 existing warnings. Hosted CI results pending.
+- Production deployment, additional controlled fault experiments, independent
+  replication, and India patent-agent review remain separate completion gates.

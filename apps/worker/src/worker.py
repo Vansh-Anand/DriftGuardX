@@ -18,19 +18,43 @@ import structlog
 from arq.connections import RedisSettings
 from arq.typing import WorkerSettingsBase
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.src.database import AsyncSessionLocal
 from apps.api.src.models import BackgroundJobORM
+from packages.contracts.src.models import ComponentType, ComponentVersion, ComponentVersionState
 
 log = structlog.get_logger()
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
 
+class _DatabaseVersionLookup:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def get_version(
+        self, tenant_id: uuid.UUID, version_id: uuid.UUID
+    ) -> ComponentVersion | None:
+        from apps.api.src.models import ComponentVersionORM
+
+        record = await self.session.get(ComponentVersionORM, version_id)
+        if record is None or record.tenant_id != tenant_id:
+            return None
+        return ComponentVersion(
+            id=record.id,
+            component_type=ComponentType(record.component_type),
+            version_tag=record.version_tag,
+            state=ComponentVersionState(record.state),
+            config_hash=record.config_hash,
+            description=record.description,
+        )
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 
-async def _mark_running(session, job_uuid: uuid.UUID) -> None:
+async def _mark_running(session: AsyncSession, job_uuid: uuid.UUID) -> None:
     await session.execute(
         update(BackgroundJobORM)
         .where(BackgroundJobORM.id == job_uuid)
@@ -39,7 +63,9 @@ async def _mark_running(session, job_uuid: uuid.UUID) -> None:
     await session.commit()
 
 
-async def _mark_completed(session, job_uuid: uuid.UUID, result: dict) -> None:
+async def _mark_completed(
+    session: AsyncSession, job_uuid: uuid.UUID, result: dict[str, Any]
+) -> None:
     current_job = await session.get(BackgroundJobORM, job_uuid)
     if current_job and current_job.status != "cancelled":
         current_job.status = "completed"
@@ -48,7 +74,7 @@ async def _mark_completed(session, job_uuid: uuid.UUID, result: dict) -> None:
         await session.commit()
 
 
-async def _mark_failed(session, job_uuid: uuid.UUID, exc: Exception) -> None:
+async def _mark_failed(session: AsyncSession, job_uuid: uuid.UUID, exc: Exception) -> None:
     current_job = await session.get(BackgroundJobORM, job_uuid)
     if current_job:
         current_job.status = "failed"
@@ -75,10 +101,9 @@ async def run_recovery_diagnosis(
     tenant_id: str,
     run_id: str,
     failure_symptom: str,
-    invocations_data: list[dict],
+    invocations_data: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Execute the recovery loop in the background."""
-    from apps.api.src.database import async_session_maker
     from apps.api.src.models import JobORM
     from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
     from packages.contracts.src.agent_models import AgentInvocation
@@ -87,7 +112,7 @@ async def run_recovery_diagnosis(
 
     invocations = [AgentInvocation(**inv) for inv in invocations_data]
 
-    async with async_session_maker() as db:
+    async with AsyncSessionLocal() as db:
         from sqlalchemy import select
 
         job_result = await db.execute(select(JobORM).where(JobORM.id == uuid.UUID(job_id)))
@@ -128,8 +153,12 @@ async def run_recovery_diagnosis(
                     )
                 await db.commit()
 
-            if approval_req and getattr(approval_req, "status", None) == "INSUFFICIENT_EVIDENCE":
-                return job_orm.result
+            if (
+                approval_req
+                and getattr(approval_req, "status", None) == "INSUFFICIENT_EVIDENCE"
+                and job_orm is not None
+            ):
+                return cast(dict[str, Any], job_orm.result)
 
             return {
                 "status": "success",
@@ -205,13 +234,16 @@ async def execute_replay_job(
             from packages.contracts.src.evidence import EvidenceClassification
             from packages.contracts.src.models import (
                 ComponentType,
-                ComponentVersion,
+                InterventionType,
                 ReplayStateManifest,
                 RequestRun,
+                RunStatus,
                 SpanRecord,
                 TraceArtifact,
             )
-            from packages.contracts.src.recovery_models import InterventionSpec
+            from packages.contracts.src.recovery_models import (
+                InterventionSpec,
+            )
             from packages.replay.src.admission_receipt import ReplayAdmissionReceipt
             from packages.replay.src.divergence_validator import DynamicCausalDivergenceValidator
             from packages.replay.src.engine import ReplayEngine, VersionRegistry
@@ -261,7 +293,7 @@ async def execute_replay_job(
                 id=run_orm.id,
                 tenant_id=run_orm.tenant_id,
                 pipeline_id=run_orm.pipeline_id,
-                status=run_orm.status,
+                status=RunStatus(run_orm.status),
                 request_hash=run_orm.request_hash or "",
                 response_hash=run_orm.response_hash or "",
                 reliability_score=run_orm.reliability_score or 0.0,
@@ -270,7 +302,7 @@ async def execute_replay_job(
                 total_tokens=run_orm.total_tokens or 0,
                 total_cost_usd=run_orm.total_cost_usd or 0.0,
                 seed=run_orm.seed or seed,
-                evidence_class=run_orm.evidence_class,
+                evidence_class=EvidenceClassification(run_orm.evidence_class),
             )
 
             manifest = ReplayStateManifest(
@@ -356,26 +388,33 @@ async def execute_replay_job(
                 target_component=ComponentType(intervention_orm.target_component_type),
                 current_version=intervention_orm.from_version_tag,
                 candidate_version=intervention_orm.to_version_tag,
-                intervention_type=intervention_orm.intervention_type,
+                intervention_type=InterventionType(intervention_orm.intervention_type),
             )
 
-            # Register the replay version (the new one to test)
-            replay_cv = ComponentVersion(
-                component_type=ComponentType(intervention_orm.target_component_type),
-                version_tag=intervention_orm.to_version_tag,
-                description=f"Replay candidate: {intervention_orm.to_version_tag}",
+            version_lookup = _DatabaseVersionLookup(session)
+            replay_cv = await version_lookup.get_version(
+                tenant_uuid, intervention_orm.to_version_id
             )
+            if (
+                replay_cv is None
+                or replay_cv.component_type != intervention_spec.target_component
+                or replay_cv.version_tag != intervention_spec.candidate_version
+            ):
+                raise ValueError("Replay candidate version is missing or mismatched")
             registry.register(replay_cv)
 
             # Register original versions from trace spans
             for span in spans:
                 if span.component_version_id and span.component_type:
-                    orig_cv = ComponentVersion(
-                        id=span.component_version_id,
-                        component_type=span.component_type,
-                        version_tag=span.component_version_tag or "pinned",
-                        description="Pinned from original trace",
+                    orig_cv = await version_lookup.get_version(
+                        tenant_uuid, span.component_version_id
                     )
+                    if (
+                        orig_cv is None
+                        or orig_cv.component_type != span.component_type
+                        or orig_cv.version_tag != span.component_version_tag
+                    ):
+                        raise ValueError("Pinned component version is missing or mismatched")
                     registry.register(orig_cv)
 
             # 8. Execute replay
@@ -432,7 +471,9 @@ async def execute_replay_job(
 
             validator = DynamicCausalDivergenceValidator()
             divergence_report = validator.validate(
-                orig_snapshot, replay_snapshot, _SimpleEnvelope()
+                orig_snapshot,
+                replay_snapshot,
+                _SimpleEnvelope(),
             )
 
             # 10. Persist ReplayEpisodeORM
@@ -578,25 +619,10 @@ async def execute_graph_construction_job(
                     "cache_hit": True,
                 }
             else:
-                # Use the in-memory version registry (graph builder reads from it)
-                from packages.replay.src.engine import VersionRegistry as LocalRegistry
-
-                local_registry = LocalRegistry()
-
-                class _RegistryAdapter:
-                    """Adapts LocalRegistry to satisfy ContractVersionRegistry interface."""
-
-                    def __init__(self, inner):
-                        self._inner = inner
-
-                    async def get_version(self, tenant_id, version_id):
-                        return self._inner.get(version_id)
-
-                adapted_registry = _RegistryAdapter(local_registry)
-                builder = GraphBuilder(version_registry=adapted_registry)
+                builder = GraphBuilder(version_registry=_DatabaseVersionLookup(session))
                 graph = await builder.build(trace)
 
-                nodes_json = [n.model_dump(mode="json") for n in graph.nodes.values()]
+                nodes_json = [n.model_dump(mode="json") for n in graph.nodes]
                 edges_json = [e.model_dump(mode="json") for e in graph.edges]
 
                 graph_orm = CausalGraphORM(
@@ -617,8 +643,8 @@ async def execute_graph_construction_job(
                     edge_orm = GraphEdgeORM(
                         id=edge_pk,
                         graph_hash=graph_hash,
-                        source_id=edge.source_id,
-                        target_id=edge.target_id,
+                        source_id=edge.source,
+                        target_id=edge.target,
                         edge_type=(
                             str(edge.type.value) if hasattr(edge.type, "value") else str(edge.type)
                         ),
@@ -705,14 +731,18 @@ async def execute_bcrb_diagnosis_job(
                 if span.component_type:
                     try:
                         inv = AgentInvocation(
-                            invocation_id=str(span.id),
-                            component_type=span.component_type,
-                            version_tag=span.component_version_tag or "unknown",
-                            latency_ms=span.latency_ms or 0.0,
-                            is_error=bool(span.error_type),
-                            input_hash=span.input_hash or "",
-                            output_hash=span.output_hash or "",
-                            token_count=span.token_count_input or 0,
+                            invocation_id=span.id,
+                            run_id=run_uuid_val,
+                            tenant_id=tenant_uuid,
+                            metadata={
+                                "component_type": str(span.component_type),
+                                "version_tag": span.component_version_tag or "unknown",
+                                "latency_ms": span.latency_ms or 0.0,
+                                "is_error": bool(span.error_type),
+                                "input_hash": span.input_hash or "",
+                                "output_hash": span.output_hash or "",
+                                "token_count": span.token_count_input or 0,
+                            },
                         )
                         invocations.append(inv)
                     except Exception:

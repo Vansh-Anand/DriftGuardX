@@ -13,12 +13,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
 from packages.contracts.src.interfaces import DivergenceReport
 
-if TYPE_CHECKING:
-    from packages.contracts.src.recovery_models import ReplayEquivalenceEnvelope
+
+class DivergenceConstraints(Protocol):
+    intervened_variables: list[str]
+    allowed_causal_descendants: list[str]
+    forbidden_divergence_nodes: list[str]
+    frozen_variables: dict[str, str]
+    constraints: dict[str, Any]
 
 
 def _stable_hash(value: Any) -> str:
@@ -195,7 +200,7 @@ class DynamicCausalDivergenceValidator:
         self,
         original: ExecutionSnapshot,
         replay: ExecutionSnapshot,
-        envelope: ReplayEquivalenceEnvelope,
+        envelope: DivergenceConstraints,
     ) -> DivergenceReport:
         """
         Full divergence validation.
@@ -346,7 +351,7 @@ class DynamicCausalDivergenceValidator:
     def validate_divergence(
         self,
         replays: list[dict[str, Any]],
-        envelope: ReplayEquivalenceEnvelope,
+        envelope: DivergenceConstraints,
     ) -> DivergenceReport:
         """
         Adapter for the orchestrator interface.

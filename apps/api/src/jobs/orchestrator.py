@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from arq import create_pool
-from arq.connections import RedisSettings
+from arq.connections import ArqRedis, RedisSettings
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,9 +58,9 @@ class JobOrchestrator:
     def __init__(self) -> None:
         self.jobs: dict[str, _JobHandle] = {}
         self._active_tasks: dict[str, asyncio.Task[Any]] = {}
-        self._arq_pool = None
+        self._arq_pool: ArqRedis | None = None
 
-    async def get_pool(self):
+    async def get_pool(self) -> ArqRedis:
         if not self._arq_pool:
             self._arq_pool = await create_pool(
                 RedisSettings.from_dsn(settings.redis_url.get_secret_value())

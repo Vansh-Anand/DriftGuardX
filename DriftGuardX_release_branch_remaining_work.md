@@ -875,7 +875,7 @@ Do not merge into `main` until:
 - [x] ARQ workers execute real engines.
 - [x] Golden E2E uses real Postgres + Redis.
 - [x] Quarantine/fallback recovery is integrated.
-- [x] Release CI is green.
+- [ ] Release CI is green for the current commit (reverification in progress).
 - [x] Clean wheel install works.
 - [x] At least 6 real controlled fault families work.
 - [x] BCRB hardcoded estimates are substantially removed.
@@ -1097,9 +1097,9 @@ These are the remaining items that matter most:
 
 - [x] Fix current Ruff failure.
 - [x] Fix current Playwright E2E failure.
-- [ ] Rerun the current Python suite on HEAD.
+- [x] Rerun the current Python suite (605 passed, 22 skipped, 7 warnings, 2026-09-09).
 - [ ] Rerun migration parity on HEAD.
-- [ ] Rerun MyPy/Black on HEAD.
+- [x] Rerun MyPy/Black using the CI commands on Python 3.11 (39/38 files passed, 2026-09-09).
 - [ ] Rerun Trivy/SBOM on HEAD.
 - [ ] Obtain one completely green current CI run.
 - [ ] Broaden controlled-real fault experiments beyond the strong SciFact/index case.

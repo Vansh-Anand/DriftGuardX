@@ -332,7 +332,7 @@ class RequestRun(DGXBaseModel):
     evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     run_hash: str | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_synthetic(self) -> bool:
         ec = (
@@ -344,7 +344,7 @@ class RequestRun(DGXBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+    def _map_synthetic_to_evidence(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             if "evidence_kind" in data and "evidence_class" not in data:
                 data["evidence_class"] = data["evidence_kind"]
@@ -402,7 +402,7 @@ class TraceArtifact(DGXBaseModel):
     evidence_class: EvidenceClassification = EvidenceClassification.UNVERIFIED
     run_hash: str | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_synthetic(self) -> bool:
         ec = (
@@ -414,7 +414,7 @@ class TraceArtifact(DGXBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+    def _map_synthetic_to_evidence(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             if "evidence_kind" in data and "evidence_class" not in data:
                 data["evidence_class"] = data["evidence_kind"]
@@ -489,7 +489,7 @@ class Intervention(DGXBaseModel):
     posterior_hash: str | None = None
     intervention_hash: str | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_synthetic(self) -> bool:
         ec = (
@@ -501,7 +501,7 @@ class Intervention(DGXBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+    def _map_synthetic_to_evidence(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             if "evidence_kind" in data and "evidence_class" not in data:
                 data["evidence_class"] = data["evidence_kind"]
@@ -586,7 +586,7 @@ class ReplayEpisode(DGXBaseModel):
     evidence_class: EvidenceClassification = EvidenceClassification.SYNTHETIC_SIMULATION
     cryptographic_signature: dict[str, Any] = Field(default_factory=dict)
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_synthetic(self) -> bool:
         ec = (
@@ -598,7 +598,7 @@ class ReplayEpisode(DGXBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+    def _map_synthetic_to_evidence(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             if "evidence_kind" in data and "evidence_class" not in data:
                 data["evidence_class"] = data["evidence_kind"]
@@ -769,7 +769,7 @@ class Diagnosis(DGXBaseModel):
     trace_hash: str | None = None
     diagnosis_hash: str | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def is_synthetic(self) -> bool:
         ec = (
@@ -781,7 +781,7 @@ class Diagnosis(DGXBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _map_synthetic_to_evidence(cls, data: dict) -> dict:
+    def _map_synthetic_to_evidence(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             if "evidence_kind" in data and "evidence_class" not in data:
                 data["evidence_class"] = data["evidence_kind"]

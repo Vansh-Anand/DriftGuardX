@@ -96,7 +96,7 @@ class RAGEvaluationOracle(EvaluationOracle):
         elif scenario.fault_type == FaultType.EMBEDDING_DRIFT:
             return "EMBEDDING_DRIFT_FAILURE" not in resp
         elif scenario.fault_type == FaultType.RETRIEVAL_FAILURE:
-            return new_output.get("retrieved_chunks") != []
+            return bool(new_output.get("retrieved_chunks") != [])
         elif scenario.fault_type == FaultType.LLM_DEGRADATION:
             return "LLM_DEGRADATION_FAILURE" not in resp
         elif scenario.fault_type == FaultType.MALFORMED_TOOL_OUTPUT:

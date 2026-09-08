@@ -3,11 +3,16 @@ DriftGuard-X v2 — Causal Graph Builder
 PRIVATE — All Rights Reserved.
 """
 
+from typing import Protocol
 from uuid import UUID
 
 from packages.contracts.src.graph import CausalGraph, EdgeType, GraphEdge, GraphNode, NodeType
-from packages.contracts.src.models import SpanRecord, TraceArtifact
-from packages.contracts.src.registry import VersionRegistry
+from packages.contracts.src.models import ComponentVersion, SpanRecord, TraceArtifact
+
+
+class VersionLookup(Protocol):
+    async def get_version(self, tenant_id: UUID, version_id: UUID) -> ComponentVersion | None: ...
+
 
 BUILDER_VERSION = "v1.0"
 
@@ -17,7 +22,7 @@ class GraphBuilder:
     Constructs a deterministic causal reliability graph from a normalized trace.
     """
 
-    def __init__(self, version_registry: VersionRegistry):
+    def __init__(self, version_registry: VersionLookup):
         self.registry = version_registry
 
     async def build(self, trace: TraceArtifact) -> CausalGraph:
