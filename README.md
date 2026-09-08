@@ -15,6 +15,21 @@ DriftGuard-X is an experimental framework for evaluating Budget-Constrained Coun
 
 ## Setup and verification
 
+For a local Windows research console, install the dependencies below and run:
+
+```powershell
+uv sync --frozen --extra dev --extra infra
+npm --prefix apps/web ci
+./scripts/start-local.ps1
+```
+
+Open http://127.0.0.1:3010/runs and use **Sign In** with a local demo email.
+The API runs at http://127.0.0.1:8010. The launcher uses local mock authentication
+and stores its SQLite database and logs in `.local-runtime/`. It starts hidden
+background processes and prints their process IDs. Choose alternate ports with
+`-ApiPort` and `-WebPort` when needed. This mode is a local research demonstration;
+real provider execution and production recovery require their own configuration.
+
 Use Python 3.11 or 3.12 (Python 3.13 is not supported by this release):
 
 ```bash

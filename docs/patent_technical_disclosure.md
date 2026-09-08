@@ -5,15 +5,15 @@
 **Date**: 2026-07-25
 
 ## 1. Overview and Problem Addressed
-Current AI monitoring solutions identify drift post-facto and rely on correlation. They cannot safely repair multi-layer generative AI pipelines because they lack causal attribution and cost-bounded recovery mechanisms. DriftGuard-X solves this by introducing a closed-loop system that transforms opaque generative pipelines into deterministic, causally verifiable DAGs.
+Current AI monitoring solutions often identify drift post-facto and may rely on correlation. DriftGuard-X addresses this engineering problem with a closed-loop prototype that represents observed service dependencies as a DAG, selects cost-bounded counterfactual replays, and requires evidence and policy gates before recovery is eligible. The implementation does not establish causality for every workload; it produces bounded, provenance-labelled evidence within the evaluated scope.
 
 ## 2. Core Mechanisms (Novelty Claims)
 
 ### A. Trace Fabric & Causal Reliability Graph
-DriftGuard-X intercepts all LLM and tool calls via a Trace Fabric, generating an exact, deterministic provenance graph (Causal Reliability Graph). Instead of analyzing plain text, the system uses this graph to track data flow across component boundaries.
+DriftGuard-X records configured LLM and tool calls through its trace interfaces and constructs a reproducible provenance graph from the accepted span records. Instead of analyzing plain text alone, the system uses graph structure and typed trace features to track dependencies across component boundaries. Completeness and determinism depend on the instrumentation and state manifest supplied to a run.
 
 ### B. Cross-Layer Drift Propagation (Diffusion)
-DriftGuard-X computes the probability that a symptom observed at a terminal node (e.g., hallucinated output) was caused by a specific upstream node (e.g., stale retriever index) using a learned Graph Attention Network (GAT) or Fixed PageRank diffusion.
+DriftGuard-X computes ranked fault hypotheses and propagation scores for a symptom observed at a terminal node using a learned Graph Attention Network (GAT) or a fixed diffusion fallback. These scores are diagnostic evidence and are not, by themselves, proof of causation or authorization for recovery.
 
 ### C. Budget-Constrained Root-Cause Bandit (BCRB)
 To verify causality, the system performs counterfactual replays. Because exhaustive replay is computationally infeasible for large graphs, DriftGuard-X introduces BCRB, which models the replay selection as a Knapsack-constrained Multi-Armed Bandit problem.
@@ -33,4 +33,7 @@ The system operates on an isolated `ReplayEpisode` contract, enforcing strict de
 ## 5. Measured Effects & Limitations
 - **Latency**: End-to-end certification incurs ~200ms overhead under SQLite boundaries.
 - **Limitation**: Ed25519 signing limits high-throughput concurrency; batch signing is required for enterprise scale.
-- **Negative Result**: Exhaustive replay without BCRB exceeds cost tolerances within 300 iterations on complex 50-node DAGs. BCRB bounds this cost strictly.
+- **Negative Result**: Exhaustive replay can exceed configured cost tolerances on larger graphs. BCRB enforces the declared replay budget for the scheduler; it does not guarantee a particular causal conclusion or production outcome.
+
+## 6. Patent-readiness boundary
+This disclosure is a technical record for counsel, not a patentability opinion. Novelty, non-obviousness, written-description support, enablement, inventorship, public-disclosure timing, and claim scope require an attorney-led prior-art and filing review. The implementation evidence supporting the current technical scope is listed in `docs/patent_claims_audit.md`.
