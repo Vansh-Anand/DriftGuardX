@@ -9,6 +9,7 @@ Status: technical review materials, not a submitted application.
 - patent_claims_draft.md: revised candidate outline; unsupported earlier claims withdrawn.
 - patent_claims_audit.md: source/test support with explicit prototype limits.
 - prior_art_worksheet.md: dated primary references, overlap and search limitations.
+- novelty_strategy.md: crowded claim areas, candidate technical distinctions and required validation.
 - patent_india_handoff.md: Indian official sources, filing inputs and unresolved decisions.
 - ../results/patent_review/: new benchmark records and their summary.
 
