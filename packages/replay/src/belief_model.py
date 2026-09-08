@@ -11,12 +11,22 @@ class LikelihoodEstimator(Protocol):
         ...
 
 
+class HeuristicLikelihoodEstimator:
+    """Conservative likelihood model used by the RAEB research gateway."""
+
+    def estimate_likelihood(self, intervention_node: str, root_cause: str, outcome: str) -> float:
+        if intervention_node == root_cause:
+            return 0.9 if outcome == "mitigated" else 0.1
+        return 0.1 if outcome == "mitigated" else 0.9
+
+
 class TopologicalLikelihoodEstimator:
     """
     Topologically-aware estimator.
-    Takes a list of graph edges (e.g. [{"source_id": A, "target_id": B}]) and computes 
+    Takes a list of graph edges (e.g. [{"source_id": A, "target_id": B}]) and computes
     ancestor/descendant relationships using transitive closure.
     """
+
     def __init__(self, graph_edges: list[dict[str, str]]):
         self._edges = graph_edges
         self._ancestors: dict[str, set[str]] = {}
@@ -58,12 +68,12 @@ class TopologicalLikelihoodEstimator:
         if intervention_node == root_cause:
             # We fixed the exact problem node
             return 0.9 if outcome == "mitigated" else 0.1
-        
+
         if intervention_node in self._descendants.get(root_cause, set()):
             # Intervention is a descendant of the root cause.
             # Masking downstream often fixes symptoms of upstream failure.
             return 0.8 if outcome == "mitigated" else 0.2
-        
+
         if intervention_node in self._ancestors.get(root_cause, set()):
             # Intervention is an ancestor. Feeding healthy data to a broken node still fails.
             return 0.1 if outcome == "mitigated" else 0.9

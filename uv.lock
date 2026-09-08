@@ -1194,6 +1194,7 @@ dependencies = [
     { name = "networkx" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "openai" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-sdk" },
     { name = "psutil" },
@@ -1209,7 +1210,6 @@ dependencies = [
 [package.optional-dependencies]
 benchmark = [
     { name = "beir" },
-    { name = "openai" },
     { name = "pyarrow" },
     { name = "tiktoken" },
 ]
@@ -1263,7 +1263,7 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10.0" },
     { name = "networkx", specifier = ">=3.0.0" },
     { name = "numpy", specifier = ">=1.26.0" },
-    { name = "openai", marker = "extra == 'benchmark'", specifier = ">=1.14.0" },
+    { name = "openai", specifier = ">=1.14.0" },
     { name = "opentelemetry-api", specifier = ">=1.25.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.25.0" },
     { name = "pgvector", marker = "extra == 'infra'", specifier = ">=0.2.5" },

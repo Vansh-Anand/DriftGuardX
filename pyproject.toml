@@ -27,6 +27,7 @@ dependencies = [
     "networkx>=3.0.0",
     "psutil>=6.0.0",
     "pyjwt[crypto]>=2.10.1",
+    "openai>=1.14.0",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +61,6 @@ infra = [
     "arq>=0.26.0",
 ]
 benchmark = [
-    "openai>=1.14.0",
     "tiktoken>=0.6.0",
     "beir>=2.0.0",
     "pyarrow>=23.0.1",

@@ -78,7 +78,12 @@ def compute_auroc_auprc(y_true: Sequence[int], y_score: Sequence[float]) -> tupl
     fprs.append(1.0)
 
     # AUROC uses trapezoidal integration along monotonically increasing FPR.
-    auroc = np.trapezoid(tprs, fprs)
+    auroc = sum(
+        (left_y + right_y) * (right_x - left_x) / 2.0
+        for left_x, right_x, left_y, right_y in zip(
+            fprs[:-1], fprs[1:], tprs[:-1], tprs[1:], strict=True
+        )
+    )
 
     # Average precision is the accepted step-wise area summary for a ranked
     # precision-recall curve and is stable in the presence of tied scores.

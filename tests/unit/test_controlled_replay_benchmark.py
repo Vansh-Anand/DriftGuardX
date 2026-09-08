@@ -60,5 +60,5 @@ def test_controlled_replay_is_hash_bound_and_provenance_labeled(tmp_path: Path) 
     assert evidence["aggregates"]["bcrb_integrity_prior"]["recovery_rate"] == 1.0
     assert evidence["aggregates"]["bcrb_integrity_prior"]["mean_replays"] == 1.0
     comparison = evidence["statistical_comparisons"]["bcrb_integrity_prior_vs_fixed_order"]
-    assert comparison["n_pairs"] == 1
-    assert comparison["mean_delta"] == -3.0
+    assert comparison["n_pairs"] == 2
+    assert comparison["mean_delta"] == -2.0

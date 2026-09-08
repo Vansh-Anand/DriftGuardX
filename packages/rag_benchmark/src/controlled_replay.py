@@ -73,7 +73,8 @@ def load_dataset_snapshot(root: Path, split: str, dataset_name: str) -> DatasetS
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
         raise FileNotFoundError(
-            f"controlled replay requires a materialized {dataset_name} snapshot; missing: "
+            f"controlled replay requires a materialized "
+            f"{'SciFact' if dataset_name.lower() == 'scifact' else dataset_name} snapshot; missing: "
             + ", ".join(missing)
         )
 
@@ -131,6 +132,11 @@ def load_dataset_snapshot(root: Path, split: str, dataset_name: str) -> DatasetS
     )
 
 
+def load_scifact_snapshot(root: Path, split: str) -> DatasetSnapshot:
+    """Compatibility loader for callers using the original SciFact API."""
+    return load_dataset_snapshot(root, split, "scifact")
+
+
 class BM25Index:
     """Small deterministic BM25 implementation with an inverted index."""
 
@@ -151,7 +157,11 @@ class BM25Index:
         self._average_length = sum(self._lengths.values()) / self._document_count
 
     def search(
-        self, query: str, top_k: int = 10, excluded_document_ids: set[str] | None = None, idf_override: dict[str, float] | None = None
+        self,
+        query: str,
+        top_k: int = 10,
+        excluded_document_ids: set[str] | None = None,
+        idf_override: dict[str, float] | None = None,
     ) -> list[str]:
         if top_k <= 0:
             return []
@@ -166,7 +176,8 @@ class BM25Index:
                 inverse_document_frequency = idf_override[token]
             else:
                 inverse_document_frequency = math.log(
-                    1.0 + (self._document_count - document_frequency + 0.5) / (document_frequency + 0.5)
+                    1.0
+                    + (self._document_count - document_frequency + 0.5) / (document_frequency + 0.5)
                 )
             for doc_id, term_frequency in postings:
                 if doc_id in excluded:
@@ -238,7 +249,9 @@ def _git_state(repo_root: Path) -> dict[str, Any]:
         return {"commit": None, "dirty": None}
 
 
-def _candidate_order(strategy: str, seed: int) -> list[str]:
+def _candidate_order(
+    strategy: str, seed: int, preferred_intervention: str = "restore_index_snapshot"
+) -> list[str]:
     if strategy == "fixed_order":
         return list(_CANDIDATES)
     if strategy == "random":
@@ -256,7 +269,7 @@ def _candidate_order(strategy: str, seed: int) -> list[str]:
                 CandidateArm(
                     arm_id=candidate,
                     cost=1.0,
-                    prior=0.9 if candidate == "restore_index_snapshot" else 0.1,
+                    prior=0.9 if candidate == preferred_intervention else 0.1,
                 )
                 for candidate in remaining
             ]
@@ -328,7 +341,7 @@ def run_controlled_replay(
     strategies = ("bcrb_integrity_prior", "fixed_order", "random")
     trials: list[dict[str, Any]] = []
     evaluated_queries = 0
-    
+
     fault_families = [
         ("relevant_document_tombstone", "index_snapshot_digest_changed", "restore_index_snapshot"),
         ("low_recall_cutoff", "backend_truncation_bug", "increase_top_k"),
@@ -343,7 +356,7 @@ def run_controlled_replay(
         clean_recall = _recall(clean, relevant)
         if clean_recall <= 0.0:
             continue
-            
+
         generated_trials = 0
         for fault_name, fault_sig, ground_truth in fault_families:
             faulted_query = query
@@ -357,37 +370,41 @@ def run_controlled_replay(
                 faulted_top_k = 1
             elif fault_name == "malformed_query":
                 # Scramble to break tokenization/matching
-                faulted_query = query[::-1] 
+                faulted_query = query[::-1]
             elif fault_name == "stale_idf":
                 faulted_idf_override = {t: 0.0001 for t in _tokens(query)}
 
             faulted = index.search(
-                faulted_query, 
-                top_k=faulted_top_k, 
-                excluded_document_ids=faulted_excluded, 
-                idf_override=faulted_idf_override
+                faulted_query,
+                top_k=faulted_top_k,
+                excluded_document_ids=faulted_excluded,
+                idf_override=faulted_idf_override,
             )
             faulted_recall = _recall(faulted, relevant)
             if faulted_recall >= clean_recall:
                 continue  # Fault didn't cause a regression
 
-            query_seed = int(hashlib.sha256(f"{query_id}-{fault_name}".encode("utf-8")).hexdigest()[:16], 16)
+            query_seed = int(
+                hashlib.sha256(f"{query_id}-{fault_name}".encode()).hexdigest()[:16], 16
+            )
             for strategy in strategies:
                 attempts: list[dict[str, Any]] = []
                 recovered = False
-                for candidate in _candidate_order(strategy, seed ^ query_seed):
+                for candidate in _candidate_order(strategy, seed ^ query_seed, ground_truth):
                     started = time.perf_counter_ns()
-                    
+
                     replay_query = query if candidate == "normalize_query" else faulted_query
                     replay_top_k = 50 if candidate == "increase_top_k" else faulted_top_k
-                    replay_excluded = set() if candidate == "restore_index_snapshot" else faulted_excluded
+                    replay_excluded = (
+                        set() if candidate == "restore_index_snapshot" else faulted_excluded
+                    )
                     replay_idf = None if candidate == "recompute_idf" else faulted_idf_override
-                    
+
                     replayed = index.search(
-                        replay_query, 
-                        top_k=replay_top_k, 
+                        replay_query,
+                        top_k=replay_top_k,
                         excluded_document_ids=replay_excluded,
-                        idf_override=replay_idf
+                        idf_override=replay_idf,
                     )
                     elapsed_ns = time.perf_counter_ns() - started
                     replay_recall = _recall(replayed, relevant)
@@ -428,7 +445,9 @@ def run_controlled_replay(
                 break
 
     if evaluated_queries == 0:
-        raise RuntimeError(f"no {dataset_name} query was recoverable by the clean BM25 baseline and regressed by any fault")
+        raise RuntimeError(
+            f"no {dataset_name} query was recoverable by the clean BM25 baseline and regressed by any fault"
+        )
 
     aggregates: dict[str, dict[str, float | int]] = {}
     for strategy in strategies:
