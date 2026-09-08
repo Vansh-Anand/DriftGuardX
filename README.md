@@ -63,3 +63,9 @@ uv run python -m apps.cli.run_controlled_replay_benchmark --max-queries 100
 
 ## License & Patents
 **CONFIDENTIAL**. Do not distribute, publicly host, or present this software outside of cleared research circles. Patent novelty searches and formal IP filings are pending.
+
+The current [India technical review package](docs/patent_evidence_package.md)
+includes a preliminary prior-art comparison, revised claim outline, tested
+implementation limits and reproducible retrieval ablations. Patentability and
+filing readiness remain unestablished. The neutral-prior benchmark does not
+outperform fixed ordering; the oracle baseline explicitly receives ground truth.

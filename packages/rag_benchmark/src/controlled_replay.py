@@ -250,7 +250,7 @@ def _git_state(repo_root: Path) -> dict[str, Any]:
 
 
 def _candidate_order(
-    strategy: str, seed: int, preferred_intervention: str = "restore_index_snapshot"
+    strategy: str, seed: int, preferred_intervention: str | None = None
 ) -> list[str]:
     if strategy == "fixed_order":
         return list(_CANDIDATES)
@@ -258,7 +258,13 @@ def _candidate_order(
         candidates = list(_CANDIDATES)
         random.Random(seed).shuffle(candidates)  # noqa: S311 - benchmark sampling
         return candidates
-    if strategy == "bcrb_integrity_prior":
+    if strategy in ("bcrb_oracle_prior", "bcrb_uniform_prior", "bcrb_wrong_prior"):
+        if strategy != "bcrb_uniform_prior" and preferred_intervention not in _CANDIDATES:
+            raise ValueError("Oracle and wrong-prior ablations require a known intervention")
+        if strategy == "bcrb_uniform_prior":
+            preferred_intervention = None
+        elif strategy == "bcrb_wrong_prior":
+            preferred_intervention = next(c for c in _CANDIDATES if c != preferred_intervention)
         controller = ResourceAdmittedBCRBController(
             total_budget=10.0, exploration_constant=0.0, rollback_reserve_ratio=0.0
         )
@@ -269,7 +275,11 @@ def _candidate_order(
                 CandidateArm(
                     arm_id=candidate,
                     cost=1.0,
-                    prior=0.9 if candidate == preferred_intervention else 0.1,
+                    prior=(
+                        0.25
+                        if preferred_intervention is None
+                        else 0.9 if candidate == preferred_intervention else 0.1
+                    ),
                 )
                 for candidate in remaining
             ]
@@ -338,7 +348,13 @@ def run_controlled_replay(
     query_ids = sorted(snapshot.qrels)
     random.Random(seed).shuffle(query_ids)  # noqa: S311 - benchmark sampling
 
-    strategies = ("bcrb_integrity_prior", "fixed_order", "random")
+    strategies = (
+        "bcrb_uniform_prior",
+        "bcrb_oracle_prior",
+        "bcrb_wrong_prior",
+        "fixed_order",
+        "random",
+    )
     trials: list[dict[str, Any]] = []
     evaluated_queries = 0
 
@@ -390,7 +406,10 @@ def run_controlled_replay(
             for strategy in strategies:
                 attempts: list[dict[str, Any]] = []
                 recovered = False
-                for candidate in _candidate_order(strategy, seed ^ query_seed, ground_truth):
+                prior_label = (
+                    ground_truth if strategy in ("bcrb_oracle_prior", "bcrb_wrong_prior") else None
+                )
+                for candidate in _candidate_order(strategy, seed ^ query_seed, prior_label):
                     started = time.perf_counter_ns()
 
                     replay_query = query if candidate == "normalize_query" else faulted_query
@@ -425,6 +444,15 @@ def run_controlled_replay(
                     "query_id": query_id,
                     "query_sha256": hashlib.sha256(query.encode("utf-8")).hexdigest(),
                     "strategy": strategy,
+                    "prior_source": (
+                        "injected_ground_truth"
+                        if strategy == "bcrb_oracle_prior"
+                        else (
+                            "deliberately_incorrect_ground_truth"
+                            if strategy == "bcrb_wrong_prior"
+                            else "no_ground_truth"
+                        )
+                    ),
                     "fault": fault_name,
                     "fault_signature": fault_sig,
                     "ground_truth_intervention": ground_truth,
@@ -468,32 +496,42 @@ def run_controlled_replay(
         for strategy in strategies
     }
     comparisons = {}
-    for baseline in ("fixed_order", "random"):
-        comparisons[f"bcrb_integrity_prior_vs_{baseline}"] = {
-            "metric": "replays_executed",
-            "direction": "lower_is_better",
-            **_paired_statistics(
-                [
-                    float(trial["replays_executed"])
-                    for trial in trials_by_strategy["bcrb_integrity_prior"]
-                ],
-                [float(trial["replays_executed"]) for trial in trials_by_strategy[baseline]],
-                seed=seed ^ int(hashlib.sha256(baseline.encode()).hexdigest()[:16], 16),
-            ),
-        }
+
+    # Faults on one query are dependent. Resample query-level averages as pairs.
+    def query_means(strategy: str) -> list[float]:
+        grouped: dict[str, list[int]] = defaultdict(list)
+        for trial in trials_by_strategy[strategy]:
+            grouped[trial["query_id"]].append(int(trial["replays_executed"]))
+        return [sum(grouped[q]) / len(grouped[q]) for q in sorted(grouped)]
+
+    for treatment in ("bcrb_uniform_prior", "bcrb_oracle_prior", "bcrb_wrong_prior"):
+        for baseline in ("fixed_order", "random"):
+            comparisons[f"{treatment}_vs_{baseline}"] = {
+                "metric": "replays_executed",
+                "direction": "lower_is_better",
+                "sampling_unit": "query_mean_across_regressing_faults",
+                **_paired_statistics(
+                    query_means(treatment),
+                    query_means(baseline),
+                    seed=seed ^ int(hashlib.sha256(baseline.encode()).hexdigest()[:16], 16),
+                ),
+            }
 
     evidence: dict[str, Any] = {
-        "schema_version": "1.0.0",
+        "schema_version": "2.0.0",
         "evidence_class": EvidenceClassification.REAL_CONTROLLED_EXPERIMENT.value,
         "evidence_notice": (
             f"Real public {dataset_name} records and real local BM25 executions with a controlled "
-            "index fault. This is not production traffic, a production canary, a safety "
+            "retrieval fault. This is not production traffic, a production canary, a safety "
             "certification, or proof of patentability."
         ),
         "limitations": [
             "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
             f"{dataset_name} qrels define both evaluation relevance and the controlled tombstone fault.",
-            "The index-digest fault signature supplies the BCRB intervention prior.",
+            "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+            "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+            "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+            "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
             "Results do not establish superiority for other fault families or workloads.",
             "Elapsed time is host-specific observational telemetry; replay counts are the primary metric.",
         ],
@@ -510,7 +548,7 @@ def run_controlled_replay(
             "seed": seed,
             "retriever": "deterministic_bm25",
             "top_k": 10,
-            "fault": "relevant_document_tombstone",
+            "fault_families": [name for name, _, _ in fault_families],
             "strategies": list(strategies),
             "statistics": {
                 "paired_bootstrap_resamples": 10_000,

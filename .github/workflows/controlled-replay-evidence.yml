@@ -27,17 +27,16 @@ jobs:
     - name: Materialize hash-pinned SciFact snapshot
       run: uv run python scripts/download_scifact.py
     - name: Run real-data controlled replay
+      env:
+        MAX_QUERIES: ${{ inputs.max_queries }}
       run: >-
         uv run python -m apps.cli.run_controlled_replay_benchmark
-        --max-queries ${{ inputs.max_queries }}
+        --max-queries "$MAX_QUERIES"
         --output results/controlled_replay/scifact_bm25.json
     - name: Require clean source provenance
       run: >-
-        uv run python -c
-        "import json; d=json.load(open('results/controlled_replay/scifact_bm25.json'));
-        assert d['evidence_kind']=='controlled_replay';
-        assert d['source']['dirty'] is False;
-        assert all(v['recovery_rate']==1.0 for v in d['aggregates'].values())"
+        uv run python scripts/verify_controlled_evidence.py
+        results/controlled_replay/scifact_bm25.json --require-clean
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: scifact-controlled-replay-${{ github.sha }}

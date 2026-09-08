@@ -6,7 +6,7 @@ PRIVATE — All Rights Reserved.
 import uuid
 from collections.abc import Sequence
 
-from packages.contracts.src.bcrb_models import BCRBCandidate
+from packages.contracts.src.bcrb_models import BCRBCandidate, BCRBStep
 from packages.contracts.src.models import (
     ComponentType,
     Diagnosis,
@@ -26,7 +26,7 @@ class DiagnosisEngine:
     def generate_diagnosis(
         self,
         run_id: str,
-        evaluated_steps: Sequence["packages.contracts.src.bcrb_models.BCRBStep"],
+        evaluated_steps: Sequence[BCRBStep],
         candidates: Sequence[BCRBCandidate],
     ) -> Diagnosis:
         """

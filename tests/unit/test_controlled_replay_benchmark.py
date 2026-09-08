@@ -1,13 +1,16 @@
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
 from packages.rag_benchmark.src.controlled_replay import (
     BM25Index,
+    _candidate_order,
     load_scifact_snapshot,
     run_controlled_replay,
 )
+from scripts.verify_controlled_evidence import digest, verify_evidence
 
 
 def _write_snapshot(root: Path) -> None:
@@ -57,8 +60,39 @@ def test_controlled_replay_is_hash_bound_and_provenance_labeled(tmp_path: Path) 
     assert evidence["dataset"]["evaluated_query_count"] == 1
     assert len(evidence["manifest_sha256"]) == 64
     assert all(len(trial["evidence_sha256"]) == 64 for trial in evidence["trials"])
-    assert evidence["aggregates"]["bcrb_integrity_prior"]["recovery_rate"] == 1.0
-    assert evidence["aggregates"]["bcrb_integrity_prior"]["mean_replays"] == 1.0
-    comparison = evidence["statistical_comparisons"]["bcrb_integrity_prior_vs_fixed_order"]
-    assert comparison["n_pairs"] == 2
+    assert evidence["aggregates"]["bcrb_oracle_prior"]["recovery_rate"] == 1.0
+    assert evidence["aggregates"]["bcrb_oracle_prior"]["mean_replays"] == 1.0
+    comparison = evidence["statistical_comparisons"]["bcrb_oracle_prior_vs_fixed_order"]
+    assert comparison["n_pairs"] == 1
     assert comparison["mean_delta"] == -2.0
+    assert verify_evidence(evidence)["seed"] == 7
+    changed = deepcopy(evidence)
+    changed["trials"][0]["replays_executed"] += 1
+    with pytest.raises(ValueError, match="Manifest digest mismatch"):
+        verify_evidence(changed)
+    changed["manifest_sha256"] = digest(
+        {k: v for k, v in changed.items() if k != "manifest_sha256"}
+    )
+    with pytest.raises(ValueError, match="Trial digest mismatch"):
+        verify_evidence(changed)
+    assert comparison["sampling_unit"] == "query_mean_across_regressing_faults"
+    assert len(evidence["experiment"]["fault_families"]) == 4
+    assert evidence["schema_version"] == "2.0.0"
+    for trial in evidence["trials"]:
+        if trial["strategy"] == "bcrb_oracle_prior":
+            assert trial["prior_source"] == "injected_ground_truth"
+        if trial["strategy"] == "bcrb_uniform_prior":
+            assert trial["prior_source"] == "no_ground_truth"
+
+
+def test_uniform_scheduler_cannot_use_ground_truth_label() -> None:
+    expected = _candidate_order("bcrb_uniform_prior", 42)
+    for label in expected:
+        assert _candidate_order("bcrb_uniform_prior", 42, label) == expected
+        assert _candidate_order("bcrb_oracle_prior", 42, label)[0] == label
+        assert _candidate_order("bcrb_wrong_prior", 42, label)[0] != label
+
+
+def test_oracle_scheduler_requires_explicit_label() -> None:
+    with pytest.raises(ValueError, match="known intervention"):
+        _candidate_order("bcrb_oracle_prior", 42)

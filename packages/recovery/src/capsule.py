@@ -25,7 +25,7 @@ from __future__ import annotations
 import enum
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -101,7 +101,14 @@ class RollbackCapsule:
                 "tenant_id": self.tenant_id,
                 "component_id": self.component_id,
                 "previous_state": self.previous_state,
+                "target_state": self.target_state,
+                "artifact_hashes": self.artifact_hashes,
+                "compatibility_constraints": [asdict(c) for c in self.compatibility_constraints],
                 "rollback_params": self.rollback_params,
+                "verify_steps": self.verify_steps,
+                "created_at": self.created_at.isoformat(),
+                "expires_at": self.expires_at.isoformat(),
+                "created_by": self.created_by,
             },
             sort_keys=True,
             default=str,

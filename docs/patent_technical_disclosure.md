@@ -1,39 +1,96 @@
-# Technical Disclosure: DriftGuard-X
-*PRIVATE - NOT LEGAL ADVICE - CONFIDENTIAL PROTOTYPE DISCLOSURE*
+# DriftGuard-X Technical Disclosure
 
-**Title**: Systems and Methods for Causal Budget-Constrained Counterfactual Replay and Certified Recovery in Multi-Agent Pipelines
-**Date**: 2026-07-25
+Updated: 2026-09-08. Target jurisdiction: India.
+Technical handoff for patent-agent review; not a filed specification.
 
-## 1. Overview and Problem Addressed
-Current AI monitoring solutions often identify drift post-facto and may rely on correlation. DriftGuard-X addresses this engineering problem with a closed-loop prototype that represents observed service dependencies as a DAG, selects cost-bounded counterfactual replays, and requires evidence and policy gates before recovery is eligible. The implementation does not establish causality for every workload; it produces bounded, provenance-labelled evidence within the evaluated scope.
+## Problem and candidate contribution
 
-## 2. Core Mechanisms (Novelty Claims)
+Recovery testing can execute the wrong historical state, consume the available
+diagnostic budget, or authorize a change using weak or misbound evidence. DriftGuard-X
+implements modules for manifest-based replay, resource admission, bounded execution,
+evidence provenance, and recovery policy controls.
 
-### A. Trace Fabric & Causal Reliability Graph
-DriftGuard-X records configured LLM and tool calls through its trace interfaces and constructs a reproducible provenance graph from the accepted span records. Instead of analyzing plain text alone, the system uses graph structure and typed trace features to track dependencies across component boundaries. Completeness and determinism depend on the instrumentation and state manifest supplied to a run.
+The candidate contribution is their specific enforcement relationship. Whether this
+relationship is inventive is unresolved. The prior-art worksheet records material
+overlap with counterfactual replay repair and resource-constrained bandits.
 
-### B. Cross-Layer Drift Propagation (Diffusion)
-DriftGuard-X computes ranked fault hypotheses and propagation scores for a symptom observed at a terminal node using a learned Graph Attention Network (GAT) or a fixed diffusion fallback. These scores are diagnostic evidence and are not, by themselves, proof of causation or authorization for recovery.
+## Implemented operation
 
-### C. Budget-Constrained Root-Cause Bandit (BCRB)
-To verify causality, the system performs counterfactual replays. Because exhaustive replay is computationally infeasible for large graphs, DriftGuard-X introduces BCRB, which models the replay selection as a Knapsack-constrained Multi-Armed Bandit problem.
+1. Accept instrumented trace records and identify the tenant through authenticated
+   membership at the API boundary. Graph relationships describe recorded dependencies;
+   detector scores rank hypotheses and are not causal proof.
+2. Represent replay inputs and component versions in ReplayStateManifest. The replay
+   engine refuses absent or unpinned manifests. Manifest hashes describe state content;
+   ownership must be enforced independently because some identity fields are excluded.
+3. Rank admitted candidate arms by estimated reward plus exploration bonus divided by
+   estimated cost. Admission uses predicted cost and uncertainty against remaining
+   budget after the configured rollback reserve. The margin is heuristic, not a
+   probabilistic resource guarantee.
+4. Execute through an isolated worker. Process termination bounds elapsed time.
+   Serialized results are transferred incrementally with a size ceiling. Platform
+   resource controls have limitations documented in the sandbox source.
+5. Compute evidence statistics under stated assumptions. Invalid confidence, nonfinite
+   observations, invalid residuals, and unattainable finite conformal ranks fail closed.
+   Numeric arrays cannot prove independent sampling or a held-out calibration split.
+6. Evaluate policy, evidence and authorization in the appropriate recovery path.
+   Rollback capsules bind execution conditions in a digest. Signed certificate and
+   ledger components provide separate signature and hash-link verification.
 
-### D. Policy-Gated Recovery & Certificates
-Once a recovery intervention is found (e.g., rollback to `v1.2`), the system gates execution through a deterministic policy hierarchy. An approved recovery emits a cryptographic `RecoveryCertificate` chained via an Ed25519 hash-chain.
+These are implemented mechanisms across multiple paths; the diagram is an intended
+composition, not a statement that the standalone BM25 benchmark traverses the API,
+sandbox, signer, or production adapter.
 
-## 3. Architecture & Data Structures
-The system operates on an isolated `ReplayEpisode` contract, enforcing strict deterministic separation between the initial runtime environment and the sandbox replay environment.
-(See `docs/architecture.md` for sequence flows).
+## Example and failure behavior
 
-## 4. Alternate Implementations & Variants
-- **Bandit Alternates**: Greedy-prior and Cheapest-first baseline schedulers were implemented.
-- **Diffusion Alternates**: Local-detector fallback variants bypass graph topology when historical data is scarce.
-- **Recovery Alternates**: Human-in-the-loop mutation allows manual graph editing over autonomous rollback.
+A controlled retriever experiment removes relevant documents from an in-memory BM25
+search. Candidate interventions alter one search condition at a time. Recovery is
+measured against the original query's relevance labels. The baseline with the known
+correct repair is explicitly labelled oracle; the neutral prior receives no repair
+label and the wrong prior deliberately prioritizes another repair.
 
-## 5. Measured Effects & Limitations
-- **Latency**: End-to-end certification incurs ~200ms overhead under SQLite boundaries.
-- **Limitation**: Ed25519 signing limits high-throughput concurrency; batch signing is required for enterprise scale.
-- **Negative Result**: Exhaustive replay can exceed configured cost tolerances on larger graphs. BCRB enforces the declared replay budget for the scheduler; it does not guarantee a particular causal conclusion or production outcome.
+An empty replay manifest is rejected. A conformal request with ten residuals at
+99 percent confidence returns unsupported. Editing the sealed rollback expiry,
+target state or compatibility constraints invalidates capsule integrity. These
+are concrete refusal behaviors, not evidence of patent novelty.
 
-## 6. Patent-readiness boundary
-This disclosure is a technical record for counsel, not a patentability opinion. Novelty, non-obviousness, written-description support, enablement, inventorship, public-disclosure timing, and claim scope require an attorney-led prior-art and filing review. The implementation evidence supporting the current technical scope is listed in `docs/patent_claims_audit.md`.
+## Technical figures
+
+```mermaid
+flowchart LR
+    T[Authenticated trace and manifest] --> A[State and resource admission]
+    A --> W[Bounded replay worker]
+    W --> E[Outcome and evidence provenance]
+    E --> G[Evidence and authorization gates]
+    G --> R[Recovery adapter]
+    G --> L[Certificate and audit record]
+```
+
+```mermaid
+sequenceDiagram
+    participant C as Replay controller
+    participant W as Worker
+    participant G as Recovery gate
+    C->>C: Resolve pinned state and check budget
+    C->>W: Execute admitted candidate
+    W-->>C: Bounded measured output or failure
+    C->>G: Outcome with provenance and state references
+    G->>G: Validate evidence, policy and authorization
+    alt Requirements fail
+        G-->>C: Refuse or require review
+    else Requirements pass
+        G-->>C: Eligible action and audit record
+    end
+```
+
+## Measurements and limitations
+
+Use results/patent_review for newly generated, hash-bound controlled retrieval
+experiments and the evidence package for commands and interpretation. Earlier
+claims of 200 ms certification, universal 70 percent savings, and inevitable
+Ed25519 throughput bottlenecks have no verified support in this audit and are
+withdrawn. No inference accuracy or novelty follows from a passing unit test.
+
+VTI and ARC include simulation behavior. Temperature zero does not establish
+external-model determinism. The local SQLite/mock-auth console is a demonstration.
+Hosted deployment, independent security assessment and production canaries remain
+separate engineering gates.

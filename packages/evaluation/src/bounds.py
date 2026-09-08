@@ -11,11 +11,10 @@ Statistical Assumptions Documented
 Hoeffding Bound:
   - Rewards bounded in [a, b] (here normalised to [0, 1]).
   - Samples are i.i.d. or satisfy a martingale difference condition.
-  - Requires n >= MIN_N_HOEFFDING (30) for the asymptotic approximation to be
-    reasonable. Below that threshold the bound is still *valid* but very wide;
-    we still return it, flagged as low-n.
-  - Adaptive sampling (bandit selection) introduces a mild dependency — the
-    bound remains valid under a union bound over arms but is not tight.
+  - The finite-sample inequality needs no asymptotic approximation. Below 30
+    observations the result carries a conservative-width warning.
+  - Fixed-sample inference assumes independent bounded observations. This
+    function does not implement an anytime-valid adaptive stopping correction.
 
 Bootstrap Bound:
   - Distribution-free: no shape assumption on rewards.
@@ -26,7 +25,8 @@ Bootstrap Bound:
 
 Conformal Interval:
   - Requires a *separate* calibration split never used for arm selection.
-  - Marginal coverage guaranteed if calibration and test are i.i.d.
+  - Coverage is conditional on held-out, exchangeable calibration residuals.
+    The caller must establish those assumptions; numeric values cannot do so.
   - Does not require reward boundedness.
 
 UnsupportedBound:
@@ -93,7 +93,7 @@ def unsupported_bound(
     reason: str,
 ) -> BoundResult:
     n = len(observations)
-    mean = sum(observations) / n if n > 0 else 0.0
+    mean = sum(x / n for x in observations) if n and all(map(math.isfinite, observations)) else 0.0
     return BoundResult(
         method="unsupported",
         is_supported=False,
@@ -106,6 +106,14 @@ def unsupported_bound(
 
 
 # ─── Hoeffding Analytic Bound ─────────────────────────────────────────────────
+
+
+def _input_error(observations: list[float], confidence: float) -> str | None:
+    if not math.isfinite(confidence) or not 0 < confidence < 1:
+        return "Confidence must be finite and strictly between zero and one."
+    if not all(map(math.isfinite, observations)):
+        return "All observations must be finite."
+    return None
 
 
 def hoeffding_bound(
@@ -126,6 +134,12 @@ def hoeffding_bound(
     """
     n = len(observations)
 
+    error = _input_error(observations, nominal_confidence)
+    if error:
+        return unsupported_bound(observations, nominal_confidence, error)
+    if not all(map(math.isfinite, (reward_min, reward_max, reward_max - reward_min))):
+        return unsupported_bound(observations, nominal_confidence, "Reward range must be finite.")
+
     if n == 0:
         return unsupported_bound(observations, nominal_confidence, "No observations provided.")
 
@@ -137,11 +151,11 @@ def hoeffding_bound(
         )
 
     assumptions_met = []
-    assumptions_violated = []
+    assumptions_violated: list[str] = []
     warning = None
 
     # Check boundedness
-    out_of_range = [x for x in observations if x < reward_min - 1e-9 or x > reward_max + 1e-9]
+    out_of_range = [x for x in observations if x < reward_min or x > reward_max]
     if out_of_range:
         return unsupported_bound(
             observations,
@@ -160,8 +174,8 @@ def hoeffding_bound(
         assumptions_met.append(f"n={n} >= {MIN_N_HOEFFDING} (low-n threshold).")
 
     assumptions_met.append(
-        "i.i.d. or martingale condition assumed; adaptive sampling (bandit) "
-        "introduces mild correlation — bound remains valid under union bound."
+        "Independent bounded observations assumed by caller; fixed sample size. "
+        "No adaptive stopping or multiple-comparison correction is applied."
     )
 
     # Compute ε
@@ -169,7 +183,7 @@ def hoeffding_bound(
     range_width = reward_max - reward_min
     epsilon = range_width * math.sqrt(math.log(2.0 / delta) / (2.0 * n))
 
-    mean = sum(observations) / n
+    mean = sum(x / n for x in observations)
     lower = max(reward_min, mean - epsilon)
     upper = min(reward_max, mean + epsilon)
 
@@ -208,6 +222,14 @@ def bootstrap_bound(
     """
     n = len(observations)
 
+    error = _input_error(observations, nominal_confidence)
+    if error:
+        return unsupported_bound(observations, nominal_confidence, error)
+    if isinstance(n_resamples, bool) or not isinstance(n_resamples, int) or n_resamples < 1:
+        return unsupported_bound(
+            observations, nominal_confidence, "Resamples must be a positive integer."
+        )
+
     if n < MIN_N_BOOTSTRAP:
         return unsupported_bound(
             observations,
@@ -219,7 +241,7 @@ def bootstrap_bound(
     boot_means: list[float] = []
     for _ in range(n_resamples):
         resample = [rng.choice(observations) for _ in range(n)]
-        boot_means.append(sum(resample) / n)
+        boot_means.append(sum(x / n for x in resample))
 
     boot_means.sort()
     alpha = 1.0 - nominal_confidence
@@ -228,7 +250,7 @@ def bootstrap_bound(
     lo_idx = max(0, lo_idx)
     hi_idx = min(n_resamples - 1, hi_idx)
 
-    mean = sum(observations) / n
+    mean = sum(x / n for x in observations)
     lower = boot_means[lo_idx]
     upper = boot_means[hi_idx]
     epsilon = (upper - lower) / 2.0
@@ -264,7 +286,7 @@ def conformal_bound(
     Marginal coverage guarantee (1 - alpha) when calibration is i.i.d. with test.
 
     calibration_scores: held-out nonconformity scores (e.g. |predicted - actual|).
-    new_score:          the nonconformity score for the new diagnosis.
+    new_score:          the prediction center in the original target space.
 
     Returns a threshold τ such that P(score <= τ) >= nominal_confidence.
     The interval is [new_score - τ, new_score + τ] in the original space.
@@ -276,6 +298,16 @@ def conformal_bound(
     """
     n_cal = len(calibration_scores)
 
+    error = _input_error(calibration_scores, nominal_confidence)
+    if error:
+        return unsupported_bound(calibration_scores, nominal_confidence, error)
+    if not math.isfinite(new_score) or any(x < 0 for x in calibration_scores):
+        return unsupported_bound(
+            calibration_scores,
+            nominal_confidence,
+            "Prediction center must be finite and absolute residuals nonnegative.",
+        )
+
     if n_cal < 10:
         return unsupported_bound(
             calibration_scores,
@@ -284,17 +316,19 @@ def conformal_bound(
         )
 
     alpha = 1.0 - nominal_confidence
-    # Conformal quantile: ceil((n+1)(1-alpha)) / n
-    q_level = math.ceil((n_cal + 1) * (1.0 - alpha)) / n_cal
-    q_level = min(q_level, 1.0)
-
-    sorted_scores = sorted(calibration_scores)
-    q_idx = min(int(math.floor(q_level * n_cal)), n_cal - 1)
-    tau = sorted_scores[q_idx]
-
-    sum(calibration_scores) / n_cal
+    # A rank beyond n requires an infinite interval, never a clamped finite one.
+    rank = math.ceil((n_cal + 1) * nominal_confidence)
+    if rank > n_cal:
+        return unsupported_bound(
+            calibration_scores,
+            nominal_confidence,
+            "Calibration size cannot support a finite interval at this confidence.",
+        )
+    tau = sorted(calibration_scores)[rank - 1]
     lower = new_score - tau
     upper = new_score + tau
+    if not math.isfinite(lower) or not math.isfinite(upper):
+        return unsupported_bound(calibration_scores, nominal_confidence, "Interval overflow.")
 
     return BoundResult(
         method="conformal",
@@ -304,8 +338,8 @@ def conformal_bound(
         n=n_cal,
         assumptions_met=[
             f"Calibration set size n_cal={n_cal} >= 10.",
-            "Separate calibration split not used in arm selection.",
-            "Marginal coverage guaranteed when calibration and test are exchangeable.",
+            "Caller must supply a separate calibration split unused in fitting or arm selection.",
+            "Coverage is conditional on exchangeability; not verified from numeric inputs.",
         ],
         lower=lower,
         upper=upper,
