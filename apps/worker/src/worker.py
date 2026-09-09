@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from apps.api.src.database import AsyncSessionLocal
 from apps.api.src.models import BackgroundJobORM
+from packages.contracts.src.agent_models import AgentInvocation
 from packages.contracts.src.models import (
     ComponentType,
     ComponentVersion,
@@ -42,7 +43,45 @@ def _sessionmaker(ctx: dict[str, Any]) -> async_sessionmaker[AsyncSession]:
 def _coerce_datetime(value: Any) -> datetime | None:
     if value is None or isinstance(value, datetime):
         return value
-    return datetime.fromisoformat(str(value))
+    value_text = str(value)
+    if value_text.endswith("Z"):
+        value_text = f"{value_text[:-1]}+00:00"
+    return datetime.fromisoformat(value_text)
+
+
+def _coerce_required_uuid(value: Any, field_name: str) -> uuid.UUID:
+    if isinstance(value, uuid.UUID):
+        return value
+    if value in (None, ""):
+        raise ValueError(f"Agent invocation missing required field: {field_name}")
+    return uuid.UUID(str(value))
+
+
+def _agent_invocation_from_payload(raw_invocation: dict[str, Any]) -> AgentInvocation:
+    data = dict(raw_invocation)
+    metadata = dict(data.get("metadata") or {})
+    run_uuid = _coerce_required_uuid(data.get("run_id"), "run_id")
+    tenant_uuid = _coerce_required_uuid(data.get("tenant_id"), "tenant_id")
+    raw_invocation_id = data.get("invocation_id")
+
+    data["run_id"] = run_uuid
+    data["tenant_id"] = tenant_uuid
+    if isinstance(raw_invocation_id, uuid.UUID):
+        data["invocation_id"] = raw_invocation_id
+    elif raw_invocation_id not in (None, ""):
+        try:
+            data["invocation_id"] = uuid.UUID(str(raw_invocation_id))
+        except ValueError:
+            metadata.setdefault("source_invocation_id", str(raw_invocation_id))
+            data["invocation_id"] = uuid.uuid5(
+                uuid.NAMESPACE_URL,
+                f"driftguardx:agent-invocation:{tenant_uuid}:{run_uuid}:{raw_invocation_id}",
+            )
+    for field_name in ("start_time", "end_time"):
+        if field_name in data:
+            data[field_name] = _coerce_datetime(data[field_name])
+    data["metadata"] = metadata
+    return AgentInvocation(**data)
 
 
 def _enum_or_string_value(value: object) -> str:
@@ -155,11 +194,10 @@ async def run_recovery_diagnosis(
     """Execute the recovery loop in the background."""
     from apps.api.src.models import JobORM
     from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
-    from packages.contracts.src.agent_models import AgentInvocation
 
     log.info("Starting run_recovery_diagnosis", job_id=job_id, run_id=run_id)
 
-    invocations = [AgentInvocation(**inv) for inv in invocations_data]
+    invocations = [_agent_invocation_from_payload(inv) for inv in invocations_data]
 
     async with _sessionmaker(ctx)() as db:
         from sqlalchemy import select
@@ -917,9 +955,8 @@ async def execute_recovery_job(
             raise ValueError("Recovery payload missing required field: run_id")
 
         from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
-        from packages.contracts.src.agent_models import AgentInvocation
 
-        invocations = [AgentInvocation(**inv) for inv in invocations_data]
+        invocations = [_agent_invocation_from_payload(inv) for inv in invocations_data]
 
         async with _sessionmaker(ctx)() as session:
             from apps.api.src.models import RequestRunORM
