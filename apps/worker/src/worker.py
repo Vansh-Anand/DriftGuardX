@@ -69,6 +69,11 @@ def _span_from_stored_json(
     return SpanRecord(**data)
 
 
+def _graph_edge_pk(graph_hash: str, edge_id: str) -> str:
+    edge_digest = hashlib.sha256(f"{graph_hash}:{edge_id}".encode()).hexdigest()
+    return f"{graph_hash}:{edge_digest[:32]}"
+
+
 class _DatabaseVersionLookup:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -694,9 +699,8 @@ async def execute_graph_construction_job(
 
                 # Persist relational edges for CTE traversal
                 for edge in graph.edges:
-                    edge_pk = f"{graph_hash}:{edge.id}"
                     edge_orm = GraphEdgeORM(
-                        id=edge_pk,
+                        id=_graph_edge_pk(graph_hash, edge.id),
                         graph_hash=graph_hash,
                         source_id=edge.source,
                         target_id=edge.target,

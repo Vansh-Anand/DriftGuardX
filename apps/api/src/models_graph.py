@@ -38,7 +38,7 @@ class GraphEdgeORM(Base):
 
     __tablename__ = "graph_edges"
 
-    id = Column(String(128), primary_key=True)  # {graph_hash}:{source}->{target}
+    id = Column(String(128), primary_key=True)  # {graph_hash}:{edge_digest}
     graph_hash = Column(
         String(64), ForeignKey("causal_graphs.graph_hash"), index=True, nullable=False
     )
