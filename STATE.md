@@ -34,7 +34,8 @@ public disclosure require applicant confirmation and Indian patent-agent review.
   `execute_with_admission` for the same pre-capsule gate.
 - New receipt tests cover stale version, changed policy, changed trace, expiry,
   evidence promotion, restart persistence, single-use claiming, and audit-chain
-  continuity. Receipt, migration, and replay API verification: 25 passed.
+  continuity. Receipt, worker, migration, and replay API verification: 25
+  passed, 1 skipped.
 
 ## Limits
 
@@ -58,7 +59,9 @@ Prior statements that the entire project was complete were too broad.
 - Earlier full local suite: 601 passed, 22 skipped, one latency benchmark failure
   (66 ms/certificate versus a 50 ms threshold). The unchanged benchmark passed
   when rerun in the focused suite. Final full suite: 605 passed, 22 skipped,
-  7 existing warnings. Hosted CI results pending.
+  7 existing warnings. Hosted CI is green for commit
+  `d92fea1fbda943a28a1e5271abf6c6b84f87883b`:
+  https://github.com/Vansh-Anand/DriftGuardX/actions/runs/34337503326.
 - Production deployment, additional controlled fault experiments, independent
   replication, and India patent-agent review remain separate completion gates.
 - Added migration `8e7a2d4c6f90` for worker/quarantine persistence, replay evidence
@@ -68,4 +71,8 @@ Prior statements that the entire project was complete were too broad.
   backfilled. Existing non-synthetic runs migrate to UNVERIFIED evidence.
 - File-backed migration regression: upgrade/parity, legacy evidence retention,
   downgrade and clean re-upgrade passed (4 focused migration tests). Hosted
-  PostgreSQL verification remains pending for this migration.
+  PostgreSQL upgrade, parity, downgrade, and clean re-upgrade also passed in CI
+  run 34337503326.
+- Recovery worker payload hydration now normalizes persisted invocation UUID and
+  datetime JSON before executor dispatch, preserving non-UUID source span IDs in
+  metadata while keeping the strict `AgentInvocation` contract intact.

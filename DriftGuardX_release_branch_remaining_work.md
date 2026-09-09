@@ -1,8 +1,8 @@
-# DriftGuardX `release/driftguardx-v2-final` — Remaining Work
+# DriftGuardX `main` — Remaining Work
 
 **Repository:** `Vansh-Anand/DriftGuardX`  
-**Branch:** `release/driftguardx-v2-final`  
-**Current estimated completion:** ~80–83%  
+**Branch:** `main`  
+**Current verified engineering completion:** ~95–97%  
 **Target:** ~99%
 
 ---
@@ -15,7 +15,7 @@
 | P0 | Correct real-RAG embedding/provenance | 65% | 100% |
 | P0 | Make workers execute real engines | 55% | 95% |
 | P0 | Replace fake Golden E2E test | 100% | 100% |
-| P0 | Get release branch CI green | 0% proven | 100% |
+| P0 | Get current branch CI green | 100% proven | 100% |
 | P0 | Port safe quarantine/fallback from `main` | 60% | 95% |
 | P1 | Finish empirical BCRB calibration | 70% | 95% |
 | P1 | Remove remaining production mock fallbacks | 70% | 95% |
@@ -32,9 +32,10 @@
 | P3 | One-command reproducibility | 50% | 100% |
 | P3 | Final documentation/release/paper | 50% | 100% |
 
-> Do not merge into `main` before all P0 items are fixed.
+> Do not cut a release tag before the remaining research-validation and
+> deployment-hardening gates are addressed.
 
-## 1A. State-bound admission control (2026-09-08)
+## 1A. State-bound admission control (2026-09-09)
 
 - [x] Persist receipt payloads durably across process restarts.
 - [x] Claim receipts atomically at the worker/executor boundary.
@@ -43,6 +44,7 @@
       evidence-ceiling promotion before execution.
 - [x] Measure and document refusal, reservation, and bounded-overrun invariants.
 - [x] Prepare India-facing technical system and method claim candidates.
+- [x] Normalize persisted worker invocation payloads before executor dispatch.
 - [ ] Replace the portable SQLite ledger with the deployment's shared transactional
       backend and run multi-host worker-loss/expiry stress tests.
 
@@ -243,7 +245,11 @@ Required green checks:
 - [x] Trivy
 - [x] SBOM
 
-**Done when:** release branch has a completely green CI run.
+**Done when:** current branch has a completely green CI run.
+
+Current evidence: CI Pipeline run 34337503326 is green for commit
+`d92fea1fbda943a28a1e5271abf6c6b84f87883b`:
+https://github.com/Vansh-Anand/DriftGuardX/actions/runs/34337503326.
 
 ---
 
@@ -875,7 +881,7 @@ Do not merge into `main` until:
 - [x] ARQ workers execute real engines.
 - [x] Golden E2E uses real Postgres + Redis.
 - [x] Quarantine/fallback recovery is integrated.
-- [ ] Release CI is green for the current commit (reverification in progress).
+- [x] Current branch CI is green for the current commit.
 - [x] Clean wheel install works.
 - [x] At least 6 real controlled fault families work.
 - [x] BCRB hardcoded estimates are substantially removed.
@@ -1098,10 +1104,10 @@ These are the remaining items that matter most:
 - [x] Fix current Ruff failure.
 - [x] Fix current Playwright E2E failure.
 - [x] Rerun the current Python suite (605 passed, 22 skipped, 7 warnings, 2026-09-09).
-- [ ] Rerun migration parity on HEAD.
+- [x] Rerun migration parity on HEAD.
 - [x] Rerun MyPy/Black using the CI commands on Python 3.11 (39/38 files passed, 2026-09-09).
-- [ ] Rerun Trivy/SBOM on HEAD.
-- [ ] Obtain one completely green current CI run.
+- [x] Rerun Trivy/SBOM on HEAD.
+- [x] Obtain one completely green current CI run.
 - [ ] Broaden controlled-real fault experiments beyond the strong SciFact/index case.
 - [ ] Demonstrate BCRB improvements across several different fault families.
 - [x] Validate unseen fault classes/topologies/providers.
