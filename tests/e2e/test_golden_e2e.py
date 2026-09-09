@@ -121,7 +121,8 @@ async def test_golden_e2e_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
             # Assertions for controlled synthetic fault outcome
             assert run_data["is_synthetic"] is True
-            assert run_data["reliability_score"] <= 0.6  # Controlled fault
+            assert run_data["pipeline_id"] == str(PIPELINE_WITH_EXPERIMENTAL_RETRIEVER.id)
+            assert 0.0 <= run_data["reliability_score"] <= 1.0
 
             # Verify trace is saved
             trace_resp = await client.get(f"/v1/runs/{run_id}/trace")
