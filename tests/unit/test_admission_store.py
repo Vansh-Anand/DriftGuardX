@@ -18,13 +18,13 @@ def store_path() -> Path:
     return Path(".local-runtime") / f"test-admission-{uuid4().hex}.sqlite3"
 
 
-def _receipt() -> ReplayAdmissionReceipt:
+def _receipt(intervention_hash: str = "intervention-a") -> ReplayAdmissionReceipt:
     return ReplayAdmissionReceipt.issue(
         resource_context=ResourceContext(budget_usd=10.0),
         tenant_id="tenant-a",
         manifest_hash="manifest-a",
         trace_root_hash="trace-a",
-        intervention_hash="intervention-a",
+        intervention_hash=intervention_hash,
         current_version="v1",
         candidate_version="v2",
         policy_hash="policy-a",
@@ -173,7 +173,7 @@ def test_release_and_void_are_durable_audited_transitions(store_path: Path) -> N
     store.issue(released)
     store.release(released.receipt_id)
 
-    voided = _receipt()
+    voided = _receipt(intervention_hash="intervention-b")
     store.issue(voided)
     store.void(voided.receipt_id, reason="operator cancellation")
 

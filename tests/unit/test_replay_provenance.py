@@ -169,8 +169,27 @@ async def test_bcrb_rejects_synthetic_evidence(monkeypatch):
     mock_trace = MockORM(
         id=uuid.uuid4(),
         run_id=run_id,
-        payload={},
-        payload_hash="hash",
+        tenant_id=tenant_id,
+        pipeline_id=mock_run.pipeline_id,
+        spans_json=[
+            {
+                "trace_id": "a" * 32,
+                "span_id": "b" * 16,
+                "parent_span_id": None,
+                "name": "retriever/v0",
+                "kind": "INTERNAL",
+                "start_time": datetime.now(UTC),
+                "end_time": datetime.now(UTC),
+                "tenant_id": tenant_id,
+                "pipeline_id": mock_run.pipeline_id,
+                "run_id": run_id,
+                "component_type": "retriever",
+                "component_version_id": uuid.uuid4(),
+                "component_version_tag": "v0",
+            }
+        ],
+        root_span_id="b" * 16,
+        total_span_count=1,
         created_at=datetime.now(UTC),
     )
 

@@ -45,6 +45,10 @@ def _coerce_datetime(value: Any) -> datetime | None:
     return datetime.fromisoformat(str(value))
 
 
+def _enum_or_string_value(value: object) -> str:
+    return str(value.value) if hasattr(value, "value") else str(value)
+
+
 def _span_from_stored_json(
     raw_span: dict[str, Any],
     *,
@@ -539,7 +543,7 @@ async def execute_replay_job(
                 manifest_id=manifest_orm.id,
                 status="completed",
                 is_pinned=True,
-                swapped_component_type=str(episode.swapped_component_type.value),
+                swapped_component_type=_enum_or_string_value(episode.swapped_component_type),
                 original_version_id=episode.original_version_id,
                 replay_version_id=episode.replay_version_id,
                 original_version_tag=episode.original_version_tag,

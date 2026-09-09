@@ -168,33 +168,37 @@ class CanaryTestFramework:
             pipeline_id=run_orm.pipeline_id,
             status=run_orm.status,
             created_at=run_orm.created_at,
-            started_at=run_orm.started_at,
-            completed_at=run_orm.completed_at,
-            total_latency_ms=run_orm.total_latency_ms,
-            error_message=run_orm.error_message,
-            error_type=run_orm.error_type,
-            reliability_score=run_orm.reliability_score,
-            reliability_vector=run_orm.reliability_vector,
+            started_at=getattr(run_orm, "started_at", None),
+            completed_at=getattr(run_orm, "completed_at", None),
+            total_latency_ms=getattr(
+                run_orm, "total_latency_ms", getattr(run_orm, "duration_ms", None)
+            ),
+            error_message=getattr(run_orm, "error_message", None),
+            error_type=getattr(run_orm, "error_type", None),
+            reliability_score=getattr(run_orm, "reliability_score", None),
+            reliability_vector=getattr(run_orm, "reliability_vector", {}),
             evidence_class=run_orm.evidence_class,
         )
 
+        trace_tenant_id = getattr(trace_orm, "tenant_id", run_orm.tenant_id)
+        trace_pipeline_id = getattr(trace_orm, "pipeline_id", run_orm.pipeline_id)
         spans = [
             self._span_from_stored_json(
                 s,
                 run_id=trace_orm.run_id,
-                tenant_id=trace_orm.tenant_id,
-                pipeline_id=trace_orm.pipeline_id,
+                tenant_id=trace_tenant_id,
+                pipeline_id=trace_pipeline_id,
             )
-            for s in (trace_orm.spans_json or [])
+            for s in (getattr(trace_orm, "spans_json", []) or [])
         ]
         trace = TraceArtifact.model_construct(
             id=trace_orm.id,
             run_id=trace_orm.run_id,
-            tenant_id=trace_orm.tenant_id,
-            pipeline_id=trace_orm.pipeline_id,
+            tenant_id=trace_tenant_id,
+            pipeline_id=trace_pipeline_id,
             spans=spans,
-            root_span_id=trace_orm.root_span_id,
-            total_span_count=trace_orm.total_span_count,
+            root_span_id=getattr(trace_orm, "root_span_id", None),
+            total_span_count=getattr(trace_orm, "total_span_count", len(spans)),
             created_at=trace_orm.created_at,
             evidence_class=run_orm.evidence_class,
         )
