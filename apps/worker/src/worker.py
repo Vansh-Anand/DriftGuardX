@@ -18,7 +18,7 @@ import structlog
 from arq.connections import RedisSettings
 from arq.typing import WorkerSettingsBase
 from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from apps.api.src.database import AsyncSessionLocal
 from apps.api.src.models import BackgroundJobORM
@@ -27,6 +27,10 @@ from packages.contracts.src.models import ComponentType, ComponentVersion, Compo
 log = structlog.get_logger()
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
+
+def _sessionmaker(ctx: dict[str, Any]) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], ctx.get("db_session_factory", AsyncSessionLocal))
 
 
 class _DatabaseVersionLookup:
@@ -112,7 +116,7 @@ async def run_recovery_diagnosis(
 
     invocations = [AgentInvocation(**inv) for inv in invocations_data]
 
-    async with AsyncSessionLocal() as db:
+    async with _sessionmaker(ctx)() as db:
         from sqlalchemy import select
 
         job_result = await db.execute(select(JobORM).where(JobORM.id == uuid.UUID(job_id)))
@@ -195,7 +199,7 @@ async def execute_replay_job(
     job_uuid = uuid.UUID(job_id)
     tenant_uuid = uuid.UUID(tenant_id)
 
-    async with AsyncSessionLocal() as session:
+    async with _sessionmaker(ctx)() as session:
         await _mark_running(session, job_uuid)
 
     from packages.replay.src.admission_store import AdmissionReceiptStore
@@ -223,7 +227,7 @@ async def execute_replay_job(
         run_uuid = uuid.UUID(run_id_str)
         intervention_uuid = uuid.UUID(intervention_id_str)
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             from apps.api.src.models import (
                 InterventionORM,
                 ReplayEpisodeORM,
@@ -525,7 +529,7 @@ async def execute_replay_job(
                 "evidence_kind": "REAL_REPLAY",
             }
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_completed(session, job_uuid, result)
 
         return result
@@ -534,7 +538,7 @@ async def execute_replay_job(
         log.exception("worker.execute_replay_job.failed", job_id=job_id, error=str(exc))
         if receipt_id and receipt_verified:
             admission_store.void(receipt_id, reason=f"Replay worker failure: {exc}")
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_failed(session, job_uuid, exc)
         raise
 
@@ -556,7 +560,7 @@ async def execute_graph_construction_job(
     job_uuid = uuid.UUID(job_id)
     tenant_uuid = uuid.UUID(tenant_id)
 
-    async with AsyncSessionLocal() as session:
+    async with _sessionmaker(ctx)() as session:
         await _mark_running(session, job_uuid)
 
     try:
@@ -566,7 +570,7 @@ async def execute_graph_construction_job(
 
         run_uuid = uuid.UUID(run_id_str)
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             from apps.api.src.models import RequestRunORM, TraceArtifactORM
             from apps.api.src.models_graph import CausalGraphORM, GraphEdgeORM
             from packages.contracts.src.models import SpanRecord, TraceArtifact
@@ -664,14 +668,14 @@ async def execute_graph_construction_job(
                     "cache_hit": False,
                 }
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_completed(session, job_uuid, result)
 
         return result
 
     except Exception as exc:
         log.exception("worker.execute_graph_construction_job.failed", job_id=job_id, error=str(exc))
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_failed(session, job_uuid, exc)
         raise
 
@@ -694,7 +698,7 @@ async def execute_bcrb_diagnosis_job(
     job_uuid = uuid.UUID(job_id)
     tenant_uuid = uuid.UUID(tenant_id)
 
-    async with AsyncSessionLocal() as session:
+    async with _sessionmaker(ctx)() as session:
         await _mark_running(session, job_uuid)
 
     try:
@@ -707,7 +711,7 @@ async def execute_bcrb_diagnosis_job(
 
         run_uuid_val = uuid.UUID(run_id_str)
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             from apps.api.src.models import RequestRunORM, SpanRecordORM
             from packages.bcrb.src.orchestrator import BCRBOrchestrator
             from packages.contracts.src.agent_models import AgentInvocation
@@ -812,14 +816,14 @@ async def execute_bcrb_diagnosis_job(
                 ],
             }
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_completed(session, job_uuid, result)
 
         return result
 
     except Exception as exc:
         log.exception("worker.execute_bcrb_diagnosis_job.failed", job_id=job_id, error=str(exc))
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_failed(session, job_uuid, exc)
         raise
 
@@ -842,7 +846,7 @@ async def execute_recovery_job(
     job_uuid = uuid.UUID(job_id)
     tenant_uuid = uuid.UUID(tenant_id)
 
-    async with AsyncSessionLocal() as session:
+    async with _sessionmaker(ctx)() as session:
         await _mark_running(session, job_uuid)
 
     try:
@@ -858,7 +862,7 @@ async def execute_recovery_job(
 
         invocations = [AgentInvocation(**inv) for inv in invocations_data]
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             from apps.api.src.models import RequestRunORM
 
             # Validate tenant ownership
@@ -883,14 +887,14 @@ async def execute_recovery_job(
             "verification_passed": approval_req is not None,
         }
 
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_completed(session, job_uuid, result)
 
         return result
 
     except Exception as exc:
         log.exception("worker.execute_recovery_job.failed", job_id=job_id, error=str(exc))
-        async with AsyncSessionLocal() as session:
+        async with _sessionmaker(ctx)() as session:
             await _mark_failed(session, job_uuid, exc)
         raise
 

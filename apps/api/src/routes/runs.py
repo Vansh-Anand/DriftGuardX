@@ -358,6 +358,7 @@ async def create_run(
             evidence_class=evidence_class,
         )
         db.add(run_orm)
+        await db.flush()
 
         # Persist spans
         for span in trace_contract.spans:
@@ -599,6 +600,7 @@ async def create_run(
             evidence_class=evidence_class,
         )
         db.add(run_orm)
+        await db.flush()
 
         ctx_spans = result["trace_context"].get_spans()
         for span in ctx_spans:
