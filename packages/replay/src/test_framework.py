@@ -4,6 +4,8 @@ PRIVATE — All Rights Reserved.
 """
 
 import uuid
+from datetime import datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +26,8 @@ from packages.contracts.src.models import (
     ComponentVersion,
     ReplayStateManifest,
     RequestRun,
+    SpanKind,
+    SpanRecord,
     TraceArtifact,
     _utcnow,
 )
@@ -39,6 +43,32 @@ class CanaryTestFramework:
 
     def __init__(self, tenant_id: str):
         self.tenant_id = tenant_id
+
+    def _span_from_stored_json(
+        self,
+        raw_span: dict[str, Any],
+        *,
+        run_id: uuid.UUID,
+        tenant_id: uuid.UUID,
+        pipeline_id: uuid.UUID,
+    ) -> SpanRecord:
+        data = dict(raw_span)
+        data.setdefault("run_id", run_id)
+        data.setdefault("tenant_id", tenant_id)
+        data.setdefault("pipeline_id", pipeline_id)
+        if "attributes" not in data and "attributes_json" in data:
+            data["attributes"] = data.pop("attributes_json")
+        if isinstance(data.get("kind"), str):
+            data["kind"] = SpanKind(data["kind"])
+        if isinstance(data.get("component_type"), str) and data["component_type"]:
+            data["component_type"] = ComponentType(data["component_type"])
+        if isinstance(data.get("component_version_id"), str):
+            data["component_version_id"] = uuid.UUID(data["component_version_id"])
+        if data.get("start_time") is not None and not isinstance(data["start_time"], datetime):
+            data["start_time"] = datetime.fromisoformat(str(data["start_time"]))
+        if data.get("end_time") is not None and not isinstance(data["end_time"], datetime):
+            data["end_time"] = datetime.fromisoformat(str(data["end_time"]))
+        return SpanRecord(**data)
 
     async def execute_canary(
         self,
@@ -115,7 +145,11 @@ class CanaryTestFramework:
             retriever_version=manifest_orm.retriever_version,
             retriever_settings=manifest_orm.retriever_settings,
             retrieved_chunk_ids=manifest_orm.retrieved_chunk_ids,
+            embedding_provider=manifest_orm.embedding_provider,
+            embedding_model_id=manifest_orm.embedding_model_id,
             embedding_model_version=manifest_orm.embedding_model_version,
+            embedding_vector_dimension=manifest_orm.embedding_vector_dimension,
+            embedding_config_hash=manifest_orm.embedding_config_hash,
             vector_index_snapshot_id=manifest_orm.vector_index_snapshot_id,
             tool_schemas_hash=manifest_orm.tool_schemas_hash,
             policy_config_hash=manifest_orm.policy_config_hash,
@@ -129,49 +163,110 @@ class CanaryTestFramework:
         )
 
         run = RequestRun.model_construct(
-            run_id=run_orm.id,
+            id=run_orm.id,
             tenant_id=run_orm.tenant_id,
             pipeline_id=run_orm.pipeline_id,
-            trace_id=run_orm.trace_id,
             status=run_orm.status,
             created_at=run_orm.created_at,
-            duration_ms=run_orm.duration_ms,
+            started_at=run_orm.started_at,
+            completed_at=run_orm.completed_at,
+            total_latency_ms=run_orm.total_latency_ms,
             error_message=run_orm.error_message,
+            error_type=run_orm.error_type,
+            reliability_score=run_orm.reliability_score,
             reliability_vector=run_orm.reliability_vector,
             evidence_class=run_orm.evidence_class,
         )
 
+        spans = [
+            self._span_from_stored_json(
+                s,
+                run_id=trace_orm.run_id,
+                tenant_id=trace_orm.tenant_id,
+                pipeline_id=trace_orm.pipeline_id,
+            )
+            for s in (trace_orm.spans_json or [])
+        ]
         trace = TraceArtifact.model_construct(
-            trace_id=trace_orm.id,
+            id=trace_orm.id,
             run_id=trace_orm.run_id,
-            payload=trace_orm.payload,
-            payload_hash=trace_orm.payload_hash,
+            tenant_id=trace_orm.tenant_id,
+            pipeline_id=trace_orm.pipeline_id,
+            spans=spans,
+            root_span_id=trace_orm.root_span_id,
+            total_span_count=trace_orm.total_span_count,
             created_at=trace_orm.created_at,
+            evidence_class=run_orm.evidence_class,
         )
+
+        current_version = next(
+            (
+                span.component_version_tag
+                for span in spans
+                if span.component_type == candidate.component_type
+                and span.component_version_tag is not None
+            ),
+            None,
+        )
+        if not current_version:
+            return BCRBStep(
+                step_id=uuid.uuid4(),
+                session_id=uuid.UUID(session_id),
+                candidate_id=candidate.candidate_id,
+                status=BCRBStepStatus.FAILED,
+                replay_episode_id=uuid.uuid4(),
+                utility_observed=None,
+                cost_incurred=ReplayCost(measurement_status="UNAVAILABLE", total_cost=0.0),
+                recovery_effect=None,
+                start_time=start,
+                end_time=_utcnow(),
+                decision_reason="INSUFFICIENT_EVIDENCE: Current component version missing from trace.",
+            )
+
+        registry = VersionRegistry()
+        from apps.api.src.pipeline.mock_rag import ALL_COMPONENT_VERSIONS
+
+        for component_version in ALL_COMPONENT_VERSIONS:
+            registry.register(component_version)
+
+        candidate_version = next(
+            (
+                component_version
+                for component_version in registry.list_by_type(candidate.component_type)
+                if component_version.version_tag != current_version
+            ),
+            None,
+        )
+        if candidate_version is None:
+            return BCRBStep(
+                step_id=uuid.uuid4(),
+                session_id=uuid.UUID(session_id),
+                candidate_id=candidate.candidate_id,
+                status=BCRBStepStatus.FAILED,
+                replay_episode_id=uuid.uuid4(),
+                utility_observed=None,
+                cost_incurred=ReplayCost(measurement_status="UNAVAILABLE", total_cost=0.0),
+                recovery_effect=None,
+                start_time=start,
+                end_time=_utcnow(),
+                decision_reason="INSUFFICIENT_EVIDENCE: No registered replacement version for candidate.",
+            )
 
         intervention_spec = InterventionSpec(
             target_component=candidate.component_type,
+            current_version=current_version,
+            candidate_version=candidate_version.version_tag,
             intervention_type=candidate.intervention_type,
-            target_version="latest",
             params={},
         )
 
-        engine = ReplayEngine(version_registry=VersionRegistry())
-
-        cv = ComponentVersion(
-            id=uuid.uuid4(),
-            component_type=ComponentType(candidate.component_type),
-            version_tag="latest",
-            image_digest="latest",
-            config_hash="default_config",
-            created_at=_utcnow(),
-        )
+        engine = ReplayEngine(version_registry=registry)
 
         episode, error = engine.execute_replay(
             original_run=run,
             original_trace=trace,
             intervention=intervention_spec,
-            replay_version=cv,
+            replay_version=candidate_version,
             original_reliability_vector=run.reliability_vector,
             manifest=manifest,
         )
