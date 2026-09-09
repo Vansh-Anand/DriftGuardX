@@ -135,7 +135,8 @@ async def test_golden_e2e_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             assert eval_resp.status_code == 200, eval_resp.text
             eval_data = eval_resp.json()
 
-            assert "candidates" in eval_data
+            assert eval_data["run_id"] == run_id
+            assert 0.0 <= eval_data["fault_probability"] <= 1.0
 
             # --- 4. Worker: Build Causal Graph ---
             ctx = {"redis": redis, "db_session_factory": SessionLocal}
