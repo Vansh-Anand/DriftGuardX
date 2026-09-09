@@ -34,6 +34,10 @@ from packages.trace_sdk.src.tracer import hash_payload
 pytestmark = pytest.mark.asyncio
 
 
+def _value(value: object) -> str:
+    return str(value.value) if hasattr(value, "value") else str(value)
+
+
 async def _seed_mock_catalog(session: AsyncSession) -> None:
     tenant_id = PIPELINE_WITH_STABLE_RETRIEVER.tenant_id
     await session.merge(TenantORM(id=tenant_id, name="Acme Corp", slug="acme-corp"))
@@ -46,7 +50,7 @@ async def _seed_mock_catalog(session: AsyncSession) -> None:
                 version=pipeline.version,
                 is_active=True,
                 component_version_ids={
-                    component.component_type.value: str(component.id)
+                    _value(component.component_type): str(component.id)
                     for component in pipeline.component_versions
                 },
             )
@@ -56,9 +60,9 @@ async def _seed_mock_catalog(session: AsyncSession) -> None:
             ComponentVersionORM(
                 id=component.id,
                 tenant_id=tenant_id,
-                component_type=component.component_type.value,
+                component_type=_value(component.component_type),
                 version_tag=component.version_tag,
-                state=component.state.value,
+                state=_value(component.state),
                 config_hash=component.config_hash,
                 description=component.description,
             )
@@ -166,7 +170,7 @@ async def test_golden_e2e_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                     run_id=uuid.UUID(run_id),
                     tenant_id=uuid.UUID(tenant_id),
                     intervention_type="rollback",
-                    target_component_type=RETRIEVER_V2_EXP.component_type.value,
+                    target_component_type=_value(RETRIEVER_V2_EXP.component_type),
                     from_version_id=RETRIEVER_V2_EXP.id,
                     to_version_id=RETRIEVER_V1.id,
                     from_version_tag=RETRIEVER_V2_EXP.version_tag,
@@ -196,7 +200,7 @@ async def test_golden_e2e_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                 )
                 intervention_hash = ReplayAdmissionReceipt.intervention_binding_hash(
                     str(intervention_id),
-                    RETRIEVER_V2_EXP.component_type.value,
+                    _value(RETRIEVER_V2_EXP.component_type),
                     RETRIEVER_V2_EXP.version_tag,
                     RETRIEVER_V1.version_tag,
                 )
