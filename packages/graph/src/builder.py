@@ -10,6 +10,10 @@ from packages.contracts.src.graph import CausalGraph, EdgeType, GraphEdge, Graph
 from packages.contracts.src.models import ComponentVersion, SpanRecord, TraceArtifact
 
 
+def _enum_or_string_value(value: object) -> str:
+    return str(value.value) if hasattr(value, "value") else str(value)
+
+
 class VersionLookup(Protocol):
     async def get_version(self, tenant_id: UUID, version_id: UUID) -> ComponentVersion | None: ...
 
@@ -48,7 +52,7 @@ class GraphBuilder:
             if version_id:
                 version_record = await self.registry.get_version(trace.tenant_id, UUID(version_id))
                 if version_record:
-                    features["state"] = version_record.state.value
+                    features["state"] = _enum_or_string_value(version_record.state)
 
             if span.latency_ms is not None:
                 features["latency_ms"] = span.latency_ms
