@@ -45,6 +45,8 @@
 - [x] Measure and document refusal, reservation, and bounded-overrun invariants.
 - [x] Prepare India-facing technical system and method claim candidates.
 - [x] Normalize persisted worker invocation payloads before executor dispatch.
+- [x] Reject incomplete receipt bindings and verify persisted audit hash chains.
+- [x] Prove single claim and terminal transition under six-process SQLite contention.
 - [ ] Replace the portable SQLite ledger with the deployment's shared transactional
       backend and run multi-host worker-loss/expiry stress tests.
 
@@ -1112,6 +1114,7 @@ These are the remaining items that matter most:
 - [ ] Demonstrate BCRB improvements across several different fault families.
 - [x] Validate unseen fault classes/topologies/providers.
 - [ ] Strengthen joint causal posterior reasoning.
+- [x] Harden receipt completeness, audit-chain verification, and process contention.
 - [ ] Reproduce results in a second clean environment.
 - [ ] Add independent red-team/falsification experiments.
 - [ ] Complete real production provider integration only if production deployment is actually a goal.

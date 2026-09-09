@@ -16,10 +16,23 @@ import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from packages.contracts.src.evidence import EvidenceClassification
 from packages.replay.src.admission_receipt import ReceiptStatus, ReplayAdmissionReceipt
+
+_REQUIRED_BINDING_FIELDS = frozenset(
+    {
+        "tenant_id",
+        "manifest_hash",
+        "trace_root_hash",
+        "intervention_hash",
+        "current_version",
+        "candidate_version",
+        "policy_hash",
+        "capsule_hash",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -186,13 +199,16 @@ class AdmissionReceiptStore:
         return receipt.receipt_id
 
     def _load_row(self, connection: sqlite3.Connection, receipt_id: str) -> sqlite3.Row | None:
-        return connection.execute(
-            "SELECT * FROM admission_receipts WHERE receipt_id = ?", (receipt_id,)
-        ).fetchone()
+        return cast(
+            sqlite3.Row | None,
+            connection.execute(
+                "SELECT * FROM admission_receipts WHERE receipt_id = ?", (receipt_id,)
+            ).fetchone(),
+        )
 
     @staticmethod
     def _payload(row: sqlite3.Row) -> dict[str, Any]:
-        return json.loads(str(row["payload_json"]))
+        return cast(dict[str, Any], json.loads(str(row["payload_json"])))
 
     @staticmethod
     def _receipt_from_row(row: sqlite3.Row) -> ReplayAdmissionReceipt:
@@ -228,14 +244,15 @@ class AdmissionReceiptStore:
             elif (now or datetime.now(UTC)) >= datetime.fromisoformat(payload["expires_at"]):
                 reason = "Receipt has expired."
             else:
-                for key, expected in payload.items():
-                    if (
-                        key in actual
-                        and actual[key] != expected
-                        and str(actual[key]) != str(expected)
-                    ):
+                for key in sorted(_REQUIRED_BINDING_FIELDS & actual.keys()):
+                    expected = payload[key]
+                    if actual[key] != expected and str(actual[key]) != str(expected):
                         reason = f"Receipt binding mismatch: {key}."
                         break
+                if not reason:
+                    missing = sorted(_REQUIRED_BINDING_FIELDS - actual.keys())
+                    if missing:
+                        reason = f"Receipt binding incomplete: {', '.join(missing)}."
                 if not reason and evidence_class is not None:
                     if not self._receipt_from_row(row).verify_evidence(evidence_class)[0]:
                         reason = "Evidence classification exceeds the receipt ceiling."
@@ -322,3 +339,28 @@ class AdmissionReceiptStore:
             )
             for row in rows
         ]
+
+    def verify_event_chain(self, receipt_id: str) -> tuple[bool, str]:
+        """Recompute the append-only event chain for audit export and review."""
+        events = self.events(receipt_id)
+        if not events:
+            return False, "Admission receipt has no audit events."
+        previous_hash: str | None = None
+        for expected_sequence, event in enumerate(events, start=1):
+            if event.sequence != expected_sequence:
+                return False, f"Audit sequence gap at event {expected_sequence}."
+            if event.previous_event_hash != previous_hash:
+                return False, f"Audit predecessor mismatch at event {expected_sequence}."
+            expected_hash = self._event_hash(
+                event.receipt_id,
+                event.sequence,
+                event.event_type,
+                event.previous_event_hash,
+                event.reason,
+                event.details,
+                event.created_at,
+            )
+            if event.event_hash != expected_hash:
+                return False, f"Audit hash mismatch at event {expected_sequence}."
+            previous_hash = event.event_hash
+        return True, "ok"

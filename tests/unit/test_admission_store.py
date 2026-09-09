@@ -1,3 +1,4 @@
+from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -11,6 +12,16 @@ from packages.recovery.src.capsule import CapsuleRegistry
 from packages.recovery.src.executor import LocalDevExecutor
 from packages.replay.src.admission_receipt import ReplayAdmissionReceipt
 from packages.replay.src.admission_store import AdmissionReceiptStore
+
+
+def _verify_in_process(path: str, receipt_id: str, actual: dict[str, str]) -> bool:
+    admitted, _ = AdmissionReceiptStore(path).verify(receipt_id, actual=actual)
+    return admitted
+
+
+def _finalize_in_process(path: str, receipt_id: str, transition: str) -> None:
+    store = AdmissionReceiptStore(path)
+    getattr(store, transition)(receipt_id)
 
 
 @pytest.fixture
@@ -112,6 +123,23 @@ def test_evidence_promotion_blocks_before_consume(store_path: Path) -> None:
     assert store.status(receipt.receipt_id).value == "VOIDED"
 
 
+def test_incomplete_worker_binding_blocks_before_execution(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    receipt = _receipt()
+    store.issue(receipt)
+
+    admitted, reason = store.verify(
+        receipt.receipt_id,
+        actual={"tenant_id": "tenant-a", "manifest_hash": "manifest-a"},
+    )
+
+    assert not admitted
+    assert "incomplete" in reason
+    assert "trace_root_hash" in reason
+    assert store.status(receipt.receipt_id) is not None
+    assert store.status(receipt.receipt_id).value == "VOIDED"
+
+
 def test_receipt_survives_restart_and_single_use_claim(store_path: Path) -> None:
     path = store_path
     receipt = _receipt()
@@ -185,3 +213,58 @@ def test_release_and_void_are_durable_audited_transitions(store_path: Path) -> N
         "ISSUE",
         "VOID",
     ]
+
+
+def test_audit_chain_verifier_detects_persisted_mutation(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    receipt = _receipt()
+    store.issue(receipt)
+    admitted, _ = store.verify(receipt.receipt_id, actual=_actual())
+    assert admitted
+    store.consume(receipt.receipt_id)
+    assert store.verify_event_chain(receipt.receipt_id) == (True, "ok")
+
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE admission_audit_events SET reason = ? " "WHERE receipt_id = ? AND sequence = 2",
+            ("tampered", receipt.receipt_id),
+        )
+
+    valid, reason = store.verify_event_chain(receipt.receipt_id)
+    assert not valid
+    assert "hash mismatch" in reason
+
+
+def test_cross_process_claim_and_terminal_transition_are_single_use(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    receipt = _receipt()
+    store.issue(receipt)
+
+    with ProcessPoolExecutor(max_workers=6) as pool:
+        claims = list(
+            pool.map(
+                _verify_in_process,
+                [str(store_path)] * 6,
+                [receipt.receipt_id] * 6,
+                [_actual() for _ in range(6)],
+            )
+        )
+
+    assert claims.count(True) == 1
+    with ProcessPoolExecutor(max_workers=6) as pool:
+        list(
+            pool.map(
+                _finalize_in_process,
+                [str(store_path)] * 6,
+                [receipt.receipt_id] * 6,
+                ["consume"] * 6,
+            )
+        )
+
+    terminal_events = [
+        event.event_type
+        for event in store.events(receipt.receipt_id)
+        if event.event_type in {"CONSUME", "RELEASE", "VOID"}
+    ]
+    assert terminal_events == ["CONSUME"]
+    assert store.verify_event_chain(receipt.receipt_id) == (True, "ok")

@@ -65,6 +65,7 @@ jobs:
           apps/cli/run_benchmark.py apps/worker/src/worker.py \
           packages/contracts/src/recovery_models.py packages/recovery/src/replay_executor.py \
           packages/recovery/src/validation.py packages/replay/src/engine.py \
+          packages/replay/src/admission_store.py \
           packages/replay/src/executor.py \
           packages/replay/src/exogenous_controller.py packages/rag_benchmark/src/fault_models.py \
           packages/rag_benchmark/src/fault_injection.py packages/rag_benchmark/src/rag_pipeline.py \
@@ -88,7 +89,8 @@ jobs:
           packages/contracts/src/models.py packages/contracts/src/recovery_models.py \
           packages/ledger/src/schema.py packages/ledger/src/export.py \
           packages/recovery/src/replay_executor.py packages/recovery/src/validation.py \
-          packages/replay/src/engine.py packages/replay/src/executor.py \
+          packages/replay/src/engine.py packages/replay/src/admission_store.py \
+          packages/replay/src/executor.py \
           packages/replay/src/planner.py packages/replay/src/sandbox.py \
           packages/replay/src/exogenous_controller.py packages/rag_benchmark/src/fault_models.py \
           packages/rag_benchmark/src/controlled_replay.py packages/detectors/src/calibration.py \

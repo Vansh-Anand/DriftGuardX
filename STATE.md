@@ -34,7 +34,7 @@ public disclosure require applicant confirmation and Indian patent-agent review.
   `execute_with_admission` for the same pre-capsule gate.
 - New receipt tests cover stale version, changed policy, changed trace, expiry,
   evidence promotion, restart persistence, single-use claiming, and audit-chain
-  continuity. Receipt, worker, migration, and replay API verification: 25
+  continuity. Receipt, worker, migration, and replay API verification: 37
   passed, 1 skipped.
 
 ## Limits
@@ -58,7 +58,7 @@ Prior statements that the entire project was complete were too broad.
 - Focused worker, receipt, and ledger regression suite: 24 passed.
 - Earlier full local suite: 601 passed, 22 skipped, one latency benchmark failure
   (66 ms/certificate versus a 50 ms threshold). The unchanged benchmark passed
-  when rerun in the focused suite. Final full suite: 605 passed, 22 skipped,
+  when rerun in the focused suite. Final full suite: 610 passed, 22 skipped,
   7 existing warnings. Hosted CI is green for commit
   `d92fea1fbda943a28a1e5271abf6c6b84f87883b`:
   https://github.com/Vansh-Anand/DriftGuardX/actions/runs/34337503326.
@@ -76,3 +76,6 @@ Prior statements that the entire project was complete were too broad.
 - Recovery worker payload hydration now normalizes persisted invocation UUID and
   datetime JSON before executor dispatch, preserving non-UUID source span IDs in
   metadata while keeping the strict `AgentInvocation` contract intact.
+- Durable admission verification now fails closed on omitted binding fields, exposes
+  audit hash-chain verification, and passes six-process single-claim and
+  single-finalization contention coverage.

@@ -32,6 +32,9 @@ construction, prosecution history, or freedom-to-operate search was completed.
 | R5 | [in-toto](https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias), USENIX Security 2019 | Cryptographic verification of software provenance through deployment. | Signed provenance and deployment verification are established; any recovery-specific distinction needs an element-by-element analysis. |
 | P6 | [US20260134155A1](https://patents.google.com/patent/US20260134155A1/en), published 2026-05-14 | Provenance/version lineage, executable integrity baselines, execution interception on integrity deviation, isolation/recovery, append-only records and cryptographically verifiable certification artifacts. | Broad integrity, containment, recovery and certificate claims have material overlap. Do not treat a hash-bound capsule or audit record as a distinction without a specific enforcement mechanism. |
 | P7 | [US20210271998A1](https://patents.google.com/patent/US20210271998A1/en), published 2021-09-02; corresponding US11961015B2 active | Distributed probabilistic provenance logs, query/replay/rollback, and reconstruction of execution ordering. | Generic probabilistic provenance plus replay or rollback is not a reliable point of distinction. Compare the issued claims and prosecution history before selecting scope. |
+| P8 | [CN120612066A](https://patents.google.com/patent/CN120612066A/en), published 2025-09-12 | Distributed task/terminal identity binding, state receipts, conflict handling, rollback treatment and auditable task state. | A state receipt and rollback lifecycle are not sufficient distinctions by themselves. Compare the original-language claims and family. |
+| P9 | [CN121187728A](https://patents.google.com/patent/CN121187728A/en), published 2026-01-09 | A task execution plan carrying versions, a task-sequence hash, resource list/lock, scheduling window, rollback path, audit configuration and signature digest. | Binding versions, resources, rollback and audit data in an execution plan is crowded. Any distinction must rest on the recovery-specific verification and refusal relationship, subject to priority chronology. |
+| P10 | [EP4369195A1](https://patents.google.com/patent/EP4369195A1/en), published 2024-05-15 | Audited privileged actions distributed to worker nodes, approval metadata, desired/current-state reconciliation and execution results. | Worker-boundary execution and audit metadata are established concepts; the draft must identify the narrower state-drift and evidence-authority controls. |
 
 ## Candidate distinction for investigation
 
@@ -66,13 +69,13 @@ attempt to raise the evidence classification would cause refusal; a failed or ex
 execution would release the reservation and void the receipt. This is a proposed
 engineering embodiment, not a novelty conclusion.
 
-The first in-process receipt slice is implemented in
-`packages/replay/src/admission_receipt.py` and covered by focused unit tests. It binds
-the proposed values to the existing thread-safe reservation primitive. The project
-still does not implement an atomic durable receipt, worker-boundary verification or
-end-to-end independent recovery verification. Those parts must not be claimed until
-their failure cases and integration tests exist. `novelty_strategy.md` defines the
-remaining build and comparison work required before it can be assessed.
+The receipt contract is implemented in `packages/replay/src/admission_receipt.py` and
+the durable SQLite reference is implemented in `packages/replay/src/admission_store.py`.
+It now rejects missing as well as changed worker bindings, verifies the audit hash
+chain, and has a cross-process test showing a single successful claim and terminal
+transition. This supports the implemented reference embodiment, but does not establish
+novelty, shared-host database behavior, production resource accounting or independent
+recovery verification. `novelty_strategy.md` defines the remaining comparison work.
 
 ## Disclosure chronology
 

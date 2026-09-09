@@ -64,12 +64,13 @@ proof that the feature is novel or patentable.
 - Pass the receipt through every production remediation queue and verify it in the
   executor process, not only the API process. The reusable recovery boundary is now
   available, but existing local fixture callers remain intentionally legacy-compatible.
-- Add multi-process stress tests for double-finalization, worker loss, and expiry races.
+- The portable SQLite backend now passes six-process contention for a single claim and
+  terminal transition. Add worker-loss, expiry-race and shared-host PostgreSQL tests.
 - Meter actual resources and prove reservation release/consumption is correct after
   timeout, worker loss and retry.
 - Add an external-state adapter that attests the referenced dataset/index/configuration
   snapshot, rather than relying solely on application-supplied identifiers.
-- Produce a claim chart against P1, P6, P7, R1 and R5, including the closest independent
+- Produce a claim chart against P1, P6-P10, R1 and R5, including the closest independent
   claims and a motivation-to-combine analysis by a patent professional.
 
 ## Research route for scheduler novelty
@@ -111,3 +112,9 @@ predicted charge plus uncertainty and rollback reserve; and (iii) distributed-dr
 refusal latency, measured from worker load to refusal before executor construction.
 The current tests establish the refusal and single-use invariants; they do not yet
 constitute a production performance study.
+
+The verifier treats omission as drift: tenant, manifest, trace, intervention, version,
+policy and capsule bindings must all be supplied at the executor boundary. Audit export
+can recompute every event hash and predecessor link. The six-process contention test
+admits exactly one claimant and records exactly one terminal transition, directly
+exercising the time-of-check/time-of-use control in the portable implementation.

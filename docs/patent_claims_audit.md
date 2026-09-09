@@ -15,7 +15,7 @@ test scopes. This chart supersedes it.
 | Signature and chain verification | packages/ledger/src/crypto.py; packages/ledger/src/chain.py | tests/security/test_evidence_integrity.py; tests/e2e/test_ledger_tamper.py | Signature/content tamper tests; not external witness or production KMS certification |
 | Evidence provenance | packages/contracts/src/evidence.py; packages/replay/src/engine.py | tests/unit/test_replay_provenance.py | Synthetic/controlled distinctions in tested paths |
 | Benchmark artifact consistency | scripts/verify_controlled_evidence.py | tests/unit/test_controlled_replay_benchmark.py | Digest, prior-label, count and pairing consistency; not independent authenticity |
-| State-bound admission receipt | packages/replay/src/admission_receipt.py; packages/replay/src/admission_store.py | tests/unit/test_admission_receipt.py; tests/unit/test_admission_store.py; tests/integration/test_manifest_integration.py | Durable single-use claim, refusal on state/policy/trace/expiry/evidence drift, and hash-linked lifecycle events; portable SQLite backend |
+| State-bound admission receipt | packages/replay/src/admission_receipt.py; packages/replay/src/admission_store.py | tests/unit/test_admission_receipt.py; tests/unit/test_admission_store.py; tests/integration/test_manifest_integration.py | Durable single-use claim; refusal on missing or changed state/policy/trace/expiry/evidence bindings; recomputable hash-linked events; and six-process claim/finalization contention; portable SQLite backend |
 
 ## Optional prototype elements
 
@@ -35,9 +35,10 @@ test scopes. This chart supersedes it.
 Independent bounded samples and calibration separation are caller obligations,
 not facts discoverable from numerical arrays. A supported bound is not proof of
 causation. Capsule integrity is not a signature. The admission receipt is now a
-durable single-use service in the portable SQLite implementation, but shared-host
-deployment, external state attestation and production resource accounting remain
-unverified.
+durable single-use service in the portable SQLite implementation, including strict
+complete-binding checks and cross-process contention tests, but shared-host deployment,
+worker-loss recovery, external state attestation and production resource accounting
+remain unverified.
 
 The capsule seal now covers additional execution fields. Capsules sealed using
 the old field set must be recreated through the authorized creation path; do not
