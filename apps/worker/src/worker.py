@@ -22,7 +22,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from apps.api.src.database import AsyncSessionLocal
 from apps.api.src.models import BackgroundJobORM
-from packages.contracts.src.models import ComponentType, ComponentVersion, ComponentVersionState
+from packages.contracts.src.models import (
+    ComponentType,
+    ComponentVersion,
+    ComponentVersionState,
+    SpanKind,
+    SpanRecord,
+)
 
 log = structlog.get_logger()
 
@@ -31,6 +37,36 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
 def _sessionmaker(ctx: dict[str, Any]) -> async_sessionmaker[AsyncSession]:
     return cast(async_sessionmaker[AsyncSession], ctx.get("db_session_factory", AsyncSessionLocal))
+
+
+def _coerce_datetime(value: Any) -> datetime | None:
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(str(value))
+
+
+def _span_from_stored_json(
+    raw_span: dict[str, Any],
+    *,
+    run_id: uuid.UUID,
+    tenant_id: uuid.UUID,
+    pipeline_id: uuid.UUID,
+) -> SpanRecord:
+    data = dict(raw_span)
+    data.setdefault("run_id", run_id)
+    data.setdefault("tenant_id", tenant_id)
+    data.setdefault("pipeline_id", pipeline_id)
+    if "attributes" not in data and "attributes_json" in data:
+        data["attributes"] = data.pop("attributes_json")
+    if isinstance(data.get("kind"), str):
+        data["kind"] = SpanKind(data["kind"])
+    if isinstance(data.get("component_type"), str) and data["component_type"]:
+        data["component_type"] = ComponentType(data["component_type"])
+    if isinstance(data.get("component_version_id"), str):
+        data["component_version_id"] = uuid.UUID(data["component_version_id"])
+    data["start_time"] = _coerce_datetime(data.get("start_time"))
+    data["end_time"] = _coerce_datetime(data.get("end_time"))
+    return SpanRecord(**data)
 
 
 class _DatabaseVersionLookup:
@@ -242,7 +278,6 @@ async def execute_replay_job(
                 ReplayStateManifest,
                 RequestRun,
                 RunStatus,
-                SpanRecord,
                 TraceArtifact,
             )
             from packages.contracts.src.recovery_models import (
@@ -282,7 +317,15 @@ async def execute_replay_job(
                 raise ValueError(f"Intervention not found: {intervention_id_str}")
 
             # 5. Reconstruct domain objects
-            spans = [SpanRecord(**s) for s in (trace_orm.spans_json or [])]
+            spans = [
+                _span_from_stored_json(
+                    s,
+                    run_id=trace_orm.run_id,
+                    tenant_id=trace_orm.tenant_id,
+                    pipeline_id=trace_orm.pipeline_id,
+                )
+                for s in (trace_orm.spans_json or [])
+            ]
             original_trace = TraceArtifact(
                 id=trace_orm.id,
                 run_id=trace_orm.run_id,
@@ -573,7 +616,7 @@ async def execute_graph_construction_job(
         async with _sessionmaker(ctx)() as session:
             from apps.api.src.models import RequestRunORM, TraceArtifactORM
             from apps.api.src.models_graph import CausalGraphORM, GraphEdgeORM
-            from packages.contracts.src.models import SpanRecord, TraceArtifact
+            from packages.contracts.src.models import TraceArtifact
             from packages.graph.src.builder import BUILDER_VERSION, GraphBuilder
             from packages.trace_sdk.src.tracer import hash_payload
 
@@ -593,7 +636,15 @@ async def execute_graph_construction_job(
                 raise ValueError(f"Trace not found for run: {run_id_str}")
 
             # 3. Reconstruct domain object
-            spans = [SpanRecord(**s) for s in (trace_orm.spans_json or [])]
+            spans = [
+                _span_from_stored_json(
+                    s,
+                    run_id=trace_orm.run_id,
+                    tenant_id=trace_orm.tenant_id,
+                    pipeline_id=trace_orm.pipeline_id,
+                )
+                for s in (trace_orm.spans_json or [])
+            ]
             trace = TraceArtifact(
                 id=trace_orm.id,
                 run_id=trace_orm.run_id,
