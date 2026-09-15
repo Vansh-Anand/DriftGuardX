@@ -102,7 +102,7 @@ async def trigger_recovery(
 
     if settings.environment == "test":
         from apps.api.src.services.recovery_pipeline import EndToEndRecoveryPipeline
-        from packages.contracts.src.agent_models import AgentInvocation, AgentIdentity
+        from packages.contracts.src.agent_models import AgentIdentity, AgentInvocation
 
         pipeline = EndToEndRecoveryPipeline(tenant_id=uuid.UUID(tenant_id))
 

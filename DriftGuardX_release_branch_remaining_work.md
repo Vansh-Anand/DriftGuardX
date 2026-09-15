@@ -1118,4 +1118,4 @@ These are the remaining items that matter most:
 - [ ] Reproduce results in a second clean environment.
 - [ ] Add independent red-team/falsification experiments.
 - [ ] Complete real production provider integration only if production deployment is actually a goal.
-- [ ] Resolve the MIT/confidential/private licensing contradiction.
+- [x] Resolve the MIT/confidential/private licensing contradiction.

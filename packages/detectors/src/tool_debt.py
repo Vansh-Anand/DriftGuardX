@@ -33,7 +33,7 @@ class ToolEvidenceDebtMonitor:
             debt += 0.3
 
         # 2. Schema stability debt (did the output schema silently change?)
-        if type(current_result) != history.get("expected_type"):
+        if type(current_result) is not history.get("expected_type"):
             debt += 0.5
 
         # 3. Verifier history debt (did this tool fail deterministic checks recently?)

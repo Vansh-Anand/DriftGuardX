@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "version": "2.0.0-rc.1",
-  "commit": "2692fb51a0c62c74c59723b41148f667a1d420b8",
-  "commit_time": "2026-09-05T20:14:45+05:30",
+  "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+  "commit_time": "2026-09-09T16:08:03+05:30",
   "verification": "unverified-local-build",
   "verification_source": "local"
 }

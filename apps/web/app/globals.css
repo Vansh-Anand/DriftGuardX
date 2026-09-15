@@ -27,6 +27,24 @@ body {
   background-size: 24px 24px;
 }
 
+.console-surface {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(124, 247, 212, 0.16), transparent 34%),
+    radial-gradient(circle at 0% 75%, rgba(245, 184, 73, 0.08), transparent 28%),
+    #050706;
+}
+
+.console-grid {
+  background-image:
+    linear-gradient(rgba(183, 255, 229, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(183, 255, 229, 0.055) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.signal-dot {
+  box-shadow: 0 0 0 4px rgba(124, 247, 212, 0.08), 0 0 28px rgba(124, 247, 212, 0.34);
+}
+
 html {
   scroll-behavior: smooth;
 }

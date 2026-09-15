@@ -1,149 +1,164 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Plus } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, Cpu, Gauge, GitBranch, ShieldCheck } from "lucide-react";
+
+const proofRows = [
+  ["pytest tests -q", "610 passed", "2m 46s"],
+  ["web e2e", "5 passed", "chromium"],
+  ["live API smoke", "health / ready / trace", "loopback"],
+  ["controlled replay", "7 evidence files", "4 datasets"],
+];
+
+const metricTiles = [
+  { label: "Local suite", value: "610", detail: "Python tests passed", icon: CheckCircle2 },
+  { label: "Trace smoke", value: "9", detail: "spans returned live", icon: GitBranch },
+  { label: "Benchmarks", value: "440", detail: "query/fault pairs", icon: Gauge },
+  { label: "Boundary", value: "TRL5", detail: "candidate, local relevant env", icon: ShieldCheck },
+];
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans relative pb-32 overflow-x-hidden">
-      {/* Drafting Guidelines (Background grid is handled in globals.css) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
-        <div className="absolute top-0 bottom-0 left-[10%] w-px bg-foreground" />
-        <div className="absolute top-0 bottom-0 right-[10%] w-px bg-foreground" />
-        <div className="absolute left-0 right-0 top-[20%] h-px bg-foreground" />
-      </div>
+    <main className="min-h-screen overflow-x-hidden bg-[#050706] text-[#f4fff9]">
+      <section className="relative isolate min-h-[92svh] border-b border-white/10">
+        <img
+          src="/media/neural-network.jpg"
+          alt=""
+          className="absolute inset-0 -z-20 h-full w-full object-cover opacity-25"
+        />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_70%_20%,rgba(124,247,212,.22),transparent_34%),linear-gradient(120deg,rgba(5,7,6,.92),rgba(5,7,6,.72)_45%,rgba(5,7,6,.95))]" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.045)_1px,transparent_1px)] bg-[size:64px_64px]" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-32">
-        {/* Top Info Block */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-24 text-xs font-mono uppercase tracking-widest border-t border-b border-foreground/20 py-4 crosshair-corner crosshair-tl crosshair-tr crosshair-bl crosshair-br">
-          <div className="col-span-1 md:col-span-2">
-            <h1 className="text-3xl md:text-5xl font-bold tracking-tighter mb-2">DRIFTGUARDX.</h1>
-            <p className="text-muted">THE AWARD-WINNING<br/>RAG RELIABILITY PLATFORM</p>
+        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
+          <Link href="/" className="font-mono text-xs uppercase tracking-[.28em] text-[#7cf7d4]">
+            DriftGuard-X
+          </Link>
+          <div className="hidden items-center gap-6 font-mono text-[10px] uppercase tracking-[.16em] text-[#a8c8bd] md:flex">
+            <Link href="/dashboard" className="hover:text-white">Console</Link>
+            <Link href="/runs" className="hover:text-white">Runs</Link>
+            <Link href="/replay" className="hover:text-white">Replay</Link>
+            <Link href="/security" className="hover:text-white">Security</Link>
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between">
-              <span className="text-muted">TYPE</span>
-              <span>DATA RELIABILITY INFRASTRUCTURE</span>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 border border-[#7cf7d4]/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[.14em] text-[#7cf7d4] transition hover:bg-[#7cf7d4] hover:text-[#06100e]"
+          >
+            Open control plane <ArrowRight size={13} />
+          </Link>
+        </nav>
+
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 pb-16 pt-14 md:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:pt-24">
+          <div>
+            <div className="mb-5 inline-flex items-center gap-3 border border-white/15 bg-white/[.03] px-3 py-2 font-mono text-[10px] uppercase tracking-[.18em] text-[#f5b849]">
+              <span className="h-2 w-2 bg-[#f5b849]" />
+              TRL5 candidate
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted">FOCUS</span>
-              <span>AGENTIC RAG TRACING</span>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-muted">SYSTEMS</span>
-            <span>001 INITIALIZE CORE SYSTEM</span>
-            <span>002 LOAD AI MODELS</span>
-            <span>003 CONFIGURE DATA PIPELINES</span>
-          </div>
-        </div>
-
-        {/* Hero Illustration */}
-        <div className="relative w-full aspect-video border border-foreground/20 bg-[#F4F4F0] flex items-center justify-center overflow-hidden crosshair-corner crosshair-tl crosshair-tr crosshair-bl crosshair-br mb-24">
-          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice">
-            {/* Architectural structural lines */}
-            <g stroke="#090B0A" strokeWidth="1" opacity="0.3" fill="none">
-              <rect x="250" y="100" width="500" height="300" />
-              <rect x="300" y="150" width="400" height="200" />
-              <line x1="250" y1="250" x2="750" y2="250" />
-              <line x1="500" y1="100" x2="500" y2="400" />
-              <line x1="0" y1="350" x2="1000" y2="350" />
-              {/* Stairs/abstract blocks */}
-              <path d="M 200 400 L 250 400 L 250 350" />
-              <path d="M 150 450 L 200 450 L 200 400" />
-              <path d="M 100 500 L 150 500 L 150 450" />
-            </g>
-            
-            {/* Red accent line running through architecture */}
-            <line x1="0" y1="250" x2="1000" y2="250" stroke="#FF2400" strokeWidth="1.5" className="animate-draw" />
-          </svg>
-
-          {/* Interactive Red Markers */}
-          <div className="absolute top-[30%] left-[35%] group">
-            <div className="red-square" />
-            <div className="absolute left-6 top-0 w-64 bg-background border border-foreground p-3 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-              <p className="mono font-bold border-b border-foreground/20 pb-1 mb-2">DGX [01]</p>
-              <p className="text-xs">Data Drift Detected in Embedding Space. Replaying counterfactuals to isolate the root cause.</p>
-            </div>
-          </div>
-
-          <div className="absolute top-[65%] left-[60%] group">
-            <div className="red-square" />
-            <div className="absolute left-6 top-0 w-64 bg-background border border-foreground p-3 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-              <p className="mono font-bold border-b border-foreground/20 pb-1 mb-2">DGX [02]</p>
-              <p className="text-xs">Policy Violation: Unsafe output identified. Initiating recovery gate and blocking response.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Big Statement Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start gap-12 border-b border-foreground/20 pb-24 relative crosshair-corner crosshair-bl crosshair-br">
-          <Plus className="absolute -left-3 -top-3 text-muted" size={24} strokeWidth={1} />
-          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-none uppercase max-w-3xl">
-            An AI agent that works inside your data pipelines
-          </h2>
-          <div className="max-w-sm flex flex-col gap-6">
-            <p className="text-lg leading-tight">
-              DriftGuardX reviews your causal graphs, identifies drift, and proposes counterfactuals. Upon approval, it recovers automatically. The concept crafted for data reliability teams.
+            <h1 className="max-w-5xl text-5xl font-semibold leading-[.92] tracking-[-.06em] text-white md:text-7xl xl:text-8xl">
+              Real-time reliability infrastructure for agentic RAG.
+            </h1>
+            <p className="mt-7 max-w-2xl text-base leading-7 text-[#b7d1c8] md:text-lg">
+              DriftGuard-X traces failures, verifies replay admission receipts, blocks unsafe remediation,
+              and keeps every result attached to its evidence class. Built as a local relevant-environment
+              prototype with measured validation, not unchecked automation.
             </p>
-            <Link href="/dashboard" className="mono inline-flex items-center gap-2 link-underline w-fit group">
-              DISCOVER MORE <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center gap-2 bg-[#7cf7d4] px-5 py-3 font-mono text-xs uppercase tracking-[.14em] text-[#06100e] transition hover:bg-white"
+              >
+                Open control plane <ArrowRight size={15} />
+              </Link>
+              <Link
+                href="/replay"
+                className="inline-flex items-center justify-center gap-2 border border-white/18 px-5 py-3 font-mono text-xs uppercase tracking-[.14em] text-white transition hover:border-[#f5b849] hover:text-[#f5b849]"
+              >
+                Trigger replay lab <Activity size={15} />
+              </Link>
+            </div>
           </div>
-        </div>
 
-        {/* Iterations Bar */}
-        <div className="flex justify-between items-center py-4 border-b border-foreground/20 overflow-x-auto whitespace-nowrap mono text-muted">
-          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FASTER ITERATIONS</span>
-          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FEWER MISTAKES</span>
-          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> LESS BUSYWORK</span>
-          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FASTER ITERATIONS</span>
-          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full border border-muted" /> FEWER MISTAKES</span>
-        </div>
+          <div className="grid gap-4">
+            <div className="border border-white/12 bg-[#07110f]/86 p-4 shadow-2xl shadow-black/40">
+              <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="font-mono text-[10px] uppercase tracking-[.18em] text-[#7cf7d4]">Terminal</div>
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.16em] text-[#a8c8bd]">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7cf7d4]" /> local relevant env
+                </div>
+              </div>
+              <pre className="overflow-hidden font-mono text-[11px] leading-6 text-[#dffdf3]">
+{`$ dgx verify-local
+✓ authenticated API smoke
+✓ receipt mismatch refusal
+✓ replay boundary enforced
+✓ Playwright console checks
+✓ evidence class retained
 
-        {/* Second Visual Area */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-24">
-          <div className="relative aspect-square border border-foreground/20 p-8 flex flex-col justify-between">
-            <h3 className="text-4xl font-bold uppercase tracking-tighter leading-none">
-              The repetitive parts of monitoring shouldn't eat your day.
-            </h3>
-            <div className="absolute inset-0 z-0 opacity-10 flex items-center justify-center overflow-hidden pointer-events-none">
-                <svg viewBox="0 0 100 100" className="w-full h-full scale-150">
-                    <circle cx="50" cy="50" r="40" stroke="#090B0A" strokeWidth="0.5" fill="none" />
-                    <circle cx="50" cy="50" r="30" stroke="#090B0A" strokeWidth="0.5" fill="none" />
-                    <line x1="50" y1="0" x2="50" y2="100" stroke="#090B0A" strokeWidth="0.5" />
-                    <line x1="0" y1="50" x2="100" y2="50" stroke="#090B0A" strokeWidth="0.5" />
-                </svg>
+admission.store     durable
+executor.dispatch   guarded
+audit.chain         append-only`}
+              </pre>
             </div>
-            
-            <div className="relative z-10 bg-accent text-background w-32 h-32 rounded-full flex items-center justify-center self-end mix-blend-multiply">
-              {/* Red Circle Accent purely for visual weight */}
-            </div>
-            
-            <Link href="/dashboard" className="mono inline-flex items-center gap-2 link-underline w-fit mt-8 z-10">
-              LEARN MORE <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="border border-foreground/20 relative p-8 crosshair-corner crosshair-tl crosshair-br">
-            <div className="absolute top-4 left-4 red-square" />
-            <div className="absolute bottom-4 right-4 red-square" />
-            <p className="mono mb-4">[02]</p>
-            <h3 className="text-2xl font-bold uppercase mb-8">DGX DASHBOARD</h3>
-            <div className="w-full h-64 border border-foreground/10 bg-white shadow-sm flex flex-col p-4 relative overflow-hidden">
-               <div className="flex justify-between border-b border-foreground/10 pb-2 mb-4 mono">
-                  <span>ACTIVE SPANS: 18.2K</span>
-                  <span className="text-accent flex items-center gap-1"><div className="w-2 h-2 bg-accent rounded-full animate-pulse"/> LIVE</span>
-               </div>
-               <div className="flex-1 border-l-2 border-accent pl-4 flex flex-col justify-center gap-4">
-                  <div className="h-2 w-3/4 bg-foreground/10" />
-                  <div className="h-2 w-1/2 bg-foreground/10" />
-                  <div className="h-2 w-5/6 bg-foreground/10" />
-               </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {metricTiles.map(({ label, value, detail, icon: Icon }) => (
+                <div key={label} className="border border-white/12 bg-white/[.035] p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] uppercase tracking-[.18em] text-[#8eb1a5]">{label}</span>
+                    <Icon size={15} className="text-[#f5b849]" />
+                  </div>
+                  <div className="mt-5 text-4xl font-semibold tracking-[-.06em] text-white">{value}</div>
+                  <div className="mt-1 font-mono text-[10px] text-[#9fb9af]">{detail}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-6 px-5 py-14 md:px-8 lg:grid-cols-[.8fr_1.2fr]">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[.22em] text-[#7cf7d4]">Validation evidence</div>
+          <h2 className="mt-3 max-w-xl text-3xl font-semibold tracking-[-.04em] text-white md:text-5xl">
+            The system shows its work before it claims recovery.
+          </h2>
+          <p className="mt-5 max-w-lg text-sm leading-6 text-[#9fb9af]">
+            TRL4/TRL5 readiness here means local integration evidence: API service smoke,
+            full automated test coverage, controlled replay datasets, and refusal behavior
+            under stale or mismatched state. Production deployment is still a separate gate.
+          </p>
+        </div>
+        <div className="border border-white/12 bg-[#07110f]">
+          {proofRows.map(([command, result, context], index) => (
+            <div key={command} className="grid grid-cols-[1fr_auto] gap-4 border-b border-white/10 p-4 last:border-b-0 md:grid-cols-[1fr_150px_110px]">
+              <div className="font-mono text-[11px] text-[#dffdf3]">{command}</div>
+              <div className="font-mono text-[11px] text-[#7cf7d4]">{result}</div>
+              <div className="hidden font-mono text-[10px] uppercase tracking-[.12em] text-[#8eb1a5] md:block">{context}</div>
+              <div className="col-span-2 h-1 bg-white/8 md:col-span-3">
+                <div
+                  className="h-full bg-[#7cf7d4]"
+                  style={{ width: `${index === 0 ? 100 : index === 1 ? 86 : index === 2 ? 74 : 68}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-white/10 bg-[#f1f0e8] px-5 py-14 text-[#07110f] md:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-3">
+          {[
+            ["State-bound admission", "Durable receipts are issued, verified, consumed, released, voided, and refused under mismatch."],
+            ["Controlled replay", "SciFact, ArguAna, NFCorpus, and FiQA artifacts separate oracle priors from unbiased strategies."],
+            ["Real-time console", "The UI surfaces live service status, evidence class, provider mesh, and benchmark boundaries."],
+          ].map(([title, body]) => (
+            <div key={title} className="border border-[#07110f]/18 bg-white p-6">
+              <Cpu size={18} className="text-[#ff4b26]" />
+              <h3 className="mt-5 text-xl font-semibold tracking-[-.03em]">{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-[#4b5a54]">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }

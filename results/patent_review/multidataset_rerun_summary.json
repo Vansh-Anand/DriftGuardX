@@ -1,0 +1,1090 @@
+{
+  "verification": "internal_hash_and_protocol_consistency_only",
+  "experiments": [
+    {
+      "path": "results/patent_review/scifact_rerun_seed42.json",
+      "file_sha256": "51b62c465b3c366312e3d7fc4c229a86d6382f324336bb8672e92fecf4a3b99f",
+      "manifest_sha256": "f67335626497f2caa80f338397444cee699994126af241baaab80d955f02fece",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 42,
+      "dataset": {
+        "name": "BEIR/scifact",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
+        "document_count": 5183,
+        "query_count": 1109,
+        "evaluated_query_count": 30,
+        "file_sha256": {
+          "corpus.jsonl": "dec31c8182f3d744c7d2c09423756fd1d17cbef75808db13ba01cc0aab4d1ac6",
+          "queries.jsonl": "8ff84a7c903f722981cd8d595c022660140c51867b27608a6d4910db86080313",
+          "qrels/test.tsv": "0864bb985e0ca2367ba217977e72004d549054b2b06666ed9d4825ac7c21284c"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "malformed_query": 28,
+        "low_recall_cutoff": 13,
+        "relevant_document_tombstone": 30,
+        "stale_idf": 4
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 75,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.68,
+          "mean_elapsed_ms": 27.388114666666667
+        },
+        "bcrb_oracle_prior": {
+          "n": 75,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 11.777494666666666
+        },
+        "bcrb_wrong_prior": {
+          "n": 75,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.8533333333333335,
+          "mean_elapsed_ms": 29.555276
+        },
+        "fixed_order": {
+          "n": 75,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.68,
+          "mean_elapsed_ms": 25.638545333333333
+        },
+        "random": {
+          "n": 75,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.453333333333333,
+          "mean_elapsed_ms": 22.42689466666667
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.32222222222222224,
+          "paired_bootstrap_ci95_low": 0.1055555555555556,
+          "paired_bootstrap_ci95_high": 0.55,
+          "paired_randomization_p_value": 0.009999000099990002,
+          "treatment_better_rate": 0.23333333333333334,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": -1.7944444444444445,
+          "paired_bootstrap_ci95_low": -1.9611111111111112,
+          "paired_bootstrap_ci95_high": -1.638888888888889,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": -1.472222222222222,
+          "paired_bootstrap_ci95_low": -1.6666666666666667,
+          "paired_bootstrap_ci95_high": -1.2805555555555554,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.13611111111111102,
+          "paired_bootstrap_ci95_low": 0.0805555555555555,
+          "paired_bootstrap_ci95_high": 0.19444444444444428,
+          "paired_randomization_p_value": 0.00029997000299970003,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.45833333333333326,
+          "paired_bootstrap_ci95_low": 0.25,
+          "paired_bootstrap_ci95_high": 0.6777777777777777,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.1,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "scifact qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    },
+    {
+      "path": "results/patent_review/scifact_rerun_seed7.json",
+      "file_sha256": "267aa4f83f870f030428f6ae500d51463de3b74cf2d62f5211800315d5921e31",
+      "manifest_sha256": "85618b2dac7253d58784b9b2f5a1d7a8b7e46a841183ef614b846a5a482a6b01",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 7,
+      "dataset": {
+        "name": "BEIR/scifact",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
+        "document_count": 5183,
+        "query_count": 1109,
+        "evaluated_query_count": 30,
+        "file_sha256": {
+          "corpus.jsonl": "dec31c8182f3d744c7d2c09423756fd1d17cbef75808db13ba01cc0aab4d1ac6",
+          "queries.jsonl": "8ff84a7c903f722981cd8d595c022660140c51867b27608a6d4910db86080313",
+          "qrels/test.tsv": "0864bb985e0ca2367ba217977e72004d549054b2b06666ed9d4825ac7c21284c"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "malformed_query": 28,
+        "relevant_document_tombstone": 30,
+        "low_recall_cutoff": 12,
+        "stale_idf": 2
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 72,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.6805555555555554,
+          "mean_elapsed_ms": 24.617293055555557
+        },
+        "bcrb_oracle_prior": {
+          "n": 72,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 10.932697222222222
+        },
+        "bcrb_wrong_prior": {
+          "n": 72,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.8472222222222223,
+          "mean_elapsed_ms": 26.666334722222224
+        },
+        "fixed_order": {
+          "n": 72,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.6805555555555554,
+          "mean_elapsed_ms": 26.124290277777774
+        },
+        "random": {
+          "n": 72,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.5833333333333335,
+          "mean_elapsed_ms": 22.8868375
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.17777777777777784,
+          "paired_bootstrap_ci95_low": -0.0777777777777777,
+          "paired_bootstrap_ci95_high": 0.4444444444444445,
+          "paired_randomization_p_value": 0.1917808219178082,
+          "treatment_better_rate": 0.36666666666666664,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": -1.7611111111111113,
+          "paired_bootstrap_ci95_low": -1.9055555555555554,
+          "paired_bootstrap_ci95_high": -1.6277777777777778,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": -1.5833333333333333,
+          "paired_bootstrap_ci95_low": -1.8111111111111111,
+          "paired_bootstrap_ci95_high": -1.3444444444444446,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.9333333333333333,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.13611111111111102,
+          "paired_bootstrap_ci95_low": 0.07777777777777771,
+          "paired_bootstrap_ci95_high": 0.19999999999999984,
+          "paired_randomization_p_value": 0.0010998900109989002,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 30,
+          "mean_delta": 0.3138888888888889,
+          "paired_bootstrap_ci95_low": 0.07499999999999994,
+          "paired_bootstrap_ci95_high": 0.5694444444444444,
+          "paired_randomization_p_value": 0.0221977802219778,
+          "treatment_better_rate": 0.26666666666666666,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "scifact qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    },
+    {
+      "path": "results/patent_review/arguana_rerun_seed42.json",
+      "file_sha256": "18a910c52df8c98255b604b92a2352cfaf5206d1e76d179c04d35b6f7eaeba00",
+      "manifest_sha256": "ff769905b7d61e524d79be0f6f01fd62bd82db9a2616762585c4f66ccfc73399",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 42,
+      "dataset": {
+        "name": "BEIR/arguana",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/arguana.zip",
+        "document_count": 8674,
+        "query_count": 1406,
+        "evaluated_query_count": 20,
+        "file_sha256": {
+          "corpus.jsonl": "0627982cec4ee896df6dc98604ef6b499c83fd87a19eaaeb3f23b88bbef6cbce",
+          "queries.jsonl": "f8b7c903f95d9a2d291de3915a8fac25085e9db679f19f59fea4145bfd1df618",
+          "qrels/test.tsv": "0c47b481fa8b47fb9ca5e74bc8a017bdea14518c0e4a5d21345291180b3aca76"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "malformed_query": 19,
+        "relevant_document_tombstone": 20,
+        "low_recall_cutoff": 20,
+        "stale_idf": 10
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.289855072463768,
+          "mean_elapsed_ms": 375.86122173913043
+        },
+        "bcrb_oracle_prior": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 191.6396536231884
+        },
+        "bcrb_wrong_prior": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.579710144927536,
+          "mean_elapsed_ms": 471.94219130434783
+        },
+        "fixed_order": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.289855072463768,
+          "mean_elapsed_ms": 415.6496420289855
+        },
+        "random": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.739130434782609,
+          "mean_elapsed_ms": 467.3859927536232
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -0.4541666666666666,
+          "paired_bootstrap_ci95_low": -0.7,
+          "paired_bootstrap_ci95_high": -0.20833333333333326,
+          "paired_randomization_p_value": 0.0034996500349965005,
+          "treatment_better_rate": 0.7,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.3,
+          "paired_bootstrap_ci95_low": -1.375,
+          "paired_bootstrap_ci95_high": -1.2166666666666668,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.7541666666666669,
+          "paired_bootstrap_ci95_low": -2.0125,
+          "paired_bootstrap_ci95_high": -1.4958333333333333,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.2999999999999999,
+          "paired_bootstrap_ci95_low": 0.2749999999999999,
+          "paired_bootstrap_ci95_high": 0.3291666666666665,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -0.15416666666666673,
+          "paired_bootstrap_ci95_low": -0.4000000000000001,
+          "paired_bootstrap_ci95_high": 0.09166666666666659,
+          "paired_randomization_p_value": 0.24427557244275572,
+          "treatment_better_rate": 0.55,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "arguana qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    },
+    {
+      "path": "results/patent_review/arguana_rerun_seed7.json",
+      "file_sha256": "06f7a76d9cee42519f2baec564a8abae1545a19b931dde36220eddd92b67db7a",
+      "manifest_sha256": "575be4fc8b89ae4247b406274b922c3aff869d283e4ace00ca4bc8d7570bf89b",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 7,
+      "dataset": {
+        "name": "BEIR/arguana",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/arguana.zip",
+        "document_count": 8674,
+        "query_count": 1406,
+        "evaluated_query_count": 20,
+        "file_sha256": {
+          "corpus.jsonl": "0627982cec4ee896df6dc98604ef6b499c83fd87a19eaaeb3f23b88bbef6cbce",
+          "queries.jsonl": "f8b7c903f95d9a2d291de3915a8fac25085e9db679f19f59fea4145bfd1df618",
+          "qrels/test.tsv": "0c47b481fa8b47fb9ca5e74bc8a017bdea14518c0e4a5d21345291180b3aca76"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "low_recall_cutoff": 20,
+        "relevant_document_tombstone": 20,
+        "stale_idf": 9,
+        "malformed_query": 20
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.3043478260869565,
+          "mean_elapsed_ms": 292.2972362318841
+        },
+        "bcrb_oracle_prior": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 140.1241927536232
+        },
+        "bcrb_wrong_prior": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.5942028985507246,
+          "mean_elapsed_ms": 330.5705739130435
+        },
+        "fixed_order": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.3043478260869565,
+          "mean_elapsed_ms": 298.0244173913044
+        },
+        "random": {
+          "n": 69,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.5072463768115942,
+          "mean_elapsed_ms": 311.88396521739134
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -0.19583333333333325,
+          "paired_bootstrap_ci95_low": -0.4374999999999999,
+          "paired_bootstrap_ci95_high": 0.02083333333333346,
+          "paired_randomization_p_value": 0.1342865713428657,
+          "treatment_better_rate": 0.5,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.3083333333333333,
+          "paired_bootstrap_ci95_low": -1.3750000000000002,
+          "paired_bootstrap_ci95_high": -1.2333333333333334,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.5041666666666667,
+          "paired_bootstrap_ci95_low": -1.7375,
+          "paired_bootstrap_ci95_high": -1.3,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.29583333333333317,
+          "paired_bootstrap_ci95_low": 0.27916666666666656,
+          "paired_bootstrap_ci95_high": 0.3124999999999998,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.09999999999999992,
+          "paired_bootstrap_ci95_low": -0.14166666666666677,
+          "paired_bootstrap_ci95_high": 0.3208333333333333,
+          "paired_randomization_p_value": 0.4393560643935606,
+          "treatment_better_rate": 0.25,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "arguana qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    },
+    {
+      "path": "results/patent_review/nfcorpus_rerun_seed42.json",
+      "file_sha256": "bb846d0095af87554fe9cd13cf24b2fc85ab3ee8f0e40a16d9d7e46fe4968b56",
+      "manifest_sha256": "0e2c587175b05a89c018ce7ed1f92d31697812bf721b7ab838f846c115ef815e",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 42,
+      "dataset": {
+        "name": "BEIR/nfcorpus",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/nfcorpus.zip",
+        "document_count": 3633,
+        "query_count": 3237,
+        "evaluated_query_count": 20,
+        "file_sha256": {
+          "corpus.jsonl": "10cc83ef1826b1425e6a87090b5140b39b27755d5a27e48215a88611c899991f",
+          "queries.jsonl": "d024e6621b84925d485ae473d316a0c3af31c62c8068a59fb29d22f7613aef2a",
+          "qrels/test.tsv": "f8fba6ef3d4dd9c3a242a8ba4ae38276fc3622fce7dcbae764766d564542fd2a"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "relevant_document_tombstone": 20,
+        "low_recall_cutoff": 17,
+        "stale_idf": 8,
+        "malformed_query": 20
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 65,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.3230769230769233,
+          "mean_elapsed_ms": 2.5347215384615387
+        },
+        "bcrb_oracle_prior": {
+          "n": 65,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 1.1607784615384615
+        },
+        "bcrb_wrong_prior": {
+          "n": 65,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.5846153846153848,
+          "mean_elapsed_ms": 2.812516923076923
+        },
+        "fixed_order": {
+          "n": 65,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.3230769230769233,
+          "mean_elapsed_ms": 2.599110769230769
+        },
+        "random": {
+          "n": 65,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.4615384615384617,
+          "mean_elapsed_ms": 2.313713846153846
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -0.17083333333333323,
+          "paired_bootstrap_ci95_low": -0.4208333333333332,
+          "paired_bootstrap_ci95_high": 0.06666666666666672,
+          "paired_randomization_p_value": 0.2081791820817918,
+          "treatment_better_rate": 0.5,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.3583333333333334,
+          "paired_bootstrap_ci95_low": -1.4833333333333334,
+          "paired_bootstrap_ci95_high": -1.25,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.5291666666666666,
+          "paired_bootstrap_ci95_low": -1.8083333333333331,
+          "paired_bootstrap_ci95_high": -1.2791666666666666,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.25416666666666654,
+          "paired_bootstrap_ci95_low": 0.19999999999999987,
+          "paired_bootstrap_ci95_high": 0.2999999999999998,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.08333333333333329,
+          "paired_bootstrap_ci95_low": -0.1625000000000001,
+          "paired_bootstrap_ci95_high": 0.31249999999999994,
+          "paired_randomization_p_value": 0.528047195280472,
+          "treatment_better_rate": 0.3,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "nfcorpus qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    },
+    {
+      "path": "results/patent_review/nfcorpus_rerun_seed7.json",
+      "file_sha256": "4e652c36f9f9aaa2ac1ee7932a07b67ca5652738d2ba526a43bc97773663e00c",
+      "manifest_sha256": "7c9464ff44d0d7f440d7968a06b082f45125404d4f936eb1143695459bb5f758",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 7,
+      "dataset": {
+        "name": "BEIR/nfcorpus",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/nfcorpus.zip",
+        "document_count": 3633,
+        "query_count": 3237,
+        "evaluated_query_count": 20,
+        "file_sha256": {
+          "corpus.jsonl": "10cc83ef1826b1425e6a87090b5140b39b27755d5a27e48215a88611c899991f",
+          "queries.jsonl": "d024e6621b84925d485ae473d316a0c3af31c62c8068a59fb29d22f7613aef2a",
+          "qrels/test.tsv": "f8fba6ef3d4dd9c3a242a8ba4ae38276fc3622fce7dcbae764766d564542fd2a"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "malformed_query": 19,
+        "relevant_document_tombstone": 20,
+        "low_recall_cutoff": 16,
+        "stale_idf": 2
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 57,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.4210526315789473,
+          "mean_elapsed_ms": 1.5864421052631579
+        },
+        "bcrb_oracle_prior": {
+          "n": 57,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 0.7294877192982456
+        },
+        "bcrb_wrong_prior": {
+          "n": 57,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.7017543859649122,
+          "mean_elapsed_ms": 1.7127754385964913
+        },
+        "fixed_order": {
+          "n": 57,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.4210526315789473,
+          "mean_elapsed_ms": 1.54430350877193
+        },
+        "random": {
+          "n": 57,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.245614035087719,
+          "mean_elapsed_ms": 1.2870175438596492
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.2375000000000001,
+          "paired_bootstrap_ci95_low": -0.05833333333333325,
+          "paired_bootstrap_ci95_high": 0.5333333333333334,
+          "paired_randomization_p_value": 0.1441855814418558,
+          "treatment_better_rate": 0.25,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.4666666666666668,
+          "paired_bootstrap_ci95_low": -1.6,
+          "paired_bootstrap_ci95_high": -1.35,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": -1.2291666666666665,
+          "paired_bootstrap_ci95_low": -1.5,
+          "paired_bootstrap_ci95_high": -0.9625,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.95,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.2666666666666665,
+          "paired_bootstrap_ci95_low": 0.19999999999999987,
+          "paired_bootstrap_ci95_high": 0.32499999999999973,
+          "paired_randomization_p_value": 9.999000099990002e-05,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 20,
+          "mean_delta": 0.5041666666666667,
+          "paired_bootstrap_ci95_low": 0.2166666666666665,
+          "paired_bootstrap_ci95_high": 0.7958333333333332,
+          "paired_randomization_p_value": 0.0034996500349965005,
+          "treatment_better_rate": 0.15,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "nfcorpus qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    },
+    {
+      "path": "results/patent_review/fiqa_rerun_seed42.json",
+      "file_sha256": "be15cf5eeba4d41a6e35cf5304bc37ae10ffd1442d735dd1ea6ded993b564de6",
+      "manifest_sha256": "04803ec0d4c903265c41e79576c8d76be5451640e9a951023ff9e960e192dd1e",
+      "evidence_class": "REAL_CONTROLLED_EXPERIMENT",
+      "seed": 42,
+      "dataset": {
+        "name": "BEIR/fiqa",
+        "split": "test",
+        "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/fiqa.zip",
+        "document_count": 57638,
+        "query_count": 6648,
+        "evaluated_query_count": 10,
+        "file_sha256": {
+          "corpus.jsonl": "ff593e4df9933955dc3af83be0c3fa28ac7465f627e08c2e53593e734d506517",
+          "queries.jsonl": "eede1e61d4a0188940239b53ebc2da91f577a6a34679c812d1eb9090c29877bc",
+          "qrels/test.tsv": "6adc2a640dcdd22bb8b3858f89107adef2a7c3db20a63550dfa7a0f71e379e44"
+        }
+      },
+      "source": {
+        "commit": "8097ac315e2a3e4cc7db7fa160778fc7dc4d62eb",
+        "dirty": true,
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "implementation_file_sha256": {
+          "apps/cli/run_controlled_replay_benchmark.py": "bebde36383df8a39f92c0576a22089d5a0736bafb34f0393f84b379658080bd8",
+          "packages/contracts/src/evidence.py": "0dd4d9e1f9f958c530c2d8141bd98b5eb6745d83aa90f2c1b12c9ab5e44be741",
+          "packages/evaluation/src/bandit_baselines.py": "7ba8e1046201420ebb7137c258076d5a2ec956210c2460a3745ce134e43d12b8",
+          "packages/rag_benchmark/src/controlled_replay.py": "048b805db7f6f18a90dbcb4cebef58331bba206f226b9eb979a441b63fb6a10d",
+          "packages/replay/src/bandit.py": "eb303c78606269dff46c354d300b2f83cee812d7beabc4fdd3910a5f651fb06c",
+          "scripts/download_beir.py": "fe53f9e8e3057e0b61a20ec6d10afa1b8a1800c2ed16963dd8a60a66eaa0db44"
+        }
+      },
+      "fault_pair_counts": {
+        "relevant_document_tombstone": 10,
+        "low_recall_cutoff": 7,
+        "malformed_query": 10,
+        "stale_idf": 6
+      },
+      "aggregates": {
+        "bcrb_uniform_prior": {
+          "n": 33,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.393939393939394,
+          "mean_elapsed_ms": 361.4600212121212
+        },
+        "bcrb_oracle_prior": {
+          "n": 33,
+          "recovery_rate": 1.0,
+          "mean_replays": 1.0,
+          "mean_elapsed_ms": 156.95329393939394
+        },
+        "bcrb_wrong_prior": {
+          "n": 33,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.606060606060606,
+          "mean_elapsed_ms": 375.6448484848485
+        },
+        "fixed_order": {
+          "n": 33,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.393939393939394,
+          "mean_elapsed_ms": 329.5059818181818
+        },
+        "random": {
+          "n": 33,
+          "recovery_rate": 1.0,
+          "mean_replays": 2.1818181818181817,
+          "mean_elapsed_ms": 317.16235757575754
+        }
+      },
+      "statistical_comparisons": {
+        "bcrb_uniform_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 10,
+          "mean_delta": 0.0,
+          "paired_bootstrap_ci95_low": 0.0,
+          "paired_bootstrap_ci95_high": 0.0,
+          "paired_randomization_p_value": 1.0,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_uniform_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 10,
+          "mean_delta": 0.3083333333333334,
+          "paired_bootstrap_ci95_low": -0.22499999999999995,
+          "paired_bootstrap_ci95_high": 0.9,
+          "paired_randomization_p_value": 0.33686631336866313,
+          "treatment_better_rate": 0.4,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 10,
+          "mean_delta": -1.4333333333333333,
+          "paired_bootstrap_ci95_low": -1.65,
+          "paired_bootstrap_ci95_high": -1.25,
+          "paired_randomization_p_value": 0.0013998600139986002,
+          "treatment_better_rate": 1.0,
+          "resamples": 10000
+        },
+        "bcrb_oracle_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 10,
+          "mean_delta": -1.125,
+          "paired_bootstrap_ci95_low": -1.575,
+          "paired_bootstrap_ci95_high": -0.6916666666666667,
+          "paired_randomization_p_value": 0.0034996500349965005,
+          "treatment_better_rate": 0.9,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_fixed_order": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 10,
+          "mean_delta": 0.1999999999999999,
+          "paired_bootstrap_ci95_low": 0.10833333333333331,
+          "paired_bootstrap_ci95_high": 0.2749999999999999,
+          "paired_randomization_p_value": 0.013798620137986202,
+          "treatment_better_rate": 0.0,
+          "resamples": 10000
+        },
+        "bcrb_wrong_prior_vs_random": {
+          "metric": "replays_executed",
+          "direction": "lower_is_better",
+          "sampling_unit": "query_mean_across_regressing_faults",
+          "n_pairs": 10,
+          "mean_delta": 0.5083333333333333,
+          "paired_bootstrap_ci95_low": -0.008333333333333349,
+          "paired_bootstrap_ci95_high": 1.05,
+          "paired_randomization_p_value": 0.11988801119888011,
+          "treatment_better_rate": 0.3,
+          "resamples": 10000
+        }
+      },
+      "limitations": [
+        "The experiment covers retrieval and index-integrity recovery, not a full LLM or agent stack.",
+        "fiqa qrels define both evaluation relevance and the controlled tombstone fault.",
+        "The oracle prior receives the injected ground-truth repair; it is an upper-reference ablation, not learned diagnosis.",
+        "The wrong-prior ablation receives a deliberately incorrect label; the uniform prior receives no fault label.",
+        "Candidate ordering uses zero exploration and zero rewards for ordering; this is not an online learning evaluation.",
+        "Only clean-retrievable queries with regressing injected faults are included; unrecoverable workloads are not evaluated.",
+        "Results do not establish superiority for other fault families or workloads.",
+        "Elapsed time is host-specific observational telemetry; replay counts are the primary metric."
+      ]
+    }
+  ]
+}

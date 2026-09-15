@@ -1,4 +1,4 @@
-.PHONY: help install install-dev lock lock-check env migrate seed lint typecheck format test test-unit test-integration test-e2e test-security golden-demo build-api build-web up down logs clean
+.PHONY: help install install-dev lock lock-check env migrate seed lint typecheck format test test-unit test-integration test-e2e test-security golden-demo build-api build-web up down logs clean verify-local run-benchmarks
 
 PYTHON := python3
 PIP := pip
@@ -135,4 +135,13 @@ demo-diffusion: train-diffusion ## Alias for running the diffusion demo
 ci: lint format-check typecheck security-scan test ## Full CI pipeline
 
 # ─── Experiment Harness (Prompt 07) ───────────────────────────────────────────
-run-benchmarks: ## Run all causal recovery benchmarks
+verify-local: ## Run the local readiness checks that do not require services
+	$(UV) run ruff check apps packages tests
+	cd $(WEB_DIR) && npm run lint
+	cd $(WEB_DIR) && npm run build
+	$(UV) run pytest tests/unit tests/security tests/contract -q
+
+run-benchmarks: ## Run the controlled SciFact replay benchmark and verify evidence
+	$(UV) run python scripts/download_beir.py --dataset scifact
+	$(UV) run python -m apps.cli.run_controlled_replay_benchmark --dataset scifact --max-queries 100 --output results/controlled_replay/scifact_bm25.json
+	$(UV) run python scripts/verify_controlled_evidence.py results/controlled_replay/scifact_bm25.json

@@ -1,11 +1,10 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-import sqlalchemy as sa
 import pytest
+import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
-
 
 from apps.api.src.models import LegacyRecoveryCertificateORM, QuarantineRuleORM, TenantORM
 

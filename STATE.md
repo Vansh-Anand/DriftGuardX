@@ -1,6 +1,6 @@
 # Current State
 
-Updated 2026-09-09. This file restores the canonical startup status previously
+Updated 2026-09-15. This file restores the canonical startup status previously
 missing on main. See docs/ai/CONTEXT_INDEX.md for scoped navigation.
 
 ## Patent review work
@@ -79,3 +79,55 @@ Prior statements that the entire project was complete were too broad.
 - Durable admission verification now fails closed on omitted binding fields, exposes
   audit hash-chain verification, and passes six-process single-claim and
   single-finalization contention coverage.
+
+## Local readiness recheck (2026-09-15)
+
+- Branch audit: `main` remains the most advanced local branch for the latest
+  admission-control, patent-evidence, and disclosure work. It is one commit ahead
+  of `origin/main`; `release/driftguardx-v2-final` is older for these changes.
+- Fixed a release-readiness contradiction by replacing the MIT top-level license
+  text with a proprietary/confidential notice that matches `pyproject.toml` and
+  the README's patent/confidentiality posture.
+- Repaired current lint blockers in the falsification/adversarial utilities and
+  preserved existing public enum behavior by ignoring Ruff `UP042` instead of
+  mass-migrating externally serialized enum contracts to `StrEnum`.
+- Verification evidence from this machine:
+  - `python -m ruff check apps packages tests`: passed.
+  - `npm --prefix apps/web run lint`: passed.
+  - `python -m pytest tests/unit/test_admission_store.py tests/unit/test_admission_receipt.py tests/unit/test_worker_contract.py tests/contract -q`: 30 passed.
+  - `python -m pytest tests/unit tests/security tests/contract -q`: 390 passed, 2 skipped, 2 existing coroutine warnings.
+  - `npm --prefix apps/web run build`: passed and regenerated local build metadata for commit `8097ac315e2a`.
+  - `python -m pytest tests/integration -q`: 41 passed, 3 skipped, 5 existing warnings.
+  - `python -m pytest tests/e2e -q`: 161 passed, 9 skipped.
+  - `npm --prefix apps/web run test:e2e`: 5 passed.
+  - `python -m pytest tests -q`: 610 passed, 22 skipped, 7 existing warnings.
+  - Live loopback API smoke passed for health, readiness, auth refusal,
+    authenticated providers/runs, synthetic run creation, run lookup, and trace
+    retrieval with 9 spans.
+  - Real-time TRL UI refresh: landing and dashboard now expose local TRL
+    validation status, live smoke evidence, and controlled replay benchmark
+    boundaries in the web console. Playwright E2E was updated test-first and
+    passed after implementation.
+  - Visual QA screenshots captured under `output/ui/`: landing desktop, landing
+    mobile, and authenticated dashboard desktop.
+  - Controlled evidence verification rerun across seven files: SciFact seeds 42
+    and 7, ArguAna seeds 42 and 7, NFCorpus seeds 42 and 7, and FiQA seed 42.
+    The summary was written to `results/patent_review/multidataset_rerun_summary.json`.
+- Filled the previously empty `run-benchmarks` Makefile target. It now
+  materializes SciFact, runs the controlled replay benchmark, and verifies the
+  generated evidence manifest. Added `verify-local` for lint, web build, and
+  local unit/security/contract readiness checks.
+- Added `docs/TRL5_READINESS.md` with an activity-by-activity readiness matrix.
+- Environment notes: `uv run` could not be used for verification because the
+  global `uv` cache was inaccessible and the sandbox could not fetch `hatchling`
+  from PyPI. The existing checked local virtual environment was used instead.
+  Windows process-spawn permissions were required for the multiprocessing
+  admission-store test, Next.js TypeScript/static-generation phase, and
+  Playwright browser/server process. GNU Make is not installed on this Windows
+  host, so Makefile targets were not dry-run here even though their underlying
+  commands were checked or already match CI/workflow commands.
+- Remaining gates before any production or patent-filing claim are unchanged in
+  substance: clean hosted CI for the exact pushed revision, second clean
+  environment reproduction, shared transactional backend stress for admission
+  receipts, broader controlled-real fault experiments, independent
+  red-team/falsification review, and India patent-agent review.

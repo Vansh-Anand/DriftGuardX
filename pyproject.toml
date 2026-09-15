@@ -85,7 +85,7 @@ ignore = [
     "ANN",     # too many missing annotations to fix right now
     "E501",    # line too long
     "TCH",     # SQLAlchemy 2.0 needs types at runtime for Mapped[]
-    "B", "RUF", "SIM", "S", "N", "E402", "E701", "E722", "F401", "F821"
+    "B", "RUF", "SIM", "S", "N", "E402", "E701", "E722", "F401", "F821", "UP042"
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1,6 +1,9 @@
 import uuid
+
 import pytest
+
 from packages.replay.src.adversarial import CyclicPoisoner
+
 
 class MockRetriever:
     def __init__(self):
@@ -11,6 +14,7 @@ class MockRetriever:
 
     def retrieve(self):
         return list(self.documents.values())
+
 
 @pytest.mark.asyncio
 async def test_prompt_injection_detection():
@@ -40,6 +44,7 @@ async def test_memory_poisoning_isolation():
 
     assert tenant_A != tenant_B
 
+
 @pytest.mark.asyncio
 async def test_cyclic_poisoning():
     """
@@ -48,13 +53,13 @@ async def test_cyclic_poisoning():
     """
     mock_retriever = MockRetriever()
     poisoner = CyclicPoisoner(target_retriever=mock_retriever)
-    
+
     # Pre-poison check
     assert len(mock_retriever.retrieve()) == 0
-    
+
     poisoner.trigger_cycle()
     poisoner.poison_on_generation("Malicious payload generator output")
-    
+
     docs = mock_retriever.retrieve()
     assert len(docs) == 1
     assert "POISONED FEEDBACK: Malicious payload generator output" in docs[0]
