@@ -221,6 +221,9 @@ async def test_golden_e2e_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                     evidence_ceiling=EvidenceClassification.SYNTHETIC_SIMULATION,
                     capsule_hash="",
                     expires_at=datetime.now(UTC) + timedelta(minutes=10),
+                    workload_id=str(run_orm.pipeline_id),
+                    run_id=str(run_id),
+                    resource_pool_id=f"tenant:{tenant_id}:replay",
                 )
                 AdmissionReceiptStore().issue(admission_receipt)
 

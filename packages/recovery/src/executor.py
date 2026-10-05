@@ -168,9 +168,9 @@ class RecoveryExecutor(abc.ABC):
         if not proposal.admission_receipt_id:
             raise ValueError("Remediation refused: durable admission receipt is required.")
 
-        from packages.replay.src.admission_store import AdmissionReceiptStore
+        from packages.replay.src.admission_store import get_admission_receipt_store
 
-        store = AdmissionReceiptStore()
+        store = get_admission_receipt_store()
         actual = {"tenant_id": proposal.tenant_id, **proposal.admission_binding}
         admitted, reason = store.verify(proposal.admission_receipt_id, actual=actual)
         if not admitted:

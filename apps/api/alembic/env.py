@@ -26,6 +26,7 @@ APPLICATION_ROOT = Path(__file__).resolve().parents[3]
 if str(APPLICATION_ROOT) not in sys.path:
     sys.path.insert(0, str(APPLICATION_ROOT))
 
+import apps.api.src.models_admission
 import apps.api.src.models_bandit
 import apps.api.src.models_graph
 import apps.api.src.models_ingestion

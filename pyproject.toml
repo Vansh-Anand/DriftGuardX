@@ -117,6 +117,7 @@ module = [
     "cloudpickle.*", "datasets.*", "docker.*", "matplotlib.*", "mlflow.*",
     "openai.*", "presidio_analyzer.*", "psutil.*", "ragas.*", "scipy.*",
     "seaborn.*", "sentence_transformers.*", "torch.*", "torch_geometric.*",
+    "psycopg2.*",
 ]
 ignore_missing_imports = true
 

@@ -4,7 +4,12 @@ import pytest
 
 from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.interfaces import ResourceContext, ResourceMeasurement
-from packages.replay.src.admission_receipt import ReceiptStatus, ReplayAdmissionReceipt
+from packages.ledger.src.crypto import DevelopmentSigner
+from packages.replay.src.admission_receipt import (
+    AdmissionReceiptV1,
+    ReceiptStatus,
+    ReplayAdmissionReceipt,
+)
 
 
 def _issue(context: ResourceContext, **overrides: object) -> ReplayAdmissionReceipt:
@@ -94,3 +99,62 @@ def test_commit_reconciles_once() -> None:
     assert receipt.status == ReceiptStatus.CONSUMED
     assert context.reserved_usd == pytest.approx(0.0)
     assert context.spent_usd == pytest.approx(0.8)
+
+
+def test_legacy_name_is_canonical_v1_contract() -> None:
+    receipt = _issue(ResourceContext(budget_usd=2.0))
+
+    assert isinstance(receipt, AdmissionReceiptV1)
+    assert receipt.schema_version == "1"
+    assert receipt.receipt_id in receipt.canonical_payload.values()
+    assert receipt.nonce
+
+
+def test_canonical_bytes_are_stable_for_equivalent_utc_times() -> None:
+    issued = datetime(2026, 9, 8, 10, 30, tzinfo=UTC)
+    first = _issue(
+        ResourceContext(budget_usd=2.0),
+        issued_at=issued,
+        expires_at=issued + timedelta(minutes=5),
+    )
+    second = _issue(
+        ResourceContext(budget_usd=2.0),
+        issued_at=issued,
+        expires_at=issued + timedelta(minutes=5),
+        receipt_id=first.receipt_id,
+        nonce=first.nonce,
+    )
+
+    assert first.canonical_bytes == second.canonical_bytes
+    assert first.binding_hash == second.binding_hash
+
+
+def test_naive_receipt_times_are_rejected() -> None:
+    with pytest.raises(ValueError, match="timezone-aware"):
+        _issue(
+            ResourceContext(budget_usd=2.0),
+            issued_at=datetime(2026, 9, 8, 10, 30),
+            expires_at=datetime(2026, 9, 8, 10, 35),
+        )
+
+
+def test_signed_receipt_verifies_and_tampering_fails() -> None:
+    signer = DevelopmentSigner(key_id="admission-test-key")
+    receipt = _issue(ResourceContext(budget_usd=2.0))
+
+    receipt.sign(signer)
+
+    assert receipt.verify_signature(signer.public_key_b64()) == (True, "ok")
+    original_hash = receipt.binding_hash
+    receipt.policy_hash = "tampered-policy"
+    assert receipt.binding_hash != original_hash
+    assert receipt.verify_signature(signer.public_key_b64())[0] is False
+
+
+def test_strict_binding_does_not_coerce_types() -> None:
+    receipt = _issue(ResourceContext(budget_usd=2.0))
+
+    valid, reason = receipt.verify_binding(predicted_cost="1.0")
+
+    assert not valid
+    assert "predicted_cost" in reason

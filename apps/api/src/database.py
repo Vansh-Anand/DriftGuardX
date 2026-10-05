@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+import apps.api.src.models_admission
 import apps.api.src.models_bandit
 import apps.api.src.models_graph
 import apps.api.src.models_ingestion

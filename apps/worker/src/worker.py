@@ -285,9 +285,9 @@ async def execute_replay_job(
     async with _sessionmaker(ctx)() as session:
         await _mark_running(session, job_uuid)
 
-    from packages.replay.src.admission_store import AdmissionReceiptStore
+    from packages.replay.src.admission_store import get_admission_receipt_store
 
-    admission_store = AdmissionReceiptStore()
+    admission_store = get_admission_receipt_store()
     receipt_id: str | None = None
     receipt_verified = False
 
@@ -454,6 +454,8 @@ async def execute_replay_job(
             )
             actual_binding = {
                 "tenant_id": str(tenant_uuid),
+                "workload_id": str(run_orm.pipeline_id),
+                "run_id": str(run_uuid),
                 "manifest_hash": str(manifest_orm.manifest_hash),
                 "trace_root_hash": trace_root_hash,
                 "intervention_hash": intervention_hash,
@@ -461,6 +463,7 @@ async def execute_replay_job(
                 "candidate_version": str(intervention_orm.to_version_tag),
                 "policy_hash": str(manifest_orm.policy_config_hash or ""),
                 "capsule_hash": str(payload.get("capsule_hash", "")),
+                "resource_pool_id": f"tenant:{tenant_uuid}:replay",
             }
             evidence_class = (
                 EvidenceClassification.SYNTHETIC_SIMULATION
@@ -475,6 +478,7 @@ async def execute_replay_job(
             if not admitted:
                 raise ValueError(f"Replay refused at worker admission boundary: {admission_reason}")
             receipt_verified = True
+            execution_started_at = datetime.now(UTC)
 
             # 7. Build version registry from trace spans
             registry = VersionRegistry()
@@ -607,8 +611,6 @@ async def execute_replay_job(
             session.add(episode_orm)
             await session.commit()
 
-            admission_store.consume(receipt_id)
-
             result = {
                 "status": "completed",
                 "run_id": run_id_str,
@@ -618,6 +620,30 @@ async def execute_replay_job(
                 "reliability_improvement": episode.reliability_improvement,
                 "evidence_kind": "REAL_REPLAY",
             }
+
+            from packages.replay.src.admission_keys import load_worker_attestation_signer
+            from packages.replay.src.execution_attestation import ExecutionAttestationV1
+            from packages.utils.src.version import APP_VERSION
+
+            attestation = ExecutionAttestationV1(
+                receipt_id=receipt_id,
+                receipt_binding_hash=admission_store.binding_hash(receipt_id),
+                tenant_id=str(tenant_uuid),
+                worker_id=str(ctx.get("worker_id") or os.getenv("HOSTNAME") or "worker-unknown"),
+                manifest_hash=str(manifest_orm.manifest_hash),
+                policy_hash=str(manifest_orm.policy_config_hash or ""),
+                runtime_version=APP_VERSION,
+                image_digest=str(manifest_orm.container_image_digest or ""),
+                started_at=execution_started_at,
+                completed_at=datetime.now(UTC),
+                outcome="COMPLETED",
+                outcome_hash=hash_payload(result),
+            )
+            attestation_signer = load_worker_attestation_signer()
+            if attestation_signer is not None:
+                attestation.sign(attestation_signer)
+            admission_store.record_attestation(attestation)
+            admission_store.consume(receipt_id)
 
         async with _sessionmaker(ctx)() as session:
             await _mark_completed(session, job_uuid, result)

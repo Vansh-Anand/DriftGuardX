@@ -1175,8 +1175,9 @@ async def create_replay(
     # rollback reserve until a deployment-specific accounting backend is used.
     from packages.contracts.src.evidence import EvidenceClassification
     from packages.contracts.src.interfaces import ResourceContext, ResourceMeasurement
+    from packages.replay.src.admission_keys import sign_receipt_for_runtime
     from packages.replay.src.admission_receipt import ReplayAdmissionReceipt
-    from packages.replay.src.admission_store import AdmissionReceiptStore
+    from packages.replay.src.admission_store import get_admission_receipt_store
 
     resource_context = ResourceContext(budget_usd=100.0)
     admission_receipt = ReplayAdmissionReceipt.issue(
@@ -1199,13 +1200,20 @@ async def create_replay(
         evidence_ceiling=EvidenceClassification.SYNTHETIC_SIMULATION,
         capsule_hash="",
         expires_at=datetime.now(UTC) + timedelta(minutes=10),
+        workload_id=str(original_run_orm.pipeline_id),
+        run_id=str(run_id),
+        resource_pool_id=f"tenant:{tenant.id}:replay",
+        issued_by="driftguardx-api",
     )
-    admission_store = AdmissionReceiptStore()
+    sign_receipt_for_runtime(admission_receipt)
+    admission_store = get_admission_receipt_store()
     admission_store.issue(admission_receipt)
     admitted, admission_reason = admission_store.verify(
         admission_receipt.receipt_id,
         actual={
             "tenant_id": str(tenant.id),
+            "workload_id": str(original_run_orm.pipeline_id),
+            "run_id": str(run_id),
             "manifest_hash": manifest_orm.manifest_hash,
             "trace_root_hash": manifest_orm.trace_root_hash or "",
             "intervention_hash": admission_receipt.intervention_hash,
@@ -1213,6 +1221,7 @@ async def create_replay(
             "candidate_version": intervention_orm.to_version_tag,
             "policy_hash": manifest_orm.policy_config_hash or "",
             "capsule_hash": "",
+            "resource_pool_id": f"tenant:{tenant.id}:replay",
         },
         evidence_class=EvidenceClassification.SYNTHETIC_SIMULATION,
     )

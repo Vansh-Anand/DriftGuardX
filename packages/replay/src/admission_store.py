@@ -13,17 +13,30 @@ import json
 import os
 import sqlite3
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 from packages.contracts.src.evidence import EvidenceClassification
-from packages.replay.src.admission_receipt import ReceiptStatus, ReplayAdmissionReceipt
+from packages.replay.src.admission_keys import (
+    AdmissionReceiptTrustStore,
+    receipt_signature_required,
+)
+from packages.replay.src.admission_receipt import (
+    AdmissionReceiptV1,
+    ReceiptStatus,
+    ReceiptTerminalReason,
+    ReplayAdmissionReceipt,
+)
+from packages.replay.src.execution_attestation import ExecutionAttestationV1
 
 _REQUIRED_BINDING_FIELDS = frozenset(
     {
         "tenant_id",
+        "workload_id",
+        "run_id",
         "manifest_hash",
         "trace_root_hash",
         "intervention_hash",
@@ -31,6 +44,7 @@ _REQUIRED_BINDING_FIELDS = frozenset(
         "candidate_version",
         "policy_hash",
         "capsule_hash",
+        "resource_pool_id",
     }
 )
 
@@ -45,6 +59,63 @@ class AdmissionAuditEvent:
     reason: str
     details: dict[str, Any]
     created_at: str
+
+
+@dataclass(frozen=True)
+class _VerificationDecision:
+    reason: str = ""
+    expired: bool = False
+    signature_refusal: bool = False
+
+
+def _evaluate_verification(
+    receipt: AdmissionReceiptV1,
+    *,
+    actual: dict[str, Any],
+    evidence_class: EvidenceClassification | None,
+    now: datetime,
+    trusted_public_keys: Mapping[str, str] | None,
+    require_signature: bool | None,
+) -> _VerificationDecision:
+    signature_required = (
+        receipt_signature_required() if require_signature is None else require_signature
+    )
+    if receipt.payload_signature or signature_required:
+        trust_store = (
+            AdmissionReceiptTrustStore(trusted_public_keys)
+            if trusted_public_keys is not None
+            else AdmissionReceiptTrustStore.from_environment()
+        )
+        signature_valid, signature_reason = trust_store.verify(receipt)
+        if not signature_valid:
+            return _VerificationDecision(reason=signature_reason, signature_refusal=True)
+    if receipt.status != ReceiptStatus.ISSUED:
+        return _VerificationDecision(reason=f"Receipt is {receipt.status.value.lower()}.")
+    if now >= receipt.expires_at:
+        return _VerificationDecision(reason="Receipt has expired.", expired=True)
+    for key in sorted(_REQUIRED_BINDING_FIELDS & actual.keys()):
+        if actual[key] != receipt.canonical_payload[key]:
+            return _VerificationDecision(reason=f"Receipt binding mismatch: {key}.")
+    missing = sorted(_REQUIRED_BINDING_FIELDS - actual.keys())
+    if missing:
+        return _VerificationDecision(reason=f"Receipt binding incomplete: {', '.join(missing)}.")
+    if evidence_class is not None and not receipt.verify_evidence(evidence_class)[0]:
+        return _VerificationDecision(reason="Evidence classification exceeds the receipt ceiling.")
+    return _VerificationDecision()
+
+
+def _receipt_from_persisted_payload(
+    payload: dict[str, Any], receipt_id: str, status: ReceiptStatus
+) -> AdmissionReceiptV1:
+    restored = payload.copy()
+    restored["issued_at"] = datetime.fromisoformat(str(restored["issued_at"]))
+    restored["expires_at"] = datetime.fromisoformat(str(restored["expires_at"]))
+    payload_receipt_id = str(restored.pop("receipt_id", receipt_id))
+    return AdmissionReceiptV1(
+        **restored,
+        receipt_id=payload_receipt_id,
+        status=status,
+    )
 
 
 class AdmissionReceiptStore:
@@ -93,6 +164,12 @@ class AdmissionReceiptStore:
                 );
                 CREATE INDEX IF NOT EXISTS ix_admission_audit_receipt
                     ON admission_audit_events(receipt_id, sequence);
+                CREATE TABLE IF NOT EXISTS admission_execution_attestations (
+                    receipt_id TEXT PRIMARY KEY REFERENCES admission_receipts(receipt_id),
+                    attestation_hash TEXT NOT NULL UNIQUE,
+                    payload_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 """)
 
     @staticmethod
@@ -170,7 +247,7 @@ class AdmissionReceiptStore:
 
     def issue(self, receipt: ReplayAdmissionReceipt) -> str:
         """Persist an issued receipt and its first audit event atomically."""
-        payload = receipt.canonical_payload
+        payload = receipt.stored_payload
         with self._lock, self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute(
@@ -211,14 +288,12 @@ class AdmissionReceiptStore:
         return cast(dict[str, Any], json.loads(str(row["payload_json"])))
 
     @staticmethod
-    def _receipt_from_row(row: sqlite3.Row) -> ReplayAdmissionReceipt:
+    def _receipt_from_row(row: sqlite3.Row) -> AdmissionReceiptV1:
         payload = AdmissionReceiptStore._payload(row)
-        payload["issued_at"] = datetime.fromisoformat(payload["issued_at"])
-        payload["expires_at"] = datetime.fromisoformat(payload["expires_at"])
-        return ReplayAdmissionReceipt(
-            **payload,
-            receipt_id=str(row["receipt_id"]),
-            status=ReceiptStatus(str(row["status"])),
+        return _receipt_from_persisted_payload(
+            payload,
+            str(row["receipt_id"]),
+            ReceiptStatus(str(row["status"])),
         )
 
     def verify(
@@ -228,6 +303,8 @@ class AdmissionReceiptStore:
         actual: dict[str, Any],
         evidence_class: EvidenceClassification | None = None,
         now: datetime | None = None,
+        trusted_public_keys: Mapping[str, str] | None = None,
+        require_signature: bool | None = None,
     ) -> tuple[bool, str]:
         """Atomically verify and claim a receipt before worker execution."""
         with self._lock, self._connect() as connection:
@@ -235,47 +312,55 @@ class AdmissionReceiptStore:
             row = self._load_row(connection, receipt_id)
             if row is None:
                 return False, "Admission receipt not found."
-            payload = self._payload(row)
             status = ReceiptStatus(str(row["status"]))
+            receipt = self._receipt_from_row(row)
+            decision = _evaluate_verification(
+                receipt,
+                actual=actual,
+                evidence_class=evidence_class,
+                now=now or datetime.now(UTC),
+                trusted_public_keys=trusted_public_keys,
+                require_signature=require_signature,
+            )
 
-            reason = ""
-            if status != ReceiptStatus.ISSUED:
-                reason = f"Receipt is {status.value.lower()}."
-            elif (now or datetime.now(UTC)) >= datetime.fromisoformat(payload["expires_at"]):
-                reason = "Receipt has expired."
-            else:
-                for key in sorted(_REQUIRED_BINDING_FIELDS & actual.keys()):
-                    expected = payload[key]
-                    if actual[key] != expected and str(actual[key]) != str(expected):
-                        reason = f"Receipt binding mismatch: {key}."
-                        break
-                if not reason:
-                    missing = sorted(_REQUIRED_BINDING_FIELDS - actual.keys())
-                    if missing:
-                        reason = f"Receipt binding incomplete: {', '.join(missing)}."
-                if not reason and evidence_class is not None:
-                    if not self._receipt_from_row(row).verify_evidence(evidence_class)[0]:
-                        reason = "Evidence classification exceeds the receipt ceiling."
-
-            if reason:
+            if decision.reason:
                 self._append_event(
                     connection,
                     receipt_id,
-                    "MISMATCH_REFUSAL",
-                    reason=reason,
+                    "SIGNATURE_REFUSAL" if decision.signature_refusal else "MISMATCH_REFUSAL",
+                    reason=decision.reason,
                     details={"actual": actual},
                 )
                 # An unclaimed receipt is voided on drift.  A VERIFIED receipt
                 # belongs to an executing worker; retain that claim so a late
                 # duplicate cannot cancel the legitimate execution.
                 if status == ReceiptStatus.ISSUED:
+                    terminal_status = (
+                        ReceiptStatus.EXPIRED if decision.expired else ReceiptStatus.VOIDED
+                    )
                     connection.execute(
                         "UPDATE admission_receipts SET status = ?, terminal_at = ? "
                         "WHERE receipt_id = ?",
-                        (ReceiptStatus.VOIDED.value, self._now(), receipt_id),
+                        (terminal_status.value, self._now(), receipt_id),
                     )
-                    self._append_event(connection, receipt_id, "VOID", reason=reason)
-                return False, reason
+                    self._append_event(
+                        connection,
+                        receipt_id,
+                        "EXPIRE" if decision.expired else "VOID",
+                        reason=decision.reason,
+                        details={
+                            "terminal_reason": (
+                                ReceiptTerminalReason.EXPIRED.value
+                                if decision.expired
+                                else (
+                                    ReceiptTerminalReason.SIGNATURE_INVALID.value
+                                    if decision.signature_refusal
+                                    else ReceiptTerminalReason.BINDING_MISMATCH.value
+                                )
+                            )
+                        },
+                    )
+                return False, decision.reason
 
             connection.execute(
                 "UPDATE admission_receipts SET status = ? WHERE receipt_id = ?",
@@ -297,6 +382,7 @@ class AdmissionReceiptStore:
                 ReceiptStatus.CONSUMED: {ReceiptStatus.VERIFIED},
                 ReceiptStatus.RELEASED: {ReceiptStatus.ISSUED, ReceiptStatus.VERIFIED},
                 ReceiptStatus.VOIDED: {ReceiptStatus.ISSUED, ReceiptStatus.VERIFIED},
+                ReceiptStatus.EXPIRED: {ReceiptStatus.ISSUED},
             }[target]
             if current not in allowed:
                 return
@@ -309,6 +395,57 @@ class AdmissionReceiptStore:
     def consume(self, receipt_id: str) -> None:
         self._terminal_transition(receipt_id, ReceiptStatus.CONSUMED, "CONSUME")
 
+    def record_attestation(
+        self,
+        attestation: ExecutionAttestationV1,
+        *,
+        trusted_public_keys: Mapping[str, str] | None = None,
+        require_signature: bool | None = None,
+    ) -> str:
+        signature_required = (
+            receipt_signature_required() if require_signature is None else require_signature
+        )
+        if attestation.payload_signature or signature_required:
+            trust = (
+                trusted_public_keys
+                if trusted_public_keys is not None
+                else AdmissionReceiptTrustStore.from_environment(
+                    "DGX_WORKER_ATTESTATION_TRUSTED_KEYS_JSON"
+                ).public_keys
+            )
+            public_key = trust.get(attestation.key_id)
+            if public_key is None:
+                raise ValueError("Worker attestation signing key is not trusted.")
+            valid, reason = attestation.verify_signature(public_key)
+            if not valid:
+                raise ValueError(reason)
+        with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = self._load_row(connection, attestation.receipt_id)
+            if row is None:
+                raise ValueError("Admission receipt not found.")
+            if ReceiptStatus(str(row["status"])) != ReceiptStatus.VERIFIED:
+                raise ValueError("Execution attestation requires a verified receipt.")
+            if str(row["binding_hash"]) != attestation.receipt_binding_hash:
+                raise ValueError("Execution attestation receipt binding mismatch.")
+            connection.execute(
+                "INSERT INTO admission_execution_attestations "
+                "(receipt_id, attestation_hash, payload_json, created_at) VALUES (?, ?, ?, ?)",
+                (
+                    attestation.receipt_id,
+                    attestation.attestation_hash,
+                    json.dumps(attestation.stored_payload, sort_keys=True, separators=(",", ":")),
+                    self._now(),
+                ),
+            )
+            self._append_event(
+                connection,
+                attestation.receipt_id,
+                "ATTEST",
+                details={"attestation_hash": attestation.attestation_hash},
+            )
+        return attestation.attestation_hash
+
     def release(self, receipt_id: str) -> None:
         self._terminal_transition(receipt_id, ReceiptStatus.RELEASED, "RELEASE")
 
@@ -319,6 +456,13 @@ class AdmissionReceiptStore:
         with self._lock, self._connect() as connection:
             row = self._load_row(connection, receipt_id)
             return ReceiptStatus(str(row["status"])) if row else None
+
+    def binding_hash(self, receipt_id: str) -> str:
+        with self._lock, self._connect() as connection:
+            row = self._load_row(connection, receipt_id)
+            if row is None:
+                raise ValueError("Admission receipt not found.")
+            return str(row["binding_hash"])
 
     def events(self, receipt_id: str) -> list[AdmissionAuditEvent]:
         with self._lock, self._connect() as connection:
@@ -364,3 +508,22 @@ class AdmissionReceiptStore:
                 return False, f"Audit hash mismatch at event {expected_sequence}."
             previous_hash = event.event_hash
         return True, "ok"
+
+
+def get_admission_receipt_store() -> AdmissionReceiptStore | Any:
+    """Select SQLite for local/test and PostgreSQL for production/shared deployments."""
+    backend = os.getenv("DGX_ADMISSION_STORE_BACKEND", "").strip().lower()
+    if not backend:
+        production_mode = (
+            os.getenv("DGX_MODE", "").lower() == "production"
+            or os.getenv("APP_ENV", "").lower() in {"staging", "production", "prod"}
+            or os.getenv("ENVIRONMENT", "").lower() in {"staging", "prod"}
+        )
+        backend = "postgres" if production_mode else "sqlite"
+    if backend == "sqlite":
+        return AdmissionReceiptStore()
+    if backend == "postgres":
+        from packages.replay.src.postgres_admission_store import PostgresAdmissionReceiptStore
+
+        return PostgresAdmissionReceiptStore()
+    raise RuntimeError(f"Unsupported admission store backend: {backend}.")

@@ -7,11 +7,13 @@ import pytest
 
 from packages.contracts.src.evidence import EvidenceClassification
 from packages.contracts.src.interfaces import ResourceContext
+from packages.ledger.src.crypto import DevelopmentSigner
 from packages.recovery.src.actions import ExecutionMode, RecoveryActionType, RecoveryProposal
 from packages.recovery.src.capsule import CapsuleRegistry
 from packages.recovery.src.executor import LocalDevExecutor
-from packages.replay.src.admission_receipt import ReplayAdmissionReceipt
+from packages.replay.src.admission_receipt import ReceiptStatus, ReplayAdmissionReceipt
 from packages.replay.src.admission_store import AdmissionReceiptStore
+from packages.replay.src.execution_attestation import ExecutionAttestationV1
 
 
 def _verify_in_process(path: str, receipt_id: str, actual: dict[str, str]) -> bool:
@@ -46,12 +48,17 @@ def _receipt(intervention_hash: str = "intervention-a") -> ReplayAdmissionReceip
         capsule_hash="capsule-a",
         issued_at=datetime.now(UTC),
         expires_at=datetime.now(UTC) + timedelta(minutes=5),
+        workload_id="pipeline-a",
+        run_id="run-a",
+        resource_pool_id="tenant:tenant-a:replay",
     )
 
 
 def _actual() -> dict[str, str]:
     return {
         "tenant_id": "tenant-a",
+        "workload_id": "pipeline-a",
+        "run_id": "run-a",
         "manifest_hash": "manifest-a",
         "trace_root_hash": "trace-a",
         "intervention_hash": "intervention-a",
@@ -59,6 +66,7 @@ def _actual() -> dict[str, str]:
         "candidate_version": "v2",
         "policy_hash": "policy-a",
         "capsule_hash": "capsule-a",
+        "resource_pool_id": "tenant:tenant-a:replay",
     }
 
 
@@ -91,7 +99,7 @@ def test_distributed_state_drift_blocks_before_execution(
     ]
 
 
-def test_expired_receipt_blocks_and_is_voided(store_path: Path) -> None:
+def test_expired_receipt_blocks_and_is_marked_expired(store_path: Path) -> None:
     store = AdmissionReceiptStore(store_path)
     receipt = _receipt()
     store.issue(receipt)
@@ -104,7 +112,12 @@ def test_expired_receipt_blocks_and_is_voided(store_path: Path) -> None:
 
     assert not admitted
     assert "expired" in reason
-    assert store.status(receipt.receipt_id).value == "VOIDED"
+    assert store.status(receipt.receipt_id).value == "EXPIRED"
+    assert [event.event_type for event in store.events(receipt.receipt_id)] == [
+        "ISSUE",
+        "MISMATCH_REFUSAL",
+        "EXPIRE",
+    ]
 
 
 def test_evidence_promotion_blocks_before_consume(store_path: Path) -> None:
@@ -268,3 +281,126 @@ def test_cross_process_claim_and_terminal_transition_are_single_use(store_path: 
     ]
     assert terminal_events == ["CONSUME"]
     assert store.verify_event_chain(receipt.receipt_id) == (True, "ok")
+
+
+def test_required_signature_is_verified_before_binding_claim(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    signer = DevelopmentSigner(key_id="trusted-admission-key")
+    receipt = _receipt()
+    receipt.sign(signer)
+    store.issue(receipt)
+
+    admitted, reason = store.verify(
+        receipt.receipt_id,
+        actual=_actual(),
+        trusted_public_keys={signer.key_id(): signer.public_key_b64()},
+        require_signature=True,
+    )
+
+    assert admitted and reason == "ok"
+
+
+def test_untrusted_signature_is_refused_and_audited(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    signer = DevelopmentSigner(key_id="unknown-admission-key")
+    receipt = _receipt()
+    receipt.sign(signer)
+    store.issue(receipt)
+
+    admitted, reason = store.verify(
+        receipt.receipt_id,
+        actual=_actual(),
+        trusted_public_keys={},
+        require_signature=True,
+    )
+
+    assert not admitted
+    assert "not trusted" in reason
+    assert store.status(receipt.receipt_id) == ReceiptStatus.VOIDED
+    assert [event.event_type for event in store.events(receipt.receipt_id)] == [
+        "ISSUE",
+        "SIGNATURE_REFUSAL",
+        "VOID",
+    ]
+
+
+def test_unsigned_receipt_is_refused_when_signature_required(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    receipt = _receipt()
+    store.issue(receipt)
+
+    admitted, reason = store.verify(
+        receipt.receipt_id,
+        actual=_actual(),
+        trusted_public_keys={},
+        require_signature=True,
+    )
+
+    assert not admitted
+    assert "unsigned" in reason
+    assert store.status(receipt.receipt_id) == ReceiptStatus.VOIDED
+
+
+def test_signed_execution_attestation_precedes_consumption(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    receipt = _receipt()
+    store.issue(receipt)
+    admitted, _ = store.verify(receipt.receipt_id, actual=_actual())
+    assert admitted
+    signer = DevelopmentSigner(key_id="worker-attestation-key")
+    started = datetime.now(UTC)
+    attestation = ExecutionAttestationV1(
+        receipt_id=receipt.receipt_id,
+        receipt_binding_hash=receipt.binding_hash,
+        tenant_id=receipt.tenant_id,
+        worker_id="worker-a",
+        manifest_hash=receipt.manifest_hash,
+        policy_hash=receipt.policy_hash,
+        runtime_version="2.0.0-rc.1",
+        image_digest="sha256:image-a",
+        started_at=started,
+        completed_at=started + timedelta(seconds=1),
+        outcome="COMPLETED",
+        outcome_hash="outcome-a",
+    )
+    attestation.sign(signer)
+
+    stored_hash = store.record_attestation(
+        attestation,
+        trusted_public_keys={signer.key_id(): signer.public_key_b64()},
+        require_signature=True,
+    )
+    store.consume(receipt.receipt_id)
+
+    assert stored_hash == attestation.attestation_hash
+    assert [event.event_type for event in store.events(receipt.receipt_id)] == [
+        "ISSUE",
+        "VERIFY",
+        "ATTEST",
+        "CONSUME",
+    ]
+
+
+def test_attestation_rejects_wrong_receipt_binding(store_path: Path) -> None:
+    store = AdmissionReceiptStore(store_path)
+    receipt = _receipt()
+    store.issue(receipt)
+    assert store.verify(receipt.receipt_id, actual=_actual())[0]
+    started = datetime.now(UTC)
+    attestation = ExecutionAttestationV1(
+        receipt_id=receipt.receipt_id,
+        receipt_binding_hash="wrong-binding",
+        tenant_id=receipt.tenant_id,
+        worker_id="worker-a",
+        manifest_hash=receipt.manifest_hash,
+        policy_hash=receipt.policy_hash,
+        runtime_version="2.0.0-rc.1",
+        image_digest="sha256:image-a",
+        started_at=started,
+        completed_at=started,
+        outcome="COMPLETED",
+        outcome_hash="outcome-a",
+    )
+
+    with pytest.raises(ValueError, match="binding mismatch"):
+        store.record_attestation(attestation)
